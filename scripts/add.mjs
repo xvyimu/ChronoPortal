@@ -18,6 +18,31 @@
  */
 
 import { createClient } from "@supabase/supabase-js";
+import { readFileSync } from "fs";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const projectRoot = join(__dirname, "..");
+
+// 读取 .env.local 文件
+function loadEnv() {
+  try {
+    const envPath = join(projectRoot, ".env.local");
+    const lines = readFileSync(envPath, "utf-8").split("\n");
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eqIdx = trimmed.indexOf("=");
+      if (eqIdx === -1) continue;
+      const key = trimmed.slice(0, eqIdx).trim();
+      const value = trimmed.slice(eqIdx + 1).trim();
+      if (!process.env[key]) process.env[key] = value;
+    }
+  } catch {}
+}
+
+loadEnv();
 
 const args = process.argv.slice(2);
 
@@ -106,15 +131,23 @@ async function main() {
 
   // 4. 同步到新库
   if (target) {
-    const { error: syncErr } = await target.from("nav_links").upsert(inserted, {
-      onConflict: "url",
-      ignoreDuplicates: true,
-    });
-    if (syncErr) {
-      console.error(`⚠️  同步到生产库失败: ${syncErr.message}`);
-      console.log("   可稍后手动执行: node scripts/sync-db.mjs");
+    // 先检查是否已存在
+    const { data: existingInTarget } = await target
+      .from("nav_links")
+      .select("id")
+      .eq("url", url)
+      .maybeSingle();
+
+    if (!existingInTarget) {
+      const { error: syncErr } = await target.from("nav_links").insert(inserted);
+      if (syncErr) {
+        console.error(`⚠️  同步到生产库失败: ${syncErr.message}`);
+        console.log("   可稍后手动执行: node scripts/sync-db.mjs");
+      } else {
+        console.log(`✅ 已同步到生产库!`);
+      }
     } else {
-      console.log(`✅ 已同步到生产库!`);
+      console.log(`✅ 生产库已存在（跳过）`);
     }
   } else {
     console.log("ℹ️  未配置生产库，跳过同步。");

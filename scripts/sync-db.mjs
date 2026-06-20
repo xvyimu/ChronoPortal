@@ -15,6 +15,31 @@
  */
 
 import { createClient } from "@supabase/supabase-js";
+import { readFileSync } from "fs";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const projectRoot = join(__dirname, "..");
+
+// 读取 .env.local 文件
+function loadEnv() {
+  try {
+    const envPath = join(projectRoot, ".env.local");
+    const lines = readFileSync(envPath, "utf-8").split("\n");
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eqIdx = trimmed.indexOf("=");
+      if (eqIdx === -1) continue;
+      const key = trimmed.slice(0, eqIdx).trim();
+      const value = trimmed.slice(eqIdx + 1).trim();
+      if (!process.env[key]) process.env[key] = value;
+    }
+  } catch {}
+}
+
+loadEnv();
 
 const isDryRun = process.argv.includes("--dry-run");
 const shouldDedupe = !process.argv.includes("--no-dedupe");
@@ -65,22 +90,18 @@ async function syncTable(table, conflictCol = "url") {
   }
   console.log(`  📥 目标库: ${targetData.length} 条`);
 
-  // 3. 构建 URL → 目标记录的映射（用于去重）
-  const targetByUrl = new Map();
-  const targetById = new Map();
+  // 3. 构建目标记录集合（用于去重）
+  const targetUrlSet = new Set();
+  const targetIdSet = new Set();
   for (const item of targetData || []) {
-    if (item.url) targetByUrl.set(item.url, item);
-    targetById.set(item.id, item);
+    if (item.url) targetUrlSet.add(item.url);
+    targetIdSet.add(item.id);
   }
 
   // 4. 找出需要新增的记录
   const toInsert = [];
   for (const item of sourceData) {
-    // 跳过已存在的（按 URL 或 ID 去重）
-    if (
-      shouldDedupe &&
-      (targetByUrl.has(item.url) || targetById.has(item.id))
-    ) {
+    if (shouldDedupe && (targetUrlSet.has(item.url) || targetIdSet.has(item.id))) {
       continue;
     }
     toInsert.push(item);
@@ -103,14 +124,11 @@ async function syncTable(table, conflictCol = "url") {
     return toInsert.length;
   }
 
-  // 5. 分批写入目标库
+  // 5. 分批写入目标库（使用 insert 而非 upsert）
   let inserted = 0;
   for (let i = 0; i < toInsert.length; i += 10) {
     const batch = toInsert.slice(i, i + 10);
-    const { error: insErr } = await target.from(table).insert(batch, {
-      onConflict: conflictCol,
-      ignoreDuplicates: true,
-    });
+    const { error: insErr } = await target.from(table).insert(batch);
     if (insErr) {
       console.error(`  ❌ 第 ${i / 10 + 1} 批写入失败: ${insErr.message}`);
     } else {

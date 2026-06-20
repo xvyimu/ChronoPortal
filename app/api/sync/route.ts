@@ -52,13 +52,21 @@ export async function GET(request: Request) {
       .select("*")
       .eq("approved", true);
 
+    // 获取目标库已有 URLs
+    const { data: existingLinks } = await target
+      .from("nav_links")
+      .select("url");
+
+    const existingUrls = new Set((existingLinks || []).map((l) => l.url));
+
     let linkInserted = 0;
     for (const link of links || []) {
-      const { error } = await target.from("nav_links").upsert(link, {
-        onConflict: "url",
-        ignoreDuplicates: true,
-      });
-      if (!error) linkInserted++;
+      if (existingUrls.has(link.url)) continue;
+      const { error } = await target.from("nav_links").insert(link);
+      if (!error) {
+        linkInserted++;
+        existingUrls.add(link.url);
+      }
     }
     results.links = linkInserted;
     results.links_total = (links || []).length;
