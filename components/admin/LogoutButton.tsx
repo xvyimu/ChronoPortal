@@ -3,7 +3,7 @@
 export default function LogoutButton() {
   async function logout() {
     await fetch("/api/admin/login", { method: "DELETE" });
-    window.location.href = "/admin/login";
+    window.location.href = "/login";
   }
 
   return (
