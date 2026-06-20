@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI 导航站
 
-## Getting Started
+精选 AI 工具与开发者资源导航网站。
 
-First, run the development server:
+## 技术栈
+
+- **前端**: Next.js 16 (App Router) + React 19 + TypeScript
+- **样式**: Tailwind CSS v4
+- **数据库**: Supabase (PostgreSQL)
+- **部署**: Vercel
+
+## 本地开发
 
 ```bash
+# 安装依赖
+npm install
+
+# 复制环境变量
+cp .env.example .env.local
+# 编辑 .env.local 填入 Supabase 凭据
+
+# 启动开发服务器
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+访问 http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 环境变量
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| 变量 | 说明 |
+|------|------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase 项目 URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
+| `STRIPE_SECRET_KEY` | Stripe 密钥（暂未启用） |
+| `STRIPE_WEBHOOK_SECRET` | Stripe Webhook 密钥（暂未启用） |
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Google Analytics 4 ID |
+| `NEXT_PUBLIC_SITE_URL` | 站点 URL（用于 sitemap） |
 
-## Learn More
+## 数据库表结构
 
-To learn more about Next.js, take a look at the following resources:
+- `nav_categories` - 导航分类
+- `nav_links` - 导航链接（含审核/付费/推荐状态）
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 功能
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- ✅ 分类展示导航链接
+- ✅ 分类筛选 + 搜索
+- ✅ 提交新站点（需审核）
+- ✅ SEO 优化（meta/sitemap/robots）
+- ✅ 响应式设计
+- 🔜 Stripe 付费优选提交
+- 🔜 后台管理面板
 
-## Deploy on Vercel
+## 部署
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+推送到 GitHub 后在 Vercel 连接仓库，配置环境变量即可。
