@@ -21,16 +21,16 @@ const siteUrl =
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "AI 导航站 — 精选 AI 工具与开发者资源",
-    template: "%s | AI 导航站",
+    default: "公益API导航站 — AI 模型公益中转站导航",
+    template: "%s | 公益API导航",
   },
   description:
-    "发现最好用的 AI 工具、开发资源与效率应用。分类精选，持续更新。",
-  keywords: ["AI工具", "导航", "开发者资源", "人工智能", "效率工具"],
+    "收录各种公益、免费、可白嫖的AI大模型API中转站，帮助更多人找到可用、稳定、低门槛的AI服务入口。",
+  keywords: ["公益API", "AI中转站", "免费Token", "API导航", "大模型API", "公益导航"],
   openGraph: {
     type: "website",
     locale: "zh_CN",
-    siteName: "AI 导航站",
+    siteName: "公益API导航站",
   },
 };
 

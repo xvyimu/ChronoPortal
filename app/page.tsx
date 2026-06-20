@@ -34,10 +34,10 @@ export default async function Home() {
       {/* Hero */}
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-          🧭 AI 导航站
+          🌐 公益API导航站
         </h1>
         <p className="mt-2 text-muted-foreground">
-          精选 AI 工具与开发者资源，助你高效工作
+          收录公益、免费、可白嫖的 AI 大模型 API 中转站，助你实现 Token 自由
         </p>
       </div>
 
