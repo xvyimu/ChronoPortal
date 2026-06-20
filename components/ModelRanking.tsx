@@ -21,6 +21,7 @@ const sourceLabels: Record<string, string> = {
   "开源模型": "开源模型 TOP5",
   "Chatbot Arena": "Chatbot Arena（斯坦福）",
   "SuperCLUE": "SuperCLUE 中文榜",
+  "能力冠军": "分能力单项冠军",
 };
 
 const sourceColors: Record<string, string> = {
@@ -28,6 +29,7 @@ const sourceColors: Record<string, string> = {
   "开源模型": "text-emerald-600 dark:text-emerald-400",
   "Chatbot Arena": "text-violet-600 dark:text-violet-400",
   "SuperCLUE": "text-amber-600 dark:text-amber-400",
+  "能力冠军": "text-rose-600 dark:text-rose-400",
 };
 
 const sourceBorderColors: Record<string, string> = {
@@ -35,6 +37,7 @@ const sourceBorderColors: Record<string, string> = {
   "开源模型": "border-l-emerald-400",
   "Chatbot Arena": "border-l-violet-400",
   "SuperCLUE": "border-l-amber-400",
+  "能力冠军": "border-l-rose-400",
 };
 
 export function ModelRanking({ data }: { data: ModelRanking[] }) {

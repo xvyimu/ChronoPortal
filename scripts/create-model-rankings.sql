@@ -30,7 +30,10 @@ CREATE POLICY "Anon insert rankings" ON model_rankings FOR INSERT WITH CHECK (tr
 CREATE POLICY "Anon update rankings" ON model_rankings FOR UPDATE USING (true) WITH CHECK (true);
 CREATE POLICY "Anon delete rankings" ON model_rankings FOR DELETE USING (true);
 
--- 3. updated_at 自动更新
+-- 3. 权限
+GRANT ALL ON model_rankings TO anon, service_role;
+
+-- 4. updated_at 自动更新
 CREATE OR REPLACE FUNCTION trigger_set_updated_at()
 RETURNS TRIGGER AS $$ BEGIN NEW.updated_at = now(); RETURN NEW; END; $$ LANGUAGE plpgsql;
 
