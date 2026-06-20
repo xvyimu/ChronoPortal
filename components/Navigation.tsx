@@ -38,13 +38,12 @@ export function Navigation({
     return result;
   }, [links, activeCategory, search]);
 
-  // Group: featured first, then regular
   const featured = filtered.filter((l) => l.featured || l.paid);
   const regular = filtered.filter((l) => !l.featured && !l.paid);
 
   return (
     <motion.div
-      className="space-y-6"
+      className="space-y-8"
       variants={staggerContainer}
       initial="hidden"
       animate="show"
@@ -64,23 +63,19 @@ export function Navigation({
       </motion.div>
 
       {/* Results count */}
-      <motion.p
-        className="text-sm text-muted-foreground/60"
-        variants={fadeInUp}
-      >
+      <motion.p className="text-xs text-muted-foreground/40" variants={fadeInUp}>
         {filtered.length === 0
           ? "没有找到匹配的工具"
-          : `共 ${filtered.length} 个工具`}
+          : `${filtered.length} 个`}
       </motion.p>
 
       {/* Featured */}
       {featured.length > 0 && (
         <motion.section variants={fadeInUp}>
-          <h2 className="mb-3 text-sm font-medium text-primary/70 flex items-center gap-1.5">
-            <span className="inline-block w-1 h-3 rounded-full bg-primary/50" />
-            ⭐ 推荐
+          <h2 className="mb-4 text-xs font-medium uppercase tracking-wider text-muted-foreground/50">
+            推荐
           </h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-px bg-white/[0.06] rounded-lg border border-white/[0.06] overflow-hidden sm:grid-cols-2 lg:grid-cols-3">
             {featured.map((link, i) => (
               <LinkCard key={link.id} link={link} index={i} />
             ))}
@@ -92,12 +87,11 @@ export function Navigation({
       {regular.length > 0 && (
         <motion.section variants={fadeInUp}>
           {featured.length > 0 && (
-            <h2 className="mb-3 text-sm font-medium text-muted-foreground/50 flex items-center gap-1.5">
-              <span className="inline-block w-1 h-3 rounded-full bg-muted-foreground/30" />
-              全部工具
+            <h2 className="mb-4 text-xs font-medium uppercase tracking-wider text-muted-foreground/50">
+              全部
             </h2>
           )}
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-px bg-white/[0.06] rounded-lg border border-white/[0.06] overflow-hidden sm:grid-cols-2 lg:grid-cols-3">
             {regular.map((link, i) => (
               <LinkCard key={link.id} link={link} index={i} />
             ))}
@@ -108,17 +102,17 @@ export function Navigation({
       {/* Empty state */}
       {filtered.length === 0 && (
         <motion.div
-          className="flex flex-col items-center gap-2 py-16 text-muted-foreground/50"
+          className="flex flex-col items-center gap-3 py-20 text-muted-foreground/40"
           variants={fadeInUp}
         >
-          <span className="text-4xl">🔍</span>
-          <p>没有找到匹配的工具</p>
+          <span className="text-3xl">🔍</span>
+          <p className="text-sm">没有找到匹配的工具</p>
           <button
             onClick={() => {
               setSearch("");
               setActiveCategory("all");
             }}
-            className="text-sm text-primary/60 hover:text-primary underline-offset-2 hover:underline transition-colors"
+            className="text-xs text-muted-foreground/50 hover:text-muted-foreground/80 underline-offset-2 underline transition-colors"
           >
             清除筛选
           </button>
