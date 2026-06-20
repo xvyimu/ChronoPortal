@@ -1,0 +1,49 @@
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { verifyAdmin } from "@/lib/admin";
+
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (!(await verifyAdmin())) {
+    return NextResponse.json({ error: "未授权" }, { status: 401 });
+  }
+
+  const { id } = await params;
+  const supabase = await createClient();
+  const body = await request.json();
+
+  const { data, error } = await supabase
+    .from("nav_categories")
+    .update({
+      name: body.name,
+      slug: body.slug,
+      description: body.description,
+      icon: body.icon,
+      sort_order: body.sort_order,
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ category: data });
+}
+
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (!(await verifyAdmin())) {
+    return NextResponse.json({ error: "未授权" }, { status: 401 });
+  }
+
+  const { id } = await params;
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("nav_categories").delete().eq("id", id);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
+}

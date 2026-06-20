@@ -1,83 +1,77 @@
--- ============================================
--- AI 导航站 - 新库迁移脚本
--- 目标项目: vyqqbypwrbdcafanzwmj
--- 请在 Supabase Dashboard → SQL Editor 中执行
--- ============================================
+-- =============================================
+-- 公益API导航站 - 生产库完整迁移
+-- 在 https://supabase.com/dashboard/project/vyqqbypwrbdcafanzwmj/sql/new 执行
+-- =============================================
 
--- 1. 建表
-CREATE TABLE IF NOT EXISTS nav_categories (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  slug TEXT NOT NULL UNIQUE,
-  description TEXT,
-  icon TEXT,
-  sort_order INT DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+-- 先清空旧数据（从头迁移）
+DELETE FROM nav_links;
+DELETE FROM nav_categories;
 
-CREATE TABLE IF NOT EXISTS nav_links (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title TEXT NOT NULL,
-  url TEXT NOT NULL,
-  description TEXT,
-  icon TEXT,
-  category_id UUID REFERENCES nav_categories(id) ON DELETE SET NULL,
-  approved BOOLEAN DEFAULT false,
-  paid BOOLEAN DEFAULT false,
-  featured BOOLEAN DEFAULT false,
-  click_count INT DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
--- 2. RLS
-ALTER TABLE nav_categories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE nav_links ENABLE ROW LEVEL SECURITY;
-
--- 3. 策略
-CREATE POLICY "Public read categories" ON nav_categories
-  FOR SELECT USING (true);
-
-CREATE POLICY "Public read approved links" ON nav_links
-  FOR SELECT USING (approved = true);
-
-CREATE POLICY "Anon insert links" ON nav_links
-  FOR INSERT WITH CHECK (true);
-
--- 4. 索引
-CREATE INDEX IF NOT EXISTS idx_nav_links_category ON nav_links(category_id);
-CREATE INDEX IF NOT EXISTS idx_nav_links_approved ON nav_links(approved);
-CREATE INDEX IF NOT EXISTS idx_nav_links_featured_paid ON nav_links(featured DESC, paid DESC, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_nav_categories_sort ON nav_categories(sort_order);
-
--- 5. 权限
-GRANT SELECT ON nav_categories TO anon;
-GRANT SELECT ON nav_links TO anon;
-GRANT INSERT ON nav_links TO anon;
-
--- 6. 种子数据 - 分类
+-- ==================== 分类 ====================
 INSERT INTO nav_categories (id, name, slug, description, icon, sort_order) VALUES
-  ('4591beee-9d26-4922-accf-3a88a7deb2f6', 'AI 对话', 'ai-chat', 'AI 聊天助手与对话工具', '💬', 1),
-  ('54e6568b-a39e-4a43-baf3-3302ca14d75d', 'AI 绘画', 'ai-art', 'AI 图像生成与编辑工具', '🎨', 2),
-  ('cf12187e-e250-4dfa-967c-58fed1024220', 'AI 编程', 'ai-coding', 'AI 编程助手与代码工具', '💻', 3),
-  ('12bdcac6-defc-4ef3-ab7a-ecc6e41788c1', 'AI 视频', 'ai-video', 'AI 视频生成与编辑工具', '🎬', 4),
-  ('8ddc9ad7-745f-4812-896b-3230bc1cbc3b', '开发工具', 'dev-tools', '开发者常用工具与平台', '🛠️', 5),
-  ('8fa1e856-ce0e-4225-a97f-def28c36e3b2', '设计资源', 'design', '设计工具与素材资源', '✨', 6),
-  ('0b7f918e-bed2-4b0f-9876-0cb6e8f6a6b0', '效率工具', 'productivity', '提升工作效率的工具', '⚡', 7),
-  ('4608512c-333a-4c4c-a107-581c002d9aab', '学习资源', 'learning', '在线学习与教程平台', '📚', 8)
-ON CONFLICT (id) DO NOTHING;
+  ('c0000000-0000-0000-0000-000000000001', '公益中转站',  'free-relay', '免费公益 API 中转服务，无需付费即可使用', '🆓', 1),
+  ('c0000000-0000-0000-0000-000000000002', '大厂API',     'big-tech',   '各大厂商提供的 API 服务',              '🏢', 2),
+  ('c0000000-0000-0000-0000-000000000003', '开源模型',    'oss-model',  '开源的 AI 模型与工具',               '📖', 3),
+  ('c0000000-0000-0000-0000-000000000004', '算力GPU',     'gpu',        'GPU 算力租赁与服务',                  '⚡', 4);
 
--- 7. 种子数据 - 链接
-INSERT INTO nav_links (id, title, url, description, icon, category_id, approved, featured, paid) VALUES
-  ('ec102f85-400c-4924-aa31-5778806b5c45', 'ChatGPT', 'https://chat.openai.com', 'OpenAI 推出的 AI 对话助手', '🤖', '4591beee-9d26-4922-accf-3a88a7deb2f6', true, true, false),
-  ('e4a12d59-7a74-424d-b8ea-af83cf0af4fd', 'Claude', 'https://claude.ai', 'Anthropic 出品的 AI 助手，擅长分析与创作', '🧠', '4591beee-9d26-4922-accf-3a88a7deb2f6', true, true, false),
-  ('c383a40a-bdc0-4e53-8b1b-8fa1b677cbca', 'DeepSeek', 'https://chat.deepseek.com', '深度求索 AI 对话，支持深度思考', '🔍', '4591beee-9d26-4922-accf-3a88a7deb2f6', true, false, false),
-  ('0a8201b5-9db3-44a9-9dfd-528257c62b44', 'Midjourney', 'https://midjourney.com', 'AI 艺术图像生成工具', '🎭', '54e6568b-a39e-4a43-baf3-3302ca14d75d', true, true, false),
-  ('c665f119-76c5-4af1-9012-a29569aefe7e', 'Stable Diffusion', 'https://stability.ai', '开源 AI 图像生成模型', '🖼️', '54e6568b-a39e-4a43-baf3-3302ca14d75d', true, false, false),
-  ('da94b481-65ac-4f99-b8b6-d5b31c7269c0', 'GitHub Copilot', 'https://github.com/features/copilot', 'GitHub AI 编程助手', '🐙', 'cf12187e-e250-4dfa-967c-58fed1024220', true, true, false),
-  ('083ed723-6fbf-4a9b-ae33-8c95b1df7823', 'Cursor', 'https://cursor.sh', 'AI 驱动的代码编辑器', '📝', 'cf12187e-e250-4dfa-967c-58fed1024220', true, true, false),
-  ('9024236b-1dd9-4481-9ceb-846f33ed27d4', 'Sora', 'https://sora.com', 'OpenAI 视频生成模型', '🎥', '12bdcac6-defc-4ef3-ab7a-ecc6e41788c1', true, true, false),
-  ('c9540c7b-a944-4ea1-b9da-6149e3b339cf', 'Vercel', 'https://vercel.com', '前端部署与托管平台', '▲', '8ddc9ad7-745f-4812-896b-3230bc1cbc3b', true, false, false),
-  ('9b4ffcb9-f16e-447e-a33f-20b6fad1e5b6', 'Supabase', 'https://supabase.com', '开源 Firebase 替代方案，基于 PostgreSQL', '⚡', '8ddc9ad7-745f-4812-896b-3230bc1cbc3b', true, false, false),
-  ('ea7f10a5-c62d-46c7-9c59-95b1774eda1b', 'Figma', 'https://figma.com', '协作界面设计工具', '🎨', '8fa1e856-ce0e-4225-a97f-def28c36e3b2', true, true, false),
-  ('d359e5ea-bbcb-434e-8925-fff06dc584f1', 'Notion', 'https://notion.so', '一体化工作空间与笔记工具', '📋', '0b7f918e-bed2-4b0f-9876-0cb6e8f6a6b0', true, false, false)
-ON CONFLICT (id) DO NOTHING;
+-- ==================== 公益中转站 ====================
+INSERT INTO nav_links (title, url, description, icon, category_id, approved, featured) VALUES
+  ('DeepSeek 官方',       'https://chat.deepseek.com/',        '深度求索，国产开源大模型代表', '🤖', 'c0000000-0000-0000-0000-000000000001', true, true),
+  ('硅基流动',           'https://cloud.siliconflow.cn/',     'SiliconFlow 云端推理',        '☁️', 'c0000000-0000-0000-0000-000000000001', true, true),
+  ('Groq',               'https://groq.com/',                 'Groq LPU 超低延迟推理',        '⚡', 'c0000000-0000-0000-0000-000000000001', true, true),
+  ('Cloudflare Workers AI','https://ai.cloudflare.com/',      'CF Workers AI 免费额度',       '🌐', 'c0000000-0000-0000-0000-000000000001', true, true),
+  ('Hugging Face',       'https://huggingface.co/',           '最流行的模型托管平台',          '🤗', 'c0000000-0000-0000-0000-000000000001', true, true),
+  ('OpenRouter',         'https://openrouter.ai/',            '统一API网关，聚合多模型',       '🔀', 'c0000000-0000-0000-0000-000000000001', true, true),
+  ('Google Gemini',      'https://aistudio.google.com/',      'Google AI Studio 免费使用',     '🔮', 'c0000000-0000-0000-0000-000000000001', true, true),
+  ('Anthropic Console',  'https://console.anthropic.com/',    'Claude 官方控制台',            '🟣', 'c0000000-0000-0000-0000-000000000001', true, false),
+  ('Cohere',             'https://dashboard.cohere.com/',     'Cohere 企业级 NLP API',        '🧠', 'c0000000-0000-0000-0000-000000000001', true, false),
+  ('Perplexity',         'https://www.perplexity.ai/',        'AI 搜索引擎',                  '🔍', 'c0000000-0000-0000-0000-000000000001', true, false),
+  ('DeepInfra',          'https://deepinfra.com/',            '开源模型推理 API',              '⚙️', 'c0000000-0000-0000-0000-000000000001', true, true),
+  ('Together AI',        'https://www.together.ai/',          '去中心化 AI 推理网络',          '🔗', 'c0000000-0000-0000-0000-000000000001', true, false),
+  ('Fireworks AI',       'https://fireworks.ai/',             '快速推理平台',                 '🎆', 'c0000000-0000-0000-0000-000000000001', true, false),
+  ('Mistral AI',         'https://console.mistral.ai/',       'Mistral 模型官方 API',         '💧', 'c0000000-0000-0000-0000-000000000001', true, true),
+  ('AI/ML API',          'https://aimlapi.com/',              'AI/ML API 聚合平台',           '🧩', 'c0000000-0000-0000-0000-000000000001', true, false),
+  ('NovaAI',             'https://novaai.app/',               'NovaAI 多模型 API',            '✨', 'c0000000-0000-0000-0000-000000000001', true, true),
+  ('Freeai.one',         'https://freeai.one/',               '免费AI API 聚合',             '🆓', 'c0000000-0000-0000-0000-000000000001', true, true),
+  ('Zeabur AI',          'https://zeabur.com/ai',             'Zeabur 一键部署 AI 服务',      '🚀', 'c0000000-0000-0000-0000-000000000001', true, false);
+
+-- ==================== 大厂API ====================
+INSERT INTO nav_links (title, url, description, icon, category_id, approved, featured) VALUES
+  ('OpenAI API',         'https://platform.openai.com/',      'OpenAI GPT-4o / o3 API',              '🟢', 'c0000000-0000-0000-0000-000000000002', true, true),
+  ('Google AI',          'https://ai.google.dev/',            'Gemini API & Vertex AI',               '🔴', 'c0000000-0000-0000-0000-000000000002', true, true),
+  ('Anthropic API',      'https://docs.anthropic.com/',       'Claude 系列模型 API',                  '🟣', 'c0000000-0000-0000-0000-000000000002', true, true),
+  ('Meta AI',            'https://ai.meta.com/',              'Meta Llama 开源大模型',                '🔵', 'c0000000-0000-0000-0000-000000000002', true, true),
+  ('百度千帆',           'https://cloud.baidu.com/product/wenxinworkshop', '百度文心大模型 API',     '🇨🇳', 'c0000000-0000-0000-0000-000000000002', true, true),
+  ('阿里通义千问',       'https://tongyi.aliyun.com/',        '阿里通义大模型 API',                   '🇨🇳', 'c0000000-0000-0000-0000-000000000002', true, true),
+  ('腾讯混元',           'https://cloud.tencent.com/product/hunyuan', '腾讯混元大模型 API',            '🇨🇳', 'c0000000-0000-0000-0000-000000000002', true, false),
+  ('字节豆包',           'https://www.volcengine.com/product/doubao', '字节跳动豆包大模型 API',          '🇨🇳', 'c0000000-0000-0000-0000-000000000002', true, false),
+  ('微软 Azure OpenAI',  'https://azure.microsoft.com/products/ai-services/', 'Azure AI 服务',          '🟦', 'c0000000-0000-0000-0000-000000000002', true, true);
+
+-- ==================== 开源模型 ====================
+INSERT INTO nav_links (title, url, description, icon, category_id, approved, featured) VALUES
+  ('Ollama',             'https://ollama.com/',               '本地运行开源大模型',                    '🦙', 'c0000000-0000-0000-0000-000000000003', true, true),
+  ('vLLM',               'https://github.com/vllm-project/vllm', '高性能推理引擎',                  '⚡', 'c0000000-0000-0000-0000-000000000003', true, true),
+  ('Llama.cpp',          'https://github.com/ggml-ai/llama.cpp', 'C/C++ 模型推理框架',              '🖥️', 'c0000000-0000-0000-0000-000000000003', true, true);
+
+-- ==================== 算力GPU ====================
+INSERT INTO nav_links (title, url, description, icon, category_id, approved, featured) VALUES
+  ('AutoDL',             'https://www.autodl.com/',           'AutoDL 算力云（国内方便）',            '💰', 'c0000000-0000-0000-0000-000000000004', true, true),
+  ('Vast.ai',            'https://vast.ai/',                  'Vast.ai 全球 GPU 租赁',               '🌍', 'c0000000-0000-0000-0000-000000000004', true, true),
+  ('RunPod',             'https://runpod.io/',                'RunPod GPU 云',                        '🎮', 'c0000000-0000-0000-0000-000000000004', true, true),
+  ('Lambda Labs',        'https://lambdalabs.com/',           'Lambda GPU Cloud',                     '🖥️', 'c0000000-0000-0000-0000-000000000004', true, false),
+  ('Massed Compute',     'https://massedcompute.com/',        'Massed Compute GPU 租赁',              '💻', 'c0000000-0000-0000-0000-000000000004', true, false);
+
+-- ==================== RLS 权限 ====================
+-- 管理员操作权限（使用 anon key 即可增删改）
+CREATE POLICY "Anon update links" ON nav_links FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "Anon delete links" ON nav_links FOR DELETE USING (true);
+CREATE POLICY "Anon insert categories" ON nav_categories FOR INSERT WITH CHECK (true);
+CREATE POLICY "Anon update categories" ON nav_categories FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "Anon delete categories" ON nav_categories FOR DELETE USING (true);
+
+-- ==================== 索引 ====================
+CREATE INDEX IF NOT EXISTS idx_links_category ON nav_links(category_id);
+CREATE INDEX IF NOT EXISTS idx_links_approved ON nav_links(approved);
+CREATE INDEX IF NOT EXISTS idx_links_featured ON nav_links(featured);
+CREATE INDEX IF NOT EXISTS idx_links_url ON nav_links(url);
+CREATE INDEX IF NOT EXISTS idx_categories_slug ON nav_categories(slug);
