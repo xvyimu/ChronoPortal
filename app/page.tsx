@@ -1,29 +1,28 @@
 import { createClient } from "@/lib/supabase/server";
 import { type NavLink } from "@/lib/types";
 import { Navigation } from "@/components/Navigation";
+import { HeroSection } from "@/components/HeroSection";
+
+// ISR: 每 60 秒重新生成页面，确保数据及时更新
+export const revalidate = 60;
 
 export default async function Home() {
   const supabase = await createClient();
 
-  // Fetch categories
-  const { data: categoriesData } = await supabase
-    .from("nav_categories")
-    .select("*")
-    .order("sort_order");
+  // Parallel fetch for faster initial load
+  const [categoriesResult, linksResult] = await Promise.all([
+    supabase.from("nav_categories").select("*").order("sort_order"),
+    supabase
+      .from("nav_links")
+      .select("*, nav_categories(name, slug)")
+      .eq("approved", true)
+      .order("featured", { ascending: false })
+      .order("paid", { ascending: false })
+      .order("created_at", { ascending: false }),
+  ]);
 
-  // Fetch approved links with category info
-  const { data: rawLinks } = await supabase
-    .from("nav_links")
-    .select("*, nav_categories(name, slug)")
-    .eq("approved", true)
-    .order("featured", { ascending: false })
-    .order("paid", { ascending: false })
-    .order("created_at", { ascending: false });
-
-  const categories = categoriesData ?? [];
-
-  // Flatten category info
-  const links: NavLink[] = (rawLinks ?? []).map((l) => ({
+  const categories = categoriesResult.data ?? [];
+  const links: NavLink[] = (linksResult.data ?? []).map((l) => ({
     ...l,
     category_name: l.nav_categories?.name ?? null,
     category_slug: l.nav_categories?.slug ?? null,
@@ -31,16 +30,7 @@ export default async function Home() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      {/* Hero */}
-      <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-          🌐 公益API导航站
-        </h1>
-        <p className="mt-2 text-muted-foreground">
-          收录公益、免费、可白嫖的 AI 大模型 API 中转站，助你实现 Token 自由
-        </p>
-      </div>
-
+      <HeroSection />
       <Navigation categories={categories} links={links} />
     </div>
   );

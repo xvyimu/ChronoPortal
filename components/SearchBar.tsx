@@ -1,5 +1,7 @@
 "use client";
 
+import { motion } from "motion/react";
+
 export function SearchBar({
   value,
   onChange,
@@ -8,9 +10,10 @@ export function SearchBar({
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="relative">
+    <motion.div
+      className="relative">
       <svg
-        className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+        className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -27,16 +30,16 @@ export function SearchBar({
         placeholder="搜索工具名称、描述..."
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-border bg-card py-2.5 pl-10 pr-4 text-sm placeholder:text-muted-foreground focus:border-ring focus:outline-none transition-colors"
+        className="w-full rounded-xl border border-white/10 bg-white/[0.04] backdrop-blur-sm py-2.5 pl-10 pr-10 text-sm text-foreground placeholder:text-muted-foreground/40 outline-none transition-all duration-200 focus:border-primary/30 focus:bg-white/[0.06] focus:shadow-[0_0_24px_oklch(0.72_0.15_220/8%)]"
       />
       {value && (
         <button
           onClick={() => onChange("")}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/40 hover:text-foreground/70 transition-colors"
         >
           ✕
         </button>
       )}
-    </div>
+    </motion.div>
   );
 }

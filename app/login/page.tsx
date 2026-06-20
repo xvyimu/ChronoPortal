@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "motion/react";
 
 export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
@@ -30,9 +31,14 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-sky-950 via-slate-900 to-slate-950">
-      <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl">
-        <h1 className="mb-6 text-center text-2xl font-bold text-white">
+    <div className="flex min-h-[80vh] items-center justify-center">
+      <motion.div
+        className="w-full max-w-sm glass-card rounded-2xl p-8"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <h1 className="mb-6 text-center text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
           🔐 管理面板
         </h1>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -41,7 +47,7 @@ export default function AdminLoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="输入管理员密码"
-            className="w-full rounded-lg border border-white/10 bg-white/10 px-4 py-2.5 text-white placeholder-white/40 outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400"
+            className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-4 py-2.5 text-foreground placeholder:text-muted-foreground/30 outline-none transition-all duration-200 focus:border-primary/30 focus:bg-white/[0.06]"
             autoFocus
           />
           {error && (
@@ -50,12 +56,12 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-sky-500 px-4 py-2.5 font-medium text-white transition hover:bg-sky-400 disabled:opacity-50"
+            className="w-full rounded-lg bg-gradient-to-r from-primary to-accent/80 px-4 py-2.5 font-medium text-primary-foreground transition-all duration-200 hover:shadow-[0_0_24px_oklch(0.72_0.15_220/30%)] disabled:opacity-50 active:scale-[0.98]"
           >
             {loading ? "验证中..." : "登 录"}
           </button>
         </form>
-      </div>
+      </motion.div>
     </div>
   );
 }
