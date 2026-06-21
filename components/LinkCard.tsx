@@ -14,7 +14,6 @@ export function LinkCard({ link, index = 0 }: { link: NavLink; index?: number })
   const ts = relativeTime(link.updated_at || link.created_at);
 
   function handleClick() {
-    // Fire-and-forget click tracking
     fetch("/api/click", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -22,12 +21,26 @@ export function LinkCard({ link, index = 0 }: { link: NavLink; index?: number })
     }).catch(() => {});
   }
 
+  // ── Pink hover vars ──
+  // The .card-pink class handles transform, border-color, box-shadow via CSS.
+  // We add the base card styles here and toggle the class on the card wrapper.
+
+  // Badge color per type
+  const badgeStyle =
+    type === "official"
+      ? "text-blue-600 dark:text-blue-400"
+      : type === "relay"
+        ? "text-amber-600 dark:text-amber-400"
+        : type === "model"
+          ? "text-purple-600 dark:text-purple-400"
+          : "text-primary";
+
   return (
     <motion.div
       variants={fadeInUp}
       initial="hidden"
       animate="show"
-      transition={{ delay: index * 0.025 }}
+      transition={{ delay: (index % 20) * 0.02 }}
     >
       <a
         href={link.url}
@@ -35,57 +48,37 @@ export function LinkCard({ link, index = 0 }: { link: NavLink; index?: number })
         rel="noopener noreferrer"
         onClick={handleClick}
         className="group block"
+        aria-label={`${link.title}${link.description ? ` — ${link.description}` : ""}`}
       >
-        <div
-          className={`relative rounded-lg border bg-card p-4 card-hover ${
-            type === "official"
-              ? "border-l-[3px] border-l-primary"
-              : type === "relay"
-              ? "border-l-[3px] border-l-amber-400"
-              : type === "model"
-              ? "border-l-[3px] border-l-purple-400"
-              : ""
-          }`}
-        >
-          <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted text-base">
+        <div className="relative h-[66px] rounded-xl border border-border/70 bg-card px-3 py-2.5 card-pink overflow-hidden">
+          <div className="flex items-center gap-3 h-full">
+            {/* Icon */}
+            <div className="flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-lg bg-muted text-base transition-all duration-200"
+              style={{ transform: "scale(var(--card-icon-scale))", filter: "var(--card-icon-glow)" }}>
               {link.icon || "🔗"}
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="truncate text-sm font-medium text-foreground/85 group-hover:text-foreground">
+
+            {/* Content */}
+            <div className="min-w-0 flex-1 flex flex-col justify-center gap-0.5">
+              <div className="flex items-center gap-2">
+                <span className="card-pink-title truncate text-[13px] font-medium text-foreground/85 transition-colors duration-200">
                   {link.title}
                 </span>
+                {/* Inline badges */}
                 {link.featured && (
-                  <span className="shrink-0 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-                    推荐
+                  <span className="shrink-0 inline-flex items-center rounded-full bg-primary/10 px-1.5 py-[1px] text-[10px] font-medium text-primary">
+                    荐
                   </span>
                 )}
                 {type === "official" && (
-                  <span className="shrink-0 inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-600 border border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800">
-                    官方
-                  </span>
-                )}
-                {type === "relay" && (
-                  <span className="shrink-0 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-600 border border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800">
-                    中转
-                  </span>
-                )}
-                {type === "model" && (
-                  <span className="shrink-0 inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-medium text-purple-600 border border-purple-200 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800">
-                    排行
+                  <span className={`shrink-0 inline-flex items-center text-[10px] font-medium ${badgeStyle}`}>
+                    ●
                   </span>
                 )}
               </div>
-              {link.description && (
-                <p className="mt-1 line-clamp-1 text-xs text-muted-foreground/60">
-                  {link.description}
-                </p>
-              )}
-              <div className="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground/40">
-                <span className="font-mono">{domain}</span>
-                {ts && <><span>·</span><span>{ts}</span></>}
-                {link.click_count > 0 && <><span>·</span><span>{link.click_count} 次点击</span></>}
+              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/50 truncate">
+                <span className="font-mono truncate">{domain}</span>
+                {ts && <><span>·</span><span className="shrink-0">{ts}</span></>}
               </div>
             </div>
           </div>

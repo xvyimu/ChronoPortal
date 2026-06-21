@@ -4,7 +4,12 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ===== 白底 + 黑 + 浅蓝主题 ===== */
+/* ===== Container queries ===== */
+.\@container {
+  container-type: inline-size;
+}
+
+/* ===== 视觉层 ===== */
 :root {
   --radius: 0.75rem;
 
@@ -67,7 +72,6 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-ring: var(--ring);
-  --color-input: var(--input);
   --radius: var(--radius);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -115,72 +119,174 @@ body {
   }
 }
 
+/* ===== 暗色模式 ===== */
 .dark {
-  --background: oklch(0.15 0.01 260);
+  /* 深蓝灰基调，比纯黑更柔和 */
+  --background: oklch(0.12 0.008 260);
   --foreground: oklch(0.93 0.005 260);
 
-  --card: oklch(0.18 0.01 260);
+  --card: oklch(0.15 0.01 260);
   --card-foreground: oklch(0.93 0.005 260);
-  --popover: oklch(0.18 0.01 260);
+  --popover: oklch(0.15 0.01 260);
   --popover-foreground: oklch(0.93 0.005 260);
 
   --primary: oklch(0.62 0.18 250);
   --primary-foreground: oklch(0.98 0.005 260);
 
-  --secondary: oklch(0.22 0.01 260);
+  --secondary: oklch(0.2 0.01 260);
   --secondary-foreground: oklch(0.93 0.005 260);
-  --muted: oklch(0.2 0.01 260);
+  --muted: oklch(0.18 0.01 260);
   --muted-foreground: oklch(0.5 0.01 255);
 
-  --accent: oklch(0.25 0.03 250);
+  --accent: oklch(0.22 0.03 250);
   --accent-foreground: oklch(0.93 0.005 260);
 
   --destructive: oklch(0.58 0.22 22);
-  --border: oklch(0.93 0.005 260 / 10%);
-  --input: oklch(0.93 0.005 260 / 12%);
+  --border: oklch(0.93 0.005 260 / 8%);
+  --input: oklch(0.93 0.005 260 / 10%);
   --ring: oklch(0.62 0.18 250);
 
-  --sidebar: oklch(0.16 0.01 260);
+  --sidebar: oklch(0.13 0.01 260);
   --sidebar-foreground: oklch(0.93 0.005 260);
   --sidebar-primary: oklch(0.62 0.18 250);
   --sidebar-primary-foreground: oklch(0.98 0.005 260);
-  --sidebar-accent: oklch(0.25 0.03 250);
+  --sidebar-accent: oklch(0.22 0.03 250);
   --sidebar-accent-foreground: oklch(0.93 0.005 260);
-  --sidebar-border: oklch(0.93 0.005 260 / 10%);
+  --sidebar-border: oklch(0.93 0.005 260 / 8%);
   --sidebar-ring: oklch(0.62 0.18 250);
 }
 
-.dark .card-hover:hover {
-  box-shadow: 0 4px 16px oklch(0 0 0 / 30%);
+/* ===== 渐变背景 ===== */
+.gradient-bg {
+  background: linear-gradient(135deg,
+    rgb(248 250 252),   /* slate-50 */
+    rgb(253 242 248 / 0.3),  /* pink-50/30 */
+    rgb(248 250 252)    /* slate-50 */
+  );
 }
 
-.dark .shimmer-bg {
-  background: linear-gradient(90deg, oklch(0.2 0.01 260 / 30%) 0%, oklch(0.25 0.01 260 / 50%) 50%, oklch(0.2 0.01 260 / 30%) 100%);
-  background-size: 200% 100%;
+.dark .gradient-bg {
+  background: linear-gradient(135deg,
+    rgb(2 6 23),    /* slate-950 */
+    rgb(15 23 42),  /* slate-900 */
+    rgb(2 6 23)     /* slate-950 */
+  );
 }
 
-.dark ::-webkit-scrollbar-thumb { background: oklch(0.93 0.005 260 / 10%); }
-.dark ::-webkit-scrollbar-thumb:hover { background: oklch(0.93 0.005 260 / 20%); }
-.card-hover {
-  transition: all 0.2s cubic-bezier(0.32, 0, 0.08, 1);
-}
-.card-hover:hover {
-  border-color: oklch(0.62 0.18 250 / 30%);
-  box-shadow: 0 4px 16px oklch(0.62 0.18 250 / 8%);
-  transform: translateY(-1px);
+/* ===== 粉色悬停体系（qcy33 风格） ===== */
+.card-pink {
+  --card-pink-border: oklch(0.9 0.04 340 / 0.4);
+  --card-pink-shadow: 0 0 0 1px oklch(0.9 0.04 340 / 0.3);
+  --card-pink-glow: 0 12px 24px -8px oklch(0.75 0.12 350 / 0.15);
+  --card-pink-title: oklch(0.55 0.15 350);
+  --card-icon-scale: 1;
+  --card-icon-glow: none;
+  transition:
+    transform 0.2s cubic-bezier(0.32, 0, 0.08, 1),
+    box-shadow 0.2s cubic-bezier(0.32, 0, 0.08, 1),
+    border-color 0.2s cubic-bezier(0.32, 0, 0.08, 1);
 }
 
-/* 官方板块 - 蓝色左边框 */
+.card-pink:hover {
+  transform: translateY(-3px) scale(1.02);
+  border-color: oklch(0.7 0.15 345);  /* pink-400 */
+  box-shadow: var(--card-pink-glow);
+  --card-icon-scale: 1.15;
+  --card-icon-glow: drop-shadow(0 0 4px oklch(0.7 0.15 345 / 0.4));
+}
+
+.card-pink:hover .card-pink-title {
+  color: var(--card-pink-title);
+}
+
+.dark .card-pink {
+  --card-pink-border: oklch(0.6 0.1 345 / 0.5);
+  --card-pink-shadow: 0 0 0 1px oklch(0.6 0.1 345 / 0.3);
+  --card-pink-glow: 0 12px 24px -8px oklch(0.6 0.12 345 / 0.2);
+  --card-pink-title: oklch(0.75 0.12 350);
+}
+
+.dark .card-pink:hover {
+  border-color: oklch(0.65 0.15 345);
+  box-shadow: var(--card-pink-glow);
+}
+
+/* ===== 玻璃态卡片（保留旧版兼容） ===== */
+.card-glass {
+  background: var(--card);
+  box-shadow:
+    0 1px 2px oklch(0 0 0 / 0.03),
+    0 1px 4px oklch(0 0 0 / 0.03);
+  transition:
+    box-shadow 0.2s cubic-bezier(0.32, 0, 0.08, 1),
+    border-color 0.2s cubic-bezier(0.32, 0, 0.08, 1),
+    transform 0.2s cubic-bezier(0.32, 0, 0.08, 1);
+}
+
+.card-glass:hover {
+  box-shadow:
+    0 2px 4px oklch(0 0 0 / 0.04),
+    0 8px 16px oklch(0 0 0 / 0.06),
+    0 16px 24px oklch(0 0 0 / 0.04);
+  border-color: oklch(0.62 0.18 250 / 25%);
+  transform: translateY(-2px);
+}
+
+.dark .card-glass {
+  box-shadow:
+    0 1px 2px oklch(0 0 0 / 0.2),
+    0 1px 4px oklch(0 0 0 / 0.15);
+}
+
+.dark .card-glass:hover {
+  box-shadow:
+    0 2px 8px oklch(0 0 0 / 0.3),
+    0 8px 24px oklch(0 0 0 / 0.2),
+    0 0 0 1px oklch(0.62 0.18 250 / 8%);
+  border-color: oklch(0.62 0.18 250 / 35%);
+}
+
+/* ===== 官方板块 - 蓝色左边框 ===== */
 .border-official {
   border-left: 3px solid oklch(0.62 0.18 250);
 }
 
-/* 中转板块 - 琥珀色左边框 */
+/* ===== 中转板块 - 琥珀色左边框 ===== */
 .border-relay {
   border-left: 3px solid oklch(0.68 0.2 50);
 }
 
-/* 加载骨架 */
+/* ===== 滚动条 ===== */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: oklch(0.92 0.01 250);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: oklch(0.8 0.01 250); }
+
+.dark ::-webkit-scrollbar-thumb { background: oklch(0.93 0.005 260 / 10%); }
+.dark ::-webkit-scrollbar-thumb:hover { background: oklch(0.93 0.005 260 / 20%); }
+
+/* ===== 选中颜色 ===== */
+::selection {
+  background: oklch(0.62 0.18 250 / 20%);
+  color: var(--foreground);
+}
+
+/* ===== iOS safe area ===== */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .h-safe-area-bottom {
+    height: env(safe-area-inset-bottom);
+  }
+}
+@supports not (padding-bottom: env(safe-area-inset-bottom)) {
+  .h-safe-area-bottom {
+    height: 0;
+  }
+}
+
+/* ===== 加载骨架 ===== */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
@@ -197,16 +303,91 @@ body {
   animation: shimmer 1.5s ease-in-out infinite;
 }
 
-/* 滚动条 */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb {
-  background: oklch(0.92 0.01 250);
-  border-radius: 3px;
+.dark .shimmer-bg {
+  background: linear-gradient(
+    90deg,
+    oklch(0.2 0.01 260 / 30%) 0%,
+    oklch(0.25 0.01 260 / 50%) 50%,
+    oklch(0.2 0.01 260 / 30%) 100%
+  );
+  background-size: 200% 100%;
 }
-::-webkit-scrollbar-thumb:hover { background: oklch(0.8 0.01 250); }
 
-::selection {
-  background: oklch(0.62 0.18 250 / 20%);
-  color: var(--foreground);
+/* ===== 无障碍：减少动作 ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ===== 无障碍：高对比度 ===== */
+@media (prefers-contrast: more) {
+  .card-glass {
+    border-width: 2px;
+  }
+  .card-glass:hover {
+    border-color: var(--ring);
+    box-shadow: 0 0 0 1px var(--ring);
+  }
+  .dark .card-glass:hover {
+    border-color: var(--ring);
+  }
+}
+
+/* ===== 侧边栏样式 ===== */
+.sidebar-link {
+  @apply flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors;
+  color: oklch(0.5 0.01 260);
+}
+
+.sidebar-link:hover {
+  background: oklch(0.95 0.02 340 / 0.15);
+  color: oklch(0.3 0.01 260);
+}
+
+.sidebar-link.active {
+  background: oklch(0.95 0.02 340 / 0.25);
+  color: oklch(0.25 0.01 260);
+  font-weight: 500;
+}
+
+.dark .sidebar-link {
+  color: oklch(0.6 0.01 260);
+}
+
+.dark .sidebar-link:hover {
+  background: oklch(0.25 0.02 340 / 0.2);
+  color: oklch(0.9 0.01 260);
+}
+
+.dark .sidebar-link.active {
+  background: oklch(0.25 0.02 340 / 0.35);
+  color: oklch(0.95 0.01 260);
+}
+
+.sidebar-badge {
+  @apply inline-flex items-center justify-center rounded-full text-[11px] font-medium min-w-[20px] h-5 px-1.5;
+  background: oklch(0.92 0.02 340 / 0.4);
+  color: oklch(0.55 0.15 350);
+}
+
+.dark .sidebar-badge {
+  background: oklch(0.25 0.02 340 / 0.3);
+  color: oklch(0.75 0.12 350);
+}
+
+/* ===== Container queries 响应式卡片 ===== */
+.card-grid {
+  container-type: inline-size;
+}
+
+@container (max-width: 480px) {
+  .card-grid-item {
+    @apply flex-row items-center gap-2;
+  }
 }
