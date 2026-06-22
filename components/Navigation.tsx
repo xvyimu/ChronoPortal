@@ -217,6 +217,7 @@ export function Navigation({
     [flatResults],
   );
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { resetFocus(); }, [search, activeCategory, resetFocus]);
 
   useEffect(() => {
@@ -224,6 +225,7 @@ export function Navigation({
   }, [totalResults, q]);
 
   const [mounted, setMounted] = useState(false);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setMounted(true), []);
 
   return (
