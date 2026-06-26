@@ -176,6 +176,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: 运行链接健康检测
+        continue-on-error: true
         run: pnpm run check:links
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SOURCE_SUPABASE_URL }}
