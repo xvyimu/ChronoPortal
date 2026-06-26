@@ -4,9 +4,10 @@ import { NextRequest, NextResponse } from "next/server";
  * Favicon 代理 API
  *
  * 三级降级策略：
- * 1. favicon.im (主源，Cloudflare 加速)
- * 2. Google S2 (备用)
- * 3. 返回 404 让客户端显示 Globe 图标
+ * 1. DuckDuckGo icon 服务（主源，稳定可靠）
+ * 2. Google S2（备用）
+ * 3. 直接取目标域名 /favicon.ico（最终备用）
+ * 4. 返回 404 让客户端显示 Globe 图标
  *
  * 带服务端缓存头，减少重复请求。
  *
@@ -28,18 +29,18 @@ export async function GET(request: NextRequest) {
   }
 
   const sources = [
-    `https://favicon.im/${domain}`,
-    `https://www.google.com/s2/favicons?domain=${domain}&sz=64`,
+    { url: `https://icons.duckduckgo.com/ip3/${domain}.ico`, label: "duckduckgo" },
+    { url: `https://www.google.com/s2/favicons?domain=${domain}&sz=64`, label: "google-s2" },
+    { url: `https://${domain}/favicon.ico`, label: "direct" },
   ];
 
-  for (const url of sources) {
+  for (const { url, label } of sources) {
     try {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 5000);
 
       const res = await fetch(url, {
         signal: controller.signal,
-        redirect: "manual",
         headers: { "User-Agent": "nav-site-favicon-proxy/1.0" },
       });
 
@@ -51,14 +52,18 @@ export async function GET(request: NextRequest) {
         if (!contentType.startsWith("image/")) {
           continue;
         }
+        // 跳过过小的响应（通常是占位图或错误图标）
         const buffer = await res.arrayBuffer();
+        if (buffer.byteLength < 100) {
+          continue;
+        }
 
         return new NextResponse(buffer, {
           status: 200,
           headers: {
             "Content-Type": contentType,
             "Cache-Control": "public, max-age=86400, s-maxage=604800",
-            "X-Favicon-Source": url.includes("favicon.im") ? "favicon.im" : "google-s2",
+            "X-Favicon-Source": label,
           },
         });
       }
