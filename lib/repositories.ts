@@ -75,7 +75,7 @@ async function getApprovedLinksImpl(options?: GetApprovedLinksOpts): Promise<Nav
   const supabase = await createClient();
   let query = supabase
     .from("nav_links")
-    .select("*, nav_categories(name, slug), nav_links_tags(tags(id, name, slug))")
+    .select("*, nav_categories(name, slug)")
     .eq("approved", true)
     .order("featured", { ascending: false })
     .order("paid", { ascending: false })
@@ -114,7 +114,7 @@ async function getApprovedLinkBySlugImpl(slug: string): Promise<NavLink | null> 
   // 优先尝试通过 slug 列直接查询（需要 migration-slug.sql 已执行）
   const { data: bySlug, error: slugErr } = await supabase
     .from("nav_links")
-    .select("*, nav_categories(name, slug), nav_links_tags(tags(id, name, slug))")
+    .select("*, nav_categories(name, slug)")
     .eq("approved", true)
     .eq("slug", slug)
     .maybeSingle();
@@ -126,7 +126,7 @@ async function getApprovedLinkBySlugImpl(slug: string): Promise<NavLink | null> 
   // 回退：全表扫描 + 应用层匹配（兼容未执行迁移的情况）
   const { data, error } = await supabase
     .from("nav_links")
-    .select("*, nav_categories(name, slug), nav_links_tags(tags(id, name, slug))")
+    .select("*, nav_categories(name, slug)")
     .eq("approved", true);
 
   if (error) {
@@ -183,7 +183,7 @@ async function getRelatedLinksImpl(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("nav_links")
-    .select("*, nav_categories(name, slug), nav_links_tags(tags(id, name, slug))")
+    .select("*, nav_categories(name, slug)")
     .eq("approved", true)
     .eq("category_id", categoryId)
     .neq("url", excludeUrl)
@@ -213,7 +213,7 @@ export async function getApprovedLinksForApi(categorySlug?: string): Promise<Nav
     // 通过 join 的 nav_categories.slug 过滤
     const { data, error } = await supabase
       .from("nav_links")
-      .select("*, nav_categories(name, slug), nav_links_tags(tags(id, name, slug))")
+      .select("*, nav_categories(name, slug)")
       .eq("approved", true)
       .eq("nav_categories.slug", categorySlug)
       .order("featured", { ascending: false })
@@ -344,7 +344,7 @@ export async function getAllLinksForAdmin(): Promise<NavLink[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("nav_links")
-    .select("*, nav_categories(name, slug), nav_links_tags(tags(id, name, slug))")
+    .select("*, nav_categories(name, slug)")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -398,7 +398,7 @@ async function fetchLinkWithTags(
 ): Promise<NavLink> {
   const { data, error } = await supabase
     .from("nav_links")
-    .select("*, nav_categories(name, slug), nav_links_tags(tags(id, name, slug))")
+    .select("*, nav_categories(name, slug)")
     .eq("id", id)
     .maybeSingle();
 
