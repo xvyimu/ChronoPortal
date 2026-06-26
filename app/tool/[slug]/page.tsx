@@ -5,11 +5,15 @@ import Link from "next/link";
 import { getApprovedLinkBySlug, getRelatedLinks, getCategories } from "@/lib/repositories";
 import { slugify } from "@/lib/slugify";
 import { relativeTime } from "@/lib/types";
-import { escapeJsonForHtml } from "@/lib/utils";
+import { escapeJsonForHtml, withTimeout } from "@/lib/utils";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ReviewSection } from "@/components/ReviewSection";
+import { logger } from "@/lib/logger";
 
 export const revalidate = 60;
+export const dynamic = "force-dynamic";
+
+const FETCH_TIMEOUT = 8000;
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -28,7 +32,7 @@ export async function generateStaticParams() {
  */
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const link = await getApprovedLinkBySlug(slug);
+  const link = await withTimeout(getApprovedLinkBySlug(slug), FETCH_TIMEOUT).catch(() => null);
   if (!link) {
     return { title: "工具未找到" };
   }
@@ -92,7 +96,10 @@ function generateJsonLd(link: Awaited<ReturnType<typeof getApprovedLinkBySlug>>)
 
 export default async function ToolDetailPage({ params }: PageProps) {
   const { slug } = await params;
-  const link = await getApprovedLinkBySlug(slug);
+  const link = await withTimeout(getApprovedLinkBySlug(slug), FETCH_TIMEOUT).catch(() => {
+    logger.warn(`Tool detail: getApprovedLinkBySlug timed out for slug="${slug}"`);
+    return null;
+  });
 
   if (!link) {
     notFound();
@@ -100,8 +107,11 @@ export default async function ToolDetailPage({ params }: PageProps) {
   const data = link; // 类型收窄：notFound() 之后 TS 仍不认识 link 已非 null
 
   const [relatedLinks, categories] = await Promise.all([
-    getRelatedLinks(data.category_id, data.url),
-    getCategories().catch(() => []),
+    withTimeout(getRelatedLinks(data.category_id, data.url), FETCH_TIMEOUT).catch(() => {
+      logger.warn("Tool detail: getRelatedLinks timed out");
+      return [];
+    }),
+    withTimeout(getCategories(), FETCH_TIMEOUT).catch(() => []),
   ]);
 
   const jsonLd = generateJsonLd(data);

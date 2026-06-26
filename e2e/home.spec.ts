@@ -21,7 +21,7 @@ test.describe("首页", () => {
 
     await expect(page).toHaveTitle(/导航|Navigation/);
 
-    const searchInput = page.locator('input[placeholder*="搜索"]');
+    const searchInput = page.locator('input[placeholder*="搜索"]').first();
     await expect(searchInput).toBeVisible({ timeout: 15000 });
 
     // Header 导航按钮存在
@@ -35,7 +35,7 @@ test.describe("首页", () => {
   test("服务端搜索功能正常工作", async ({ page }) => {
     await page.goto("/", { waitUntil: "domcontentloaded" });
 
-    const searchInput = page.locator('input[placeholder*="搜索"]');
+    const searchInput = page.locator('input[placeholder*="搜索"]').first();
     await expect(searchInput).toBeVisible({ timeout: 15000 });
 
     // 先填入部分字符再绑定响应等待，避免错过 200ms 防抖后的请求。
@@ -240,7 +240,7 @@ test.describe("移动端", () => {
 
     await page.goto("/", { waitUntil: "domcontentloaded" });
 
-    const searchInput = page.locator('input[placeholder*="搜索"]');
+    const searchInput = page.locator('input[placeholder*="搜索"]').first();
     await expect(searchInput).toBeVisible({ timeout: 15000 });
 
     // 移动端汉堡菜单按钮存在

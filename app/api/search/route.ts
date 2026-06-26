@@ -3,8 +3,11 @@ import { getApprovedLinks } from "@/lib/repositories";
 import type Fuse from "fuse.js";
 import type { NavLink } from "@/lib/types";
 import { logger } from "@/lib/logger";
+import { withTimeout } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+
+const FETCH_TIMEOUT = 8000;
 
 // ── Fuse.js 实例缓存 ──
 // 避免每次请求都重新创建 Fuse 实例和加载全量数据
@@ -45,7 +48,10 @@ async function getFuseInstance(category?: string): Promise<{ fuse: Fuse<NavLink>
   }
 
   // 缓存过期或不存在，重新加载
-  const allLinks = await getApprovedLinks();
+  const allLinks = await withTimeout(getApprovedLinks(), FETCH_TIMEOUT).catch(() => {
+    logger.warn("Search API: getApprovedLinks timed out");
+    return [];
+  });
   const { default: FuseModule } = await import("fuse.js");
 
   // 缓存全量数据的 Fuse 实例

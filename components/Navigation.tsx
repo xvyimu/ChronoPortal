@@ -55,7 +55,7 @@ export function Navigation({
     // Derived data
     featured, latest, popular, linkSections,
     showRankings, showLinks, filteredRankings,
-    hasResults,
+    flatResults,
     // Handlers
     handleSearchKeyDown, handleResultKeyDown,
   } = useLinksFilter({ categories, links, modelRankings });
@@ -165,24 +165,34 @@ export function Navigation({
             )}
           </div>
 
-          {/* Empty state */}
-          {mounted && !hasResults && (
+          {/* Search empty state */}
+          {mounted && flatResults.length === 0 && q && (
             <motion.div className="flex flex-col items-center gap-3 py-20 text-muted-foreground/40" variants={fadeInUp}>
-              {q ? (
-                <Search className="h-8 w-8" aria-hidden="true" />
-              ) : activeCategory !== "all" ? (
+              <Search className="h-8 w-8" aria-hidden="true" />
+              <p className="text-sm text-muted-foreground">
+                {`没有找到与"${q}"匹配的内容`}
+              </p>
+              <button type="button" aria-label="清除筛选" onClick={() => { setRawSearch(""); setSearch(""); setActiveCategory("all"); inputRef.current?.focus(); }}
+                className="text-xs text-muted-foreground/70 hover:text-muted-foreground underline-offset-2 underline transition-colors">
+                清除筛选
+              </button>
+            </motion.div>
+          )}
+
+          {/* Non-search empty state */}
+          {mounted && flatResults.length === 0 && !q && (
+            <motion.div className="flex flex-col items-center gap-3 py-20 text-muted-foreground/40" variants={fadeInUp}>
+              {activeCategory !== "all" ? (
                 <PackageOpen className="h-8 w-8" aria-hidden="true" />
               ) : (
                 <Waves className="h-8 w-8" aria-hidden="true" />
               )}
               <p className="text-sm text-muted-foreground">
-                {q
-                  ? `没有找到与"${q}"匹配的内容`
-                  : activeCategory !== "all"
-                    ? "这个分类还没有收录任何站点"
-                    : "暂时没有已收录的站点"}
+                {activeCategory !== "all"
+                  ? "这个分类还没有收录任何站点"
+                  : "暂时没有已收录的站点"}
               </p>
-              {(q || activeCategory !== "all") && (
+              {activeCategory !== "all" && (
                 <button type="button" aria-label="清除筛选" onClick={() => { setRawSearch(""); setSearch(""); setActiveCategory("all"); inputRef.current?.focus(); }}
                   className="text-xs text-muted-foreground/70 hover:text-muted-foreground underline-offset-2 underline transition-colors">
                   清除筛选

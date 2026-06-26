@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getApprovedLinksForApi, getCategories } from "@/lib/repositories";
 import { slugify } from "@/lib/slugify";
 import { logger } from "@/lib/logger";
+import { withTimeout } from "@/lib/utils";
 
 export const revalidate = 60;
+
+const FETCH_TIMEOUT = 8000;
 
 /**
  * Agent API 端点 — 为 AI Agent 和第三方应用提供结构化工具数据
@@ -25,8 +28,11 @@ export async function GET(request: NextRequest) {
     const ids = idsParam ? idsParam.split(",").filter(Boolean) : undefined;
 
     const [links, categories] = await Promise.all([
-      getApprovedLinksForApi(category),
-      getCategories().catch(() => []),
+      withTimeout(getApprovedLinksForApi(category), FETCH_TIMEOUT).catch(() => {
+        logger.warn("API: getApprovedLinksForApi timed out");
+        return [];
+      }),
+      withTimeout(getCategories(), FETCH_TIMEOUT).catch(() => []),
     ]);
 
     let result = links;
