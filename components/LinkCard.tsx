@@ -39,20 +39,23 @@ function LinkCardComponent({ link, index = 0, searchQuery = "" }: { link: NavLin
     if (!domain) return;
 
     let cancelled = false;
-    const proxyUrl = `/api/favicon?domain=${encodeURIComponent(domain)}`;
+
+    // v=2 用于绕过 Cloudflare 对旧版 404 响应的缓存
+    const proxyUrl = `/api/favicon?domain=${encodeURIComponent(domain)}&v=2`;
 
     const img = new Image();
     img.onload = () => {
       if (!cancelled) setFaviconUrl(proxyUrl);
     };
     img.onerror = () => {
-      // 代理失败，尝试直接加载 favicon.im
-      const directUrl = `https://favicon.im/${domain}`;
+      if (cancelled) return;
+      // 备用：直接加载 Google S2 favicon
+      const fallbackUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
       const img2 = new Image();
       img2.onload = () => {
-        if (!cancelled) setFaviconUrl(directUrl);
+        if (!cancelled) setFaviconUrl(fallbackUrl);
       };
-      img2.src = directUrl;
+      img2.src = fallbackUrl;
     };
     img.src = proxyUrl;
 
