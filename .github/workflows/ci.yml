@@ -94,6 +94,12 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: 下载构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+          path: .next/
+
       - name: 安装 Playwright 浏览器
         run: npx playwright install --with-deps chromium
 
