@@ -16,7 +16,6 @@ export function FavoritesView() {
   useEffect(() => {
     if (count === 0) return;
 
-    setLoading(true);
     const ids = [...favorites].join(",");
     fetch(`/api/tools?ids=${encodeURIComponent(ids)}`)
       .then((res) => (res.ok ? res.json() : null))
