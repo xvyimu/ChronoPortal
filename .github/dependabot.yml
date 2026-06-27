@@ -1,0 +1,37 @@
+# Dependabot 配置
+# 文档: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  # npm / pnpm 依赖
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    versioning-strategy: "auto"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "automated"
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"
+    # 安全更新不在此限制内 — Dependabot security updates 始终创建 PR
+    ignore:
+      - dependency-name: "next"
+        versions: [">=17"]
+      - dependency-name: "react"
+        versions: [">=20"]
+      - dependency-name: "react-dom"
+        versions: [">=20"]
+      - dependency-name: "@types/react"
+        versions: [">=20"]
+      - dependency-name: "@types/react-dom"
+        versions: [">=20"]
+    # 为依赖组设置 reviewer
+    reviewers:
+      - "xvyimu"

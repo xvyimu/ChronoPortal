@@ -1,8 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { z } from "zod";
-import { isSafeUrl } from "@/lib/utils";
-
+import { isSafeUrl, withTimeout, extractDomain, getClientIp, escapeJsonForHtml } from "@/lib/utils";
 import { requireAdmin, unauthorized } from "@/lib/admin-auth";
+import {
+  urlSchema, titleSchema, slugSchema,
+  createLinkSchema, createCategorySchema, submitLinkSchema,
+  linkIdsSchema, tagIdsSchema, createTagSchema, updateTagSchema,
+} from "@/lib/schemas";
 
 // ─── Mock @/lib/auth ───
 
@@ -173,5 +177,721 @@ describe("isSafeUrl", () => {
 
   it("rejects javascript: with URL-encoded chars", () => {
     expect(isSafeUrl("javascript:%0aalert(1)")).toBe(false);
+  });
+});
+
+// ─── 速率限制（rate-limit）───
+
+describe("checkMemoryRateLimit — 内存级备用速率限制", () => {
+  // 通过 import 内的函数测试内存限制逻辑
+  // 模块内部通过 checkRateLimit(failClose=true) 触发内存备用
+
+  it("第一次请求始终放行", async () => {
+    // 避免直接测试内部内存 Map 的竞态，通过 mock Supabase 失败+ failClose 触发备用
+    vi.resetModules();
+    vi.doMock("@/lib/supabase/server", () => ({
+      createClient: () => ({
+        from: () => ({
+          select: () => ({
+            eq: () => ({
+              gte: () => Promise.resolve({ count: null, error: new Error("DB down") }),
+            }),
+          }),
+          delete: () => ({
+            lt: () => Promise.resolve({ error: null }),
+          }),
+          insert: () => Promise.resolve({ error: null }),
+        }),
+        rpc: () => Promise.resolve({ error: null }),
+      }),
+    }));
+
+    const { checkRateLimit } = await import("@/lib/rate-limit");
+    const result = await checkRateLimit("login_attempts", "1.2.3.4", 60_000, 5, true);
+    expect(result.allowed).toBe(true);
+  });
+
+  it("超过内存桶上限后拒绝（failClose 模式）", async () => {
+    vi.resetModules();
+    vi.doMock("@/lib/supabase/server", () => ({
+      createClient: () => ({
+        from: () => ({
+          select: () => ({
+            eq: () => ({
+              gte: () => Promise.resolve({ count: null, error: new Error("DB down") }),
+            }),
+          }),
+          delete: () => ({
+            lt: () => Promise.resolve({ error: null }),
+          }),
+          insert: () => Promise.resolve({ error: null }),
+        }),
+        rpc: () => Promise.resolve({ error: null }),
+      }),
+    }));
+
+    const { checkRateLimit } = await import("@/lib/rate-limit");
+    // 连续超过 maxAttempts 次
+    for (let i = 0; i < 5; i++) {
+      await checkRateLimit("login_attempts", "5.6.7.8", 60_000, 3, true);
+    }
+    const result = await checkRateLimit("login_attempts", "5.6.7.8", 60_000, 3, true);
+    expect(result.allowed).toBe(false);
+  });
+
+  it("failOpen 模式下数据库故障时放行", async () => {
+    vi.resetModules();
+    vi.doMock("@/lib/supabase/server", () => ({
+      createClient: () => ({
+        from: () => ({
+          select: () => ({
+            eq: () => ({
+              gte: () => Promise.resolve({ count: null, error: new Error("DB down") }),
+            }),
+          }),
+          delete: () => ({
+            lt: () => Promise.resolve({ error: null }),
+          }),
+          insert: () => Promise.resolve({ error: null }),
+        }),
+        rpc: () => Promise.resolve({ error: null }),
+      }),
+    }));
+
+    const { checkRateLimit } = await import("@/lib/rate-limit");
+    const result = await checkRateLimit("submit_attempts", "9.9.9.9", 60_000, 3);
+    expect(result.allowed).toBe(true);
+  });
+});
+
+describe("checkRateLimit — 数据库速率限制", () => {
+  it("未超限时放行", async () => {
+    vi.resetModules();
+    vi.doMock("@/lib/supabase/server", () => ({
+      createClient: () => ({
+        from: () => ({
+          select: () => ({
+            eq: () => ({
+              gte: () => Promise.resolve({ count: 2, error: null }),
+            }),
+          }),
+          delete: () => ({
+            lt: () => Promise.resolve({ error: null }),
+          }),
+          insert: () => Promise.resolve({ error: null }),
+        }),
+        rpc: () => Promise.resolve({ error: null }),
+      }),
+    }));
+
+    const { checkRateLimit } = await import("@/lib/rate-limit");
+    const result = await checkRateLimit("login_attempts", "1.2.3.4", 60_000, 5, true);
+    expect(result.allowed).toBe(true);
+    expect(result.count).toBe(2);
+  });
+
+  it("超过上限时拒绝", async () => {
+    vi.resetModules();
+    vi.doMock("@/lib/supabase/server", () => ({
+      createClient: () => ({
+        from: () => ({
+          select: () => ({
+            eq: () => ({
+              gte: () => Promise.resolve({ count: 5, error: null }),
+            }),
+          }),
+          delete: () => ({
+            lt: () => Promise.resolve({ error: null }),
+          }),
+          insert: () => Promise.resolve({ error: null }),
+        }),
+        rpc: () => Promise.resolve({ error: null }),
+      }),
+    }));
+
+    const { checkRateLimit } = await import("@/lib/rate-limit");
+    const result = await checkRateLimit("login_attempts", "1.2.3.4", 60_000, 5, true);
+    expect(result.allowed).toBe(false);
+    expect(result.count).toBe(5);
+  });
+});
+
+describe("checkClickRateLimit — 点击去重限流", () => {
+  it("无历史点击时放行", async () => {
+    vi.resetModules();
+    vi.doMock("@/lib/supabase/server", () => ({
+      createClient: () => ({
+        from: () => ({
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                gte: () => Promise.resolve({ count: 0, error: null }),
+              }),
+            }),
+          }),
+          delete: () => ({
+            lt: () => Promise.resolve({ error: null }),
+          }),
+          insert: () => Promise.resolve({ error: null }),
+        }),
+        rpc: () => Promise.resolve({ error: null }),
+      }),
+    }));
+
+    const { checkClickRateLimit } = await import("@/lib/rate-limit");
+    const result = await checkClickRateLimit("1.2.3.4", "https://example.com");
+    expect(result.allowed).toBe(true);
+  });
+
+  it("数据库故障时放行（fail-open）", async () => {
+    vi.resetModules();
+    vi.doMock("@/lib/supabase/server", () => ({
+      createClient: () => ({
+        from: () => ({
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                gte: () => Promise.resolve({ count: null, error: new Error("DB error") }),
+              }),
+            }),
+          }),
+          delete: () => ({
+            lt: () => Promise.resolve({ error: null }),
+          }),
+          insert: () => Promise.resolve({ error: null }),
+        }),
+        rpc: () => Promise.resolve({ error: null }),
+      }),
+    }));
+
+    const { checkClickRateLimit } = await import("@/lib/rate-limit");
+    const result = await checkClickRateLimit("1.2.3.4", "https://example.com");
+    expect(result.allowed).toBe(true);
+  });
+});
+
+describe("recordAttempt — 记录尝试", () => {
+  it("正常记录不抛出异常", async () => {
+    vi.resetModules();
+    vi.doMock("@/lib/supabase/server", () => ({
+      createClient: () => ({
+        from: () => ({
+          insert: () => Promise.resolve({ error: null }),
+        }),
+        rpc: () => Promise.resolve({ error: null }),
+      }),
+    }));
+
+    const { recordAttempt } = await import("@/lib/rate-limit");
+    await expect(recordAttempt("login_attempts", "1.2.3.4", false)).resolves.toBeUndefined();
+  });
+
+  it("数据库故障时静默失败", async () => {
+    vi.resetModules();
+    vi.doMock("@/lib/supabase/server", () => ({
+      createClient: () => ({
+        from: () => ({
+          insert: () => Promise.resolve({ error: new Error("Insert failed") }),
+        }),
+        rpc: () => Promise.resolve({ error: null }),
+      }),
+    }));
+
+    const { recordAttempt } = await import("@/lib/rate-limit");
+    await expect(recordAttempt("login_attempts", "1.2.3.4", true)).resolves.toBeUndefined();
+  });
+});
+
+describe("incrementClickCount — 递增点击计数", () => {
+  it("正常递增不抛出异常", async () => {
+    vi.resetModules();
+    vi.doMock("@/lib/supabase/server", () => ({
+      createClient: () => ({
+        from: () => ({
+          insert: () => Promise.resolve({ error: null }),
+        }),
+        rpc: () => Promise.resolve({ error: null }),
+      }),
+    }));
+
+    const { incrementClickCount } = await import("@/lib/rate-limit");
+    await expect(incrementClickCount("https://example.com")).resolves.toBeUndefined();
+  });
+
+  it("RPC 失败时静默处理", async () => {
+    vi.resetModules();
+    vi.doMock("@/lib/supabase/server", () => ({
+      createClient: () => ({
+        from: () => ({
+          insert: () => Promise.resolve({ error: null }),
+        }),
+        rpc: () => Promise.resolve({ error: new Error("RPC error") }),
+      }),
+    }));
+
+    const { incrementClickCount } = await import("@/lib/rate-limit");
+    await expect(incrementClickCount("https://example.com")).resolves.toBeUndefined();
+  });
+});
+
+// ─── 共享 Zod Schema 校验（从 lib/schemas 导入）───
+
+describe("lib/schemas — URL 校验 (urlSchema)", () => {
+  it("接受合法 https URL", () => {
+    expect(urlSchema.safeParse("https://example.com").success).toBe(true);
+  });
+
+  it("接受合法 http URL", () => {
+    expect(urlSchema.safeParse("http://example.com").success).toBe(true);
+  });
+
+  it("拒绝 javascript: 协议", () => {
+    expect(urlSchema.safeParse("javascript:alert(1)").success).toBe(false);
+  });
+
+  it("拒绝 data: 协议", () => {
+    expect(urlSchema.safeParse("data:text/html,<script>alert(1)</script>").success).toBe(false);
+  });
+
+  it("拒绝非 URL 字符串", () => {
+    expect(urlSchema.safeParse("not-a-url").success).toBe(false);
+  });
+
+  it("拒绝空字符串", () => {
+    expect(urlSchema.safeParse("").success).toBe(false);
+  });
+
+  it("拒绝超过 2000 字符的 URL", () => {
+    const longUrl = "https://example.com/" + "x".repeat(1990);
+    expect(urlSchema.safeParse(longUrl).success).toBe(false);
+  });
+});
+
+describe("lib/schemas — 标题校验 (titleSchema)", () => {
+  it("接受合法标题", () => {
+    expect(titleSchema.safeParse("ChatGPT").success).toBe(true);
+  });
+
+  it("拒绝空标题", () => {
+    expect(titleSchema.safeParse("").success).toBe(false);
+  });
+
+  it("拒绝超过 100 字符的标题", () => {
+    expect(titleSchema.safeParse("x".repeat(101)).success).toBe(false);
+  });
+
+  it("接受 100 字符边界值", () => {
+    expect(titleSchema.safeParse("x".repeat(100)).success).toBe(true);
+  });
+});
+
+describe("lib/schemas — Slug 校验 (slugSchema)", () => {
+  it("接受合法 slug", () => {
+    expect(slugSchema.safeParse("ai-tools").success).toBe(true);
+  });
+
+  it("接受纯字母", () => {
+    expect(slugSchema.safeParse("tools").success).toBe(true);
+  });
+
+  it("拒绝大写字母", () => {
+    expect(slugSchema.safeParse("AI-Tools").success).toBe(false);
+  });
+
+  it("拒绝带空格的 slug", () => {
+    expect(slugSchema.safeParse("ai tools").success).toBe(false);
+  });
+
+  it("拒绝空 slug", () => {
+    expect(slugSchema.safeParse("").success).toBe(false);
+  });
+
+  it("拒绝中文 slug", () => {
+    expect(slugSchema.safeParse("人工智能").success).toBe(false);
+  });
+
+  it("拒绝超过 50 字符", () => {
+    expect(slugSchema.safeParse("x".repeat(51)).success).toBe(false);
+  });
+});
+
+describe("lib/schemas — 创建链接 (createLinkSchema)", () => {
+  it("接受合法提交", () => {
+    const result = createLinkSchema.safeParse({
+      title: "Example",
+      url: "https://example.com",
+      category_id: null,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("拒绝缺少必填字段 title", () => {
+    const result = createLinkSchema.safeParse({ url: "https://example.com" });
+    expect(result.success).toBe(false);
+  });
+
+  it("拒绝缺少必填字段 url", () => {
+    const result = createLinkSchema.safeParse({ title: "Example" });
+    expect(result.success).toBe(false);
+  });
+
+  it("默认 approved=true", () => {
+    const result = createLinkSchema.safeParse({
+      title: "Example",
+      url: "https://example.com",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.approved).toBe(true);
+    }
+  });
+
+  it("默认 featured=false", () => {
+    const result = createLinkSchema.safeParse({
+      title: "Example",
+      url: "https://example.com",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.featured).toBe(false);
+    }
+  });
+});
+
+describe("lib/schemas — 创建分类 (createCategorySchema)", () => {
+  it("接受合法分类", () => {
+    const result = createCategorySchema.safeParse({
+      name: "AI 工具",
+      slug: "ai-tools",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("拒绝空名称", () => {
+    const result = createCategorySchema.safeParse({ name: "", slug: "ai-tools" });
+    expect(result.success).toBe(false);
+  });
+
+  it("拒绝超过 50 字符名称", () => {
+    const result = createCategorySchema.safeParse({ name: "x".repeat(51), slug: "ai-tools" });
+    expect(result.success).toBe(false);
+  });
+
+  it("拒绝非法 slug", () => {
+    const result = createCategorySchema.safeParse({ name: "AI 工具", slug: "AI 工具" });
+    expect(result.success).toBe(false);
+  });
+
+  it("接受带合法 UUID 的 parent_id", () => {
+    const result = createCategorySchema.safeParse({
+      name: "子分类",
+      slug: "sub-cat",
+      parent_id: "550e8400-e29b-41d4-a716-446655440000",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("拒绝非法 parent_id", () => {
+    const result = createCategorySchema.safeParse({
+      name: "子分类",
+      slug: "sub-cat",
+      parent_id: "not-a-uuid",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("默认 sort_order=0", () => {
+    const result = createCategorySchema.safeParse({
+      name: "AI 工具",
+      slug: "ai-tools",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.sort_order).toBe(0);
+    }
+  });
+});
+
+describe("lib/schemas — 提交链接 (submitLinkSchema)", () => {
+  it("接受合法提交", () => {
+    const result = submitLinkSchema.safeParse({
+      title: "Test",
+      url: "https://example.com",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("拒绝空标题", () => {
+    const result = submitLinkSchema.safeParse({ title: "", url: "https://example.com" });
+    expect(result.success).toBe(false);
+  });
+
+  it("拒绝 javascript: URL", () => {
+    const result = submitLinkSchema.safeParse({ title: "Test", url: "javascript:alert(1)" });
+    expect(result.success).toBe(false);
+  });
+
+  it("默认 category_id 为 null", () => {
+    const result = submitLinkSchema.safeParse({ title: "Test", url: "https://example.com" });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.category_id).toBeNull();
+    }
+  });
+
+  it("接受合法 UUID category_id", () => {
+    const result = submitLinkSchema.safeParse({
+      title: "Test",
+      url: "https://example.com",
+      category_id: "550e8400-e29b-41d4-a716-446655440000",
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("lib/schemas — 标签 (tagIdsSchema / createTagSchema / updateTagSchema)", () => {
+  it("tagIdsSchema 接受合法 UUID 数组", () => {
+    const result = tagIdsSchema.safeParse(["550e8400-e29b-41d4-a716-446655440000"]);
+    expect(result.success).toBe(true);
+  });
+
+  it("tagIdsSchema 拒绝非法 UUID", () => {
+    const result = tagIdsSchema.safeParse(["not-a-uuid"]);
+    expect(result.success).toBe(false);
+  });
+
+  it("createTagSchema 接受合法标签", () => {
+    const result = createTagSchema.safeParse({ name: "AI", slug: "ai" });
+    expect(result.success).toBe(true);
+  });
+
+  it("createTagSchema 拒绝空名称", () => {
+    const result = createTagSchema.safeParse({ name: "", slug: "ai" });
+    expect(result.success).toBe(false);
+  });
+
+  it("updateTagSchema 接受部分字段", () => {
+    const result = updateTagSchema.safeParse({ name: "AI" });
+    expect(result.success).toBe(true);
+  });
+
+  it("updateTagSchema 接受空对象（全字段可选）", () => {
+    const result = updateTagSchema.safeParse({});
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("lib/schemas — 链接 ID 列表 (linkIdsSchema)", () => {
+  it("接受单个合法 UUID", () => {
+    const result = linkIdsSchema.safeParse(["550e8400-e29b-41d4-a716-446655440000"]);
+    expect(result.success).toBe(true);
+  });
+
+  it("拒绝空数组", () => {
+    const result = linkIdsSchema.safeParse([]);
+    expect(result.success).toBe(false);
+  });
+
+  it("拒绝超过 100 个元素", () => {
+    const result = linkIdsSchema.safeParse(Array(101).fill("550e8400-e29b-41d4-a716-446655440000"));
+    expect(result.success).toBe(false);
+  });
+
+  it("拒绝非 UUID 元素", () => {
+    const result = linkIdsSchema.safeParse(["invalid"]);
+    expect(result.success).toBe(false);
+  });
+});
+
+// ─── with-admin 包装器 ───
+
+describe("withAdminGet — 只读路由包装器", () => {
+  it("鉴权通过时执行 handler", async () => {
+    vi.resetModules();
+    vi.doMock("@/lib/admin-auth", () => ({
+      requireAdmin: vi.fn(() => Promise.resolve({ authorized: true })),
+      unauthorized: () => new Response(JSON.stringify({ error: "未授权" }), { status: 401 }),
+    }));
+
+    const { withAdminGet } = await import("@/lib/with-admin");
+    const handler = vi.fn(async () => new Response(JSON.stringify({ data: "ok" }), { status: 200 }));
+    const wrapped = withAdminGet(handler);
+
+    const res = await wrapped();
+    expect(handler).toHaveBeenCalledOnce();
+    expect(res.status).toBe(200);
+  });
+
+  it("鉴权失败时返回 401 不执行 handler", async () => {
+    vi.resetModules();
+    vi.doMock("@/lib/admin-auth", () => ({
+      requireAdmin: vi.fn(() => Promise.resolve({ authorized: false })),
+      unauthorized: () => new Response(JSON.stringify({ error: "未授权" }), { status: 401 }),
+    }));
+
+    const { withAdminGet } = await import("@/lib/with-admin");
+    const handler = vi.fn(async () => new Response(JSON.stringify({ data: "ok" }), { status: 200 }));
+    const wrapped = withAdminGet(handler);
+
+    const res = await wrapped();
+    expect(handler).not.toHaveBeenCalled();
+    expect(res.status).toBe(401);
+  });
+});
+
+describe("withAdminWrite — 写路由包装器（鉴权 + Zod 校验）", () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  it("鉴权通过 + 合法输入时执行 handler", async () => {
+    vi.doMock("@/lib/admin-auth", () => ({
+      requireAdmin: vi.fn(() => Promise.resolve({ authorized: true })),
+      unauthorized: () => new Response(JSON.stringify({ error: "未授权" }), { status: 401 }),
+    }));
+
+    const { withAdminWrite } = await import("@/lib/with-admin");
+    const schema = z.object({ name: z.string().min(1) });
+    const handler = vi.fn(async ({ parsed }) =>
+      new Response(JSON.stringify({ name: parsed.name }), { status: 200 })
+    );
+    const wrapped = withAdminWrite(schema, handler);
+
+    const req = new Request("http://localhost", {
+      method: "POST",
+      body: JSON.stringify({ name: "test" }),
+    });
+    const res = await wrapped(req);
+    expect(handler).toHaveBeenCalledOnce();
+    expect(res.status).toBe(200);
+  });
+
+  it("鉴权失败时返回 401", async () => {
+    vi.doMock("@/lib/admin-auth", () => ({
+      requireAdmin: vi.fn(() => Promise.resolve({ authorized: false })),
+      unauthorized: () => new Response(JSON.stringify({ error: "未授权" }), { status: 401 }),
+    }));
+
+    const { withAdminWrite } = await import("@/lib/with-admin");
+    const schema = z.object({ name: z.string().min(1) });
+    const handler = vi.fn();
+    const wrapped = withAdminWrite(schema, handler);
+
+    const req = new Request("http://localhost", {
+      method: "POST",
+      body: JSON.stringify({ name: "test" }),
+    });
+    const res = await wrapped(req);
+    expect(handler).not.toHaveBeenCalled();
+    expect(res.status).toBe(401);
+  });
+
+  it("非法输入时返回 400 并包含验证错误详情", async () => {
+    vi.doMock("@/lib/admin-auth", () => ({
+      requireAdmin: vi.fn(() => Promise.resolve({ authorized: true })),
+      unauthorized: () => new Response(JSON.stringify({ error: "未授权" }), { status: 401 }),
+    }));
+
+    const { withAdminWrite } = await import("@/lib/with-admin");
+    const schema = z.object({ name: z.string().min(1) });
+    const handler = vi.fn();
+    const wrapped = withAdminWrite(schema, handler);
+
+    const req = new Request("http://localhost", {
+      method: "POST",
+      body: JSON.stringify({ name: "" }),
+    });
+    const res = await wrapped(req);
+    expect(handler).not.toHaveBeenCalled();
+    expect(res.status).toBe(400);
+
+    const body = await res.json();
+    expect(body).toHaveProperty("error");
+    expect(body).toHaveProperty("details");
+  });
+});
+
+// ─── 工具函数（lib/utils）───
+
+describe("withTimeout — Promise 超时", () => {
+  it("在超时前 resolve 时返回结果", async () => {
+    const result = await withTimeout(Promise.resolve("ok"), 1000);
+    expect(result).toBe("ok");
+  });
+
+  it("超时后 reject", async () => {
+    const slow = new Promise<string>((resolve) => setTimeout(resolve, 500));
+    await expect(withTimeout(slow, 10)).rejects.toThrow("Timeout after 10ms");
+  });
+
+  it("ms <= 0 时原样返回", async () => {
+    const result = await withTimeout(Promise.resolve("ok"), 0);
+    expect(result).toBe("ok");
+  });
+
+  it("Promise reject 时传播错误", async () => {
+    await expect(withTimeout(Promise.reject(new Error("fail")), 1000)).rejects.toThrow("fail");
+  });
+});
+
+describe("extractDomain — 域名提取", () => {
+  it("从 URL 中提取域名", () => {
+    expect(extractDomain("https://www.example.com/path")).toBe("example.com");
+  });
+
+  it("处理无 www 前缀", () => {
+    expect(extractDomain("https://example.com")).toBe("example.com");
+  });
+
+  it("处理多级子域名", () => {
+    expect(extractDomain("https://sub.example.com")).toBe("sub.example.com");
+  });
+
+  it("处理非法 URL", () => {
+    expect(extractDomain("not-a-url")).toBe("");
+  });
+});
+
+describe("getClientIp — 客户端 IP 提取", () => {
+  it("优先使用 x-nf-client-connection-ip", () => {
+    const req = new Request("http://localhost", {
+      headers: {
+        "x-nf-client-connection-ip": "10.0.0.1",
+        "x-forwarded-for": "203.0.113.1, 198.51.100.1",
+      },
+    });
+    expect(getClientIp(req)).toBe("10.0.0.1");
+  });
+
+  it("回退到 x-forwarded-for", () => {
+    const req = new Request("http://localhost", {
+      headers: { "x-forwarded-for": "203.0.113.1, 198.51.100.1" },
+    });
+    expect(getClientIp(req)).toBe("203.0.113.1");
+  });
+
+  it("无 IP 头时返回 unknown", () => {
+    const req = new Request("http://localhost");
+    expect(getClientIp(req)).toBe("unknown");
+  });
+});
+
+describe("escapeJsonForHtml — JSON HTML 转义", () => {
+  it("转义 < 和 >", () => {
+    expect(escapeJsonForHtml('<script>alert(1)</script>')).toBe(
+      "\\u003cscript\\u003ealert(1)\\u003c/script\\u003e"
+    );
+  });
+
+  it("转义 &", () => {
+    expect(escapeJsonForHtml("a&b")).toBe("a\\u0026b");
+  });
+
+  it("保留普通文本", () => {
+    expect(escapeJsonForHtml("hello world")).toBe("hello world");
+  });
+
+  it("转义 Unicode 行分隔符", () => {
+    expect(escapeJsonForHtml("a b")).toBe("a\\u2028b");
   });
 });
