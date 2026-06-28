@@ -70,6 +70,10 @@ pnpm e2e
 
 # E2E 交互式 UI 模式
 pnpm e2e:ui
+
+# Search quality golden tests
+# Requires a running site with stable seed data. Defaults are skipped in pnpm test.
+QUALITY_TEST_BASE_URL=http://localhost:3264 pnpm test:quality
 ```
 
 ## 代码质量
@@ -214,6 +218,8 @@ push/PR → quality (lint + tsc + test+coverage)
 ### 服务端搜索
 
 搜索请求通过 `/api/search` API 在服务端执行。默认使用 Fuse.js 模糊搜索；传入 `semantic=true` 时调用本地 embedding 服务生成 512 维向量，再通过 Supabase pgvector RPC 检索，服务不可用时自动回退到 Fuse.js。200ms 防抖，支持分类过滤。
+
+`/api/search` emits low-sensitivity structured logs with request id, query length, query hash, mode, result count, duration, and fallback reason. Raw query text is intentionally not logged.
 
 ### 用户收藏同步
 

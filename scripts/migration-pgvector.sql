@@ -37,7 +37,10 @@ RETURNS TABLE (
   icon TEXT,
   category_name TEXT,
   category_slug TEXT,
-  similarity FLOAT
+  similarity FLOAT,
+  featured BOOLEAN,
+  paid BOOLEAN,
+  click_count INTEGER
 )
 LANGUAGE sql
 STABLE
@@ -50,7 +53,10 @@ AS $$
     nl.icon,
     nc.name AS category_name,
     nc.slug AS category_slug,
-    1 - (nl.embedding <=> query_embedding) AS similarity
+    1 - (nl.embedding <=> query_embedding) AS similarity,
+    nl.featured,
+    nl.paid,
+    nl.click_count
   FROM nav_links nl
   LEFT JOIN nav_categories nc ON nc.id = nl.category_id
   WHERE nl.approved = true

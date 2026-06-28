@@ -4,7 +4,8 @@
 -- Creates:
 --   1. tool_reviews         - ratings and comments for approved tools
 --   2. review_rate_limits   - per-IP review throttling records
---   3. tool_review_stats    - aggregate rating view
+--   3. public_tool_reviews  - approved review view without stored IPs
+--   4. tool_review_stats    - aggregate rating view
 --
 -- Apply:
 --   Supabase SQL Editor: paste and run this file
@@ -12,6 +13,7 @@
 --     supabase db query --db-url "$DATABASE_URL" --file scripts/migration-reviews.sql
 --
 -- Rollback:
+--   DROP VIEW IF EXISTS public_tool_reviews;
 --   DROP VIEW IF EXISTS tool_review_stats;
 --   DROP TRIGGER IF EXISTS trg_tool_reviews_updated_at ON tool_reviews;
 --   DROP POLICY IF EXISTS "Anyone can read approved reviews" ON tool_reviews;
@@ -20,6 +22,7 @@
 --   DROP POLICY IF EXISTS "Admin can delete reviews" ON tool_reviews;
 --   DROP POLICY IF EXISTS "Anyone can insert review rate limits" ON review_rate_limits;
 --   DROP POLICY IF EXISTS "Anyone can read review rate limits" ON review_rate_limits;
+--   DROP POLICY IF EXISTS "Service role can manage review rate limits" ON review_rate_limits;
 --   DROP TABLE IF EXISTS review_rate_limits;
 --   DROP TABLE IF EXISTS tool_reviews;
 -- ============================================================
@@ -83,18 +86,7 @@ ALTER TABLE tool_reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tool_reviews FORCE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Anyone can read approved reviews" ON tool_reviews;
-CREATE POLICY "Anyone can read approved reviews"
-  ON tool_reviews FOR SELECT
-  USING (approved = true);
-
 DROP POLICY IF EXISTS "Anyone can submit reviews" ON tool_reviews;
-CREATE POLICY "Anyone can submit reviews"
-  ON tool_reviews FOR INSERT
-  WITH CHECK (
-    rating >= 1
-    AND rating <= 5
-    AND length(coalesce(comment, '')) <= 500
-  );
 
 -- Admin policies are intentionally tied to an optional profiles table.
 -- If the table is absent, these policies are skipped.
@@ -132,14 +124,25 @@ ALTER TABLE review_rate_limits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE review_rate_limits FORCE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Anyone can insert review rate limits" ON review_rate_limits;
-CREATE POLICY "Anyone can insert review rate limits"
-  ON review_rate_limits FOR INSERT
-  WITH CHECK (true);
-
 DROP POLICY IF EXISTS "Anyone can read review rate limits" ON review_rate_limits;
-CREATE POLICY "Anyone can read review rate limits"
-  ON review_rate_limits FOR SELECT
-  USING (true);
+DROP POLICY IF EXISTS "Service role can manage review rate limits" ON review_rate_limits;
+
+CREATE POLICY "Service role can manage review rate limits"
+  ON review_rate_limits FOR ALL
+  USING (auth.role() = 'service_role')
+  WITH CHECK (auth.role() = 'service_role');
+
+CREATE OR REPLACE VIEW public_tool_reviews AS
+SELECT
+  id,
+  link_id,
+  rating,
+  comment,
+  approved,
+  created_at,
+  updated_at
+FROM tool_reviews
+WHERE approved = true;
 
 CREATE OR REPLACE VIEW tool_review_stats AS
 SELECT
@@ -160,6 +163,10 @@ COMMENT ON COLUMN tool_reviews.rating IS 'Rating from 1 to 5.';
 COMMENT ON COLUMN tool_reviews.comment IS 'Optional review text.';
 COMMENT ON COLUMN tool_reviews.approved IS 'Whether the review is approved for public display.';
 COMMENT ON TABLE review_rate_limits IS 'Review rate-limit attempt records.';
+COMMENT ON VIEW public_tool_reviews IS 'Approved public reviews without stored IP addresses.';
 COMMENT ON VIEW tool_review_stats IS 'Aggregate rating statistics per tool.';
+
+GRANT SELECT ON public_tool_reviews TO anon, authenticated;
+GRANT SELECT ON tool_review_stats TO anon, authenticated;
 
 COMMIT;

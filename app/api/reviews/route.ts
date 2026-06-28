@@ -39,7 +39,15 @@ export async function GET(request: NextRequest) {
     ]);
 
     return NextResponse.json({
-      reviews,
+      reviews: reviews.map(({ id, link_id, rating, comment, approved, created_at, updated_at }) => ({
+        id,
+        link_id,
+        rating,
+        comment,
+        approved,
+        created_at,
+        updated_at,
+      })),
       stats: stats ?? {
         review_count: 0,
         avg_rating: 0,

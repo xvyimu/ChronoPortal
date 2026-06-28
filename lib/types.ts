@@ -98,6 +98,8 @@ export interface ToolReview {
   updated_at: string;
 }
 
+export type PublicToolReview = Omit<ToolReview, "ip">;
+
 export interface ReviewStats {
   review_count: number;
   avg_rating: number;

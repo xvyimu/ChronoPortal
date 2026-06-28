@@ -88,9 +88,10 @@ export async function checkRateLimit(
   ip: string,
   windowMs: number,
   maxAttempts: number,
-  failClose: boolean = false
+  failClose: boolean = false,
+  client?: SupabaseClient
 ): Promise<{ allowed: boolean; count: number }> {
-  const supabase = await createClient();
+  const supabase = client ?? await createClient();
   const since = new Date(Date.now() - windowMs).toISOString();
 
   // 惰性清理过期记录

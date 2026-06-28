@@ -1,7 +1,7 @@
-import { createClient } from "@/lib/supabase/server";
-import type { Category, NavLink, Tag, ToolReview, ReviewStats } from "@/lib/types";
+import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
+import type { Category, NavLink, Tag, PublicToolReview, ReviewStats } from "@/lib/types";
 import { slugify } from "@/lib/slugify";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, cleanupOldAttempts } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
 import { cache } from "react";
 
@@ -250,13 +250,12 @@ export async function getApprovedLinksForApi(categorySlug?: string): Promise<Nav
 /**
  * 获取工具的评价列表（已批准）
  */
-export async function getToolReviews(linkId: string, limit = 20): Promise<ToolReview[]> {
+export async function getToolReviews(linkId: string, limit = 20): Promise<PublicToolReview[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("tool_reviews")
-    .select("*")
+    .from("public_tool_reviews")
+    .select("id, link_id, rating, comment, approved, created_at, updated_at")
     .eq("link_id", linkId)
-    .eq("approved", true)
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -290,13 +289,25 @@ export async function getReviewStats(linkId: string): Promise<ReviewStats | null
  * 检查 IP 是否已评价过某工具
  */
 export async function hasUserReviewed(linkId: string, ip: string): Promise<boolean> {
-  const supabase = await createClient();
-  const { data } = await supabase
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase
     .from("tool_reviews")
     .select("id")
     .eq("link_id", linkId)
     .eq("ip", ip)
     .maybeSingle();
+
+  if (error) {
+    if (isMissingRelationError(error)) {
+      throw new MissingDatabaseMigrationError("reviews", { cause: error });
+    }
+    logger.warn("Failed to check existing review", {
+      source: "repositories",
+      linkId,
+      error: error.message,
+    });
+    return false;
+  }
 
   return !!data;
 }
@@ -309,8 +320,8 @@ export async function createReview(
   ip: string,
   rating: number,
   comment: string | null
-): Promise<ToolReview | null> {
-  const supabase = await createClient();
+): Promise<PublicToolReview | null> {
+  const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("tool_reviews")
     .insert({
@@ -320,7 +331,7 @@ export async function createReview(
       comment: comment || null,
       approved: true,
     })
-    .select("*")
+    .select("id, link_id, rating, comment, approved, created_at, updated_at")
     .single();
 
   if (error) {
@@ -338,7 +349,15 @@ export async function createReview(
  * 评价速率限制检查（每 IP 每 15 分钟最多 3 条评价）
  */
 export async function checkReviewRateLimit(ip: string): Promise<boolean> {
-  const { allowed } = await checkRateLimit("review_rate_limits", ip, 15 * 60 * 1000, 3);
+  const supabase = createServiceRoleClient();
+  const { allowed } = await checkRateLimit(
+    "review_rate_limits",
+    ip,
+    15 * 60 * 1000,
+    3,
+    false,
+    supabase
+  );
   return allowed;
 }
 
@@ -346,10 +365,11 @@ export async function checkReviewRateLimit(ip: string): Promise<boolean> {
  * 记录评价速率限制
  */
 export async function recordReviewAttempt(ip: string, linkId: string): Promise<void> {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
+  await cleanupOldAttempts(supabase, "review_rate_limits");
   const { error } = await supabase.from("review_rate_limits").insert({ ip, link_id: linkId });
   if (error) {
-    logger.warn("Review attempt record failed", { ip, linkId, error: error.message });
+    logger.warn("Review attempt record failed", { linkId, error: error.message });
   }
 }
 

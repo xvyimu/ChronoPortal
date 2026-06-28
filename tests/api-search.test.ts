@@ -23,6 +23,7 @@ const sampleLinks = [
 const getApprovedLinks = vi.fn(async () => sampleLinks);
 const rpc = vi.fn(async () => ({ data: [], error: null }));
 const createServiceRoleClient = vi.fn(() => ({ rpc }));
+const loggerInfo = vi.fn();
 
 vi.mock("@/lib/repositories", () => ({
   getApprovedLinks,
@@ -36,7 +37,7 @@ vi.mock("@/lib/logger", () => ({
   logger: {
     error: vi.fn(),
     warn: vi.fn(),
-    info: vi.fn(),
+    info: loggerInfo,
     debug: vi.fn(),
   },
 }));
@@ -89,5 +90,32 @@ describe("/api/search", () => {
     expect(body.mode).toBe("semantic");
     expect(fetchMock).not.toHaveBeenCalled();
     expect(createServiceRoleClient).not.toHaveBeenCalled();
+  });
+
+  it("adds request telemetry without logging the raw query", async () => {
+    const { GET } = await import("@/app/api/search/route");
+    const response = await GET(
+      new NextRequest("http://localhost/api/search?q=openai", {
+        headers: { "x-request-id": "req-search-test" },
+      })
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-request-id")).toBe("req-search-test");
+    expect(body.query).toBe("openai");
+
+    expect(loggerInfo).toHaveBeenCalledWith(
+      "Search API completed",
+      expect.objectContaining({
+        event: "search_request",
+        requestId: "req-search-test",
+        queryLength: 6,
+        queryHash: expect.any(String),
+        responseMode: "fuse",
+        resultCount: expect.any(Number),
+      })
+    );
+    expect(JSON.stringify(loggerInfo.mock.calls)).not.toContain("openai");
   });
 });

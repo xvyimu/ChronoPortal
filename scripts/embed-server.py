@@ -27,6 +27,10 @@ DEFAULT_PORT = int(os.environ.get("EMBED_PORT", "8003"))
 MAX_TEXT_CHARS = int(os.environ.get("EMBED_MAX_TEXT_CHARS", "2000"))
 MAX_BATCH_SIZE = int(os.environ.get("EMBED_MAX_BATCH_SIZE", "32"))
 
+# BGE query instruction prefix (language-matched to model)
+# bge-small-zh-v1.5 uses Chinese prefix for Chinese model
+BGE_QUERY_PREFIX = "为这个句子生成表示以用于检索相关文章："
+
 # ── 模型（懒加载） ──
 model: SentenceTransformer | None = None
 _model_loaded = False
@@ -78,6 +82,15 @@ def embed_one(req: EmbedRequest):
     text = normalize_text(req.text)
     m = get_model()
     vec = m.encode([text], normalize_embeddings=True, show_progress_bar=False)[0]
+    return {"embedding": vec.tolist(), "dim": len(vec)}
+
+
+@app.post("/embed-query")
+def embed_query(req: EmbedRequest):
+    text = normalize_text(req.text)
+    prefixed = BGE_QUERY_PREFIX + text
+    m = get_model()
+    vec = m.encode([prefixed], normalize_embeddings=True, show_progress_bar=False)[0]
     return {"embedding": vec.tolist(), "dim": len(vec)}
 
 

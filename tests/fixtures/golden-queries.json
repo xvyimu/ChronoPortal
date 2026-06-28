@@ -1,0 +1,59 @@
+[
+  {
+    "query": "react",
+    "category": null,
+    "expectedIds": [
+      "7a9cc26b-eff5-4937-9a30-5a90ca175069",
+      "432a371a-b33a-48c6-97cf-279b6e8d6752",
+      "41f8d333-80ad-44da-ade6-caa8fd259a2b"
+    ],
+    "checkPrecision": true
+  },
+  {
+    "query": "ai code assistant",
+    "category": null,
+    "expectedIds": [
+      "6850600c-fab8-4a4d-9623-e3a3a260c1e7",
+      "4f48b8d4-1894-4697-9668-1a6257cf5cba",
+      "bf3c66e1-5016-46e5-9520-016b4f92595d"
+    ],
+    "checkPrecision": true
+  },
+  {
+    "query": "database orm",
+    "category": null,
+    "expectedIds": [
+      "afc5f315-ee8e-43c7-a875-d8e622a3e7ea",
+      "798a407c-5c32-4439-8fe6-39182b695f3a"
+    ],
+    "checkPrecision": true
+  },
+  {
+    "query": "go",
+    "category": null,
+    "expectedIds": [
+      "7558c337-9f3e-426f-b197-a786d8f9fb63"
+    ],
+    "checkPrecision": false
+  },
+  {
+    "query": "css framework",
+    "category": null,
+    "expectedIds": [
+      "37f5b527-8217-41fe-90e3-e93e15796920",
+      "b8a8938d-f618-420b-8902-c09ccab0cf85",
+      "1dffcb4b-794c-4e8c-a754-8088ca9b936a"
+    ],
+    "checkPrecision": true
+  },
+  {
+    "query": "markdown editor",
+    "category": null,
+    "expectedIds": [
+      "a4ce8759-77dc-4378-9117-335eb6badfe2",
+      "dc855273-e3a4-459c-9913-6ce2fc2a5d3f",
+      "8e8a8d75-04a3-4305-bb17-8690e493b7c0"
+    ],
+    "checkPrecision": true
+  }
+]

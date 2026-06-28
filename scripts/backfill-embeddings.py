@@ -66,7 +66,8 @@ def _rpc(name: str, params: dict) -> None:
 
 
 def fetch_links(limit: int | None = None) -> list[dict]:
-    params = "select=id,title,description&approved=eq.true&order=created_at.desc"
+    # Join category name; the Supabase REST API expands nav_categories(name)
+    params = "select=id,title,description,category_id,nav_categories(name)&approved=eq.true&order=created_at.desc"
     if limit:
         params += f"&limit={limit}"
     data = _rest(f"/rest/v1/nav_links?{params}")
@@ -79,6 +80,10 @@ def generate_embedding_text(link: dict) -> str:
     desc = (link.get("description") or "").strip()
     if desc:
         parts.append(desc)
+    # Add category context as bracketed tag (model sees it as metadata)
+    category = link.get("nav_categories")
+    if category and isinstance(category, dict) and category.get("name"):
+        parts.append(f"[{category['name']}]")
     return " ".join(parts)
 
 

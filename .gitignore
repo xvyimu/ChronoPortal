@@ -61,6 +61,10 @@ node_modules_phantom*/
 # mcp config (project-specific, should be configured per developer)
 .mcp.json
 
+# python cache
+__pycache__/
+*.pyc
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

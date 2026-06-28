@@ -45,6 +45,7 @@ async function checkTable(name, select) {
 const checks = [
   await checkTable("tool_reviews", "id"),
   await checkTable("review_rate_limits", "id"),
+  await checkTable("public_tool_reviews", "id, link_id, rating, comment, approved, created_at, updated_at"),
   await checkTable("tool_review_stats", "link_id"),
 ];
 

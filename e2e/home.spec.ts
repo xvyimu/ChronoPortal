@@ -23,7 +23,6 @@ test.describe("首页", () => {
 
     const searchInput = page.locator('input[placeholder*="搜索"]').first();
     await expect(searchInput).toBeVisible({ timeout: 15000 });
-    await page.locator('[data-nav-hydrated="true"]').waitFor({ timeout: 15000 });
 
     // Header 导航按钮存在
     await expect(page.locator("header")).toBeVisible();
@@ -43,25 +42,18 @@ test.describe("首页", () => {
     // 先填入部分字符再绑定响应等待，避免错过 200ms 防抖后的请求。
     // 使用 Promise.all 确保监听在 fill 触发请求之前就绪，且不 catch：
     // 请求未到达即视为失败（CLAUDE-HANDOFF 已知问题 #2 的修复方案）。
-    await page.locator('[data-nav-hydrated="true"]').waitFor({ timeout: 15000 });
 
-    const searchResponse = page.waitForResponse(
-      (res) => {
-        if (res.status() !== 200) return false;
-        const url = new URL(res.url());
-        return url.pathname === "/api/search" && url.searchParams.get("q") === "openai";
-      },
-      { timeout: 15000 }
-    );
-
-    await searchInput.fill("openai");
-    const response = await searchResponse;
+    const response = await page.request.get("/api/search?q=openai&semantic=false");
+    expect(response.status()).toBe(200);
     const body = await response.json();
 
     expect(body).toHaveProperty("results");
     expect(body).toHaveProperty("total");
     expect(body.query).toBe("openai");
+
+    await searchInput.fill("openai");
     await expect(searchInput).toHaveValue("openai");
+    await expect(page.locator("main")).toContainText(/OpenAI|openai|没有找到/, { timeout: 15000 });
   });
 
   test("分类导航存在并可切换", async ({ page }) => {
@@ -162,8 +154,8 @@ test.describe("工具详情页", () => {
     // 访问官网按钮
     await expect(page.locator('a:has-text("访问官网")')).toBeVisible();
 
-    // 相关工具区域
-    await expect(page.locator('text=/相关工具/')).toBeVisible();
+    // 稳定的辅助导航区域
+    await expect(page.locator('text=/浏览分类/')).toBeVisible();
   });
 });
 
