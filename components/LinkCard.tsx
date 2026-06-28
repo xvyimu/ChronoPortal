@@ -3,14 +3,24 @@
 import { memo, useEffect, useState } from "react";
 import NextImage from "next/image";
 import { motion } from "motion/react";
-import { Globe, Heart, Sparkles } from "lucide-react";
+import { Eye, Globe, Heart, Sparkles } from "lucide-react";
 import { useFavoritesContext } from "@/components/FavoritesProvider";
 import { fadeInUp } from "@/lib/animations";
 import { highlightSearchTerm } from "@/lib/highlight";
 import { getLinkType, relativeTime, type NavLink } from "@/lib/types";
 import { extractDomain, isSafeUrl } from "@/lib/utils";
 
-function LinkCardComponent({ link, index = 0, searchQuery = "" }: { link: NavLink; index?: number; searchQuery?: string }) {
+function LinkCardComponent({
+  link,
+  index = 0,
+  searchQuery = "",
+  onPreview,
+}: {
+  link: NavLink;
+  index?: number;
+  searchQuery?: string;
+  onPreview?: (link: NavLink) => void;
+}) {
   const domain = extractDomain(link.url);
   const safeUrl = isSafeUrl(link.url) ? link.url : "#";
   const type = getLinkType(link.category_slug ?? null);
@@ -146,6 +156,20 @@ function LinkCardComponent({ link, index = 0, searchQuery = "" }: { link: NavLin
             >
               <Heart className={`h-3.5 w-3.5 transition-all ${fav ? "fill-emerald-200 text-emerald-200" : ""}`} />
             </button>
+            {onPreview && (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onPreview(link);
+                }}
+                className="shrink-0 rounded-md p-1.5 text-white/32 transition-colors hover:bg-white/10 hover:text-emerald-100"
+                aria-label={`预览 ${link.title}`}
+              >
+                <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+              </button>
+            )}
           </div>
         </div>
       </a>

@@ -16,6 +16,7 @@ interface DualTrackSectionProps {
   onFocusChange: (index: number) => void;
   onKeyDown: (e: KeyboardEvent<HTMLElement>, index: number) => void;
   searchQuery?: string;
+  onPreview?: (link: NavLink) => void;
 }
 
 export function DualTrackSection({
@@ -27,6 +28,7 @@ export function DualTrackSection({
   onFocusChange,
   onKeyDown,
   searchQuery = "",
+  onPreview,
 }: DualTrackSectionProps) {
   return (
     <>
@@ -40,6 +42,7 @@ export function DualTrackSection({
             onFocusChange={onFocusChange}
             onKeyDown={onKeyDown}
             searchQuery={searchQuery}
+            onPreview={onPreview}
           />
         </motion.section>
       )}
@@ -54,6 +57,7 @@ export function DualTrackSection({
             onFocusChange={onFocusChange}
             onKeyDown={onKeyDown}
             searchQuery={searchQuery}
+            onPreview={onPreview}
           />
         </motion.section>
       )}
@@ -71,6 +75,7 @@ export function DualTrackSection({
             onFocusChange={onFocusChange}
             onKeyDown={onKeyDown}
             searchQuery={searchQuery}
+            onPreview={onPreview}
           />
         </motion.section>
       )}

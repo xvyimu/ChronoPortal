@@ -11,6 +11,7 @@ import { DualTrackSection } from "./DualTrackSection";
 import { HomeHero } from "./HomeHero";
 import { SearchExperiencePanel } from "./SearchExperiencePanel";
 import { Sidebar } from "./Sidebar";
+import { ToolQuickView } from "./ToolQuickView";
 import { useShell } from "./Shell";
 import { useLinksFilter } from "./useLinksFilter";
 
@@ -55,6 +56,7 @@ export function Navigation({
     handleSearchKeyDown, handleResultKeyDown,
   } = useLinksFilter({ categories, links, modelRankings });
   const [mounted, setMounted] = useState(false);
+  const [previewLink, setPreviewLink] = useState<NavLink | null>(null);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setMounted(true), []);
@@ -160,6 +162,7 @@ export function Navigation({
                 onFocusChange={setFocusedIndex}
                 onKeyDown={handleResultKeyDown}
                 searchQuery={q}
+                onPreview={setPreviewLink}
               />
 
               {showLinks && linkSections.map((section) => (
@@ -172,6 +175,7 @@ export function Navigation({
                   onFocusChange={setFocusedIndex}
                   onKeyDown={handleResultKeyDown}
                   searchQuery={q}
+                  onPreview={setPreviewLink}
                 />
               ))}
 
@@ -201,6 +205,7 @@ export function Navigation({
                   onFocusChange={() => {}}
                   onKeyDown={() => {}}
                   searchQuery={q}
+                  onPreview={setPreviewLink}
                 />
               )}
             </div>
@@ -259,6 +264,7 @@ export function Navigation({
           <div className="h-16 md:hidden" />
         </div>
       </div>
+      <ToolQuickView link={previewLink} onClose={() => setPreviewLink(null)} />
     </div>
   );
 }

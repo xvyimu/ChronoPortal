@@ -21,6 +21,7 @@ interface CategorySectionProps {
   onFocusChange: (index: number) => void;
   onKeyDown: (e: KeyboardEvent<HTMLElement>, index: number) => void;
   searchQuery?: string;
+  onPreview?: (link: NavLink) => void;
 }
 
 export function CategorySection({
@@ -31,6 +32,7 @@ export function CategorySection({
   onFocusChange,
   onKeyDown,
   searchQuery = "",
+  onPreview,
 }: CategorySectionProps) {
   if (section.links.length === 0) return null;
   const isSearchSection = section.key === "search-results" || section.key === "zero-result-recommendations";
@@ -51,6 +53,7 @@ export function CategorySection({
         onFocusChange={onFocusChange}
         onKeyDown={onKeyDown}
         searchQuery={searchQuery}
+        onPreview={onPreview}
       />
     </motion.section>
   );

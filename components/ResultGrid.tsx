@@ -12,6 +12,7 @@ interface ResultGridProps {
   onFocusChange: (index: number) => void;
   onKeyDown: (e: KeyboardEvent<HTMLElement>, index: number) => void;
   searchQuery?: string;
+  onPreview?: (link: NavLink) => void;
 }
 
 /**
@@ -26,6 +27,7 @@ export function ResultGrid({
   onFocusChange,
   onKeyDown,
   searchQuery = "",
+  onPreview,
 }: ResultGridProps) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" role="list">
@@ -45,7 +47,7 @@ export function ResultGrid({
             tabIndex={focusedIndex === idx ? 0 : -1}
             className="outline-none rounded-xl transition-all duration-150"
           >
-            <LinkCard link={link} index={idx} searchQuery={searchQuery} />
+            <LinkCard link={link} index={idx} searchQuery={searchQuery} onPreview={onPreview} />
           </motion.div>
         );
       })}
