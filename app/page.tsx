@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { type NavLink } from "@/lib/types";
 import { Navigation } from "@/components/Navigation";
 import { NavSkeleton } from "@/components/NavSkeleton";
@@ -15,6 +16,8 @@ export const revalidate = 60;
 const FETCH_TIMEOUT = 8000;
 
 export default async function Home() {
+  await connection();
+
   const [categories, links, rankings] = await Promise.all([
     withTimeout(getCategories(), FETCH_TIMEOUT).catch(() => {
       logger.warn("getCategories timed out, using empty fallback");

@@ -2,6 +2,28 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { logger } from "@/lib/logger";
 
+const DEFAULT_EMBED_SERVER_URL = "http://127.0.0.1:8003";
+const EMBED_HEALTH_TIMEOUT_MS = 1500;
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
+
+function normalizeHostname(hostname: string): string {
+  return hostname.replace(/^\[(.*)\]$/, "$1").toLowerCase();
+}
+
+function getEmbedHealthEndpoint(): string | null {
+  const raw = process.env.EMBED_SERVER_URL ?? DEFAULT_EMBED_SERVER_URL;
+
+  try {
+    const url = new URL(raw);
+    if ((url.protocol !== "http:" && url.protocol !== "https:") || !LOOPBACK_HOSTS.has(normalizeHostname(url.hostname))) {
+      return null;
+    }
+    return new URL("/health", url).toString();
+  } catch {
+    return null;
+  }
+}
+
 export async function GET() {
   const start = Date.now();
 
@@ -63,6 +85,33 @@ export async function GET() {
     latency_ms: Date.now() - sentryStart,
     detail: process.env.NEXT_PUBLIC_SENTRY_DSN ? "configured" : "not configured (optional)",
   };
+
+  const embedStart = Date.now();
+  const embedEndpoint = getEmbedHealthEndpoint();
+  if (!embedEndpoint) {
+    checks.embedding = {
+      status: "skipped",
+      latency_ms: Date.now() - embedStart,
+      detail: "not configured or non-loopback EMBED_SERVER_URL",
+    };
+  } else {
+    try {
+      const response = await fetch(embedEndpoint, {
+        signal: AbortSignal.timeout(EMBED_HEALTH_TIMEOUT_MS),
+      });
+      checks.embedding = {
+        status: response.ok ? "ok" : "error",
+        latency_ms: Date.now() - embedStart,
+        detail: response.ok ? "embed service reachable" : `embed service returned ${response.status}`,
+      };
+    } catch (e) {
+      checks.embedding = {
+        status: "error",
+        latency_ms: Date.now() - embedStart,
+        detail: e instanceof Error ? e.message : "embed service unavailable",
+      };
+    }
+  }
 
   const latency = Date.now() - start;
   const statusCode = healthy ? 200 : 503;
