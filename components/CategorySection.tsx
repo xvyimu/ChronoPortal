@@ -39,10 +39,9 @@ export function CategorySection({
   return (
     <motion.section variants={fadeInUp}>
       {(activeCategory === "all" || isSearchSection) && (
-        <h2 className={`mb-3 text-xs font-medium uppercase tracking-widest ${section.accent} flex items-center gap-2`}>
-          <span className="inline-block w-4 h-px bg-current opacity-50" />
+        <h2 className={`atlas-section-label ${section.accent || "text-white/78"}`}>
           {section.label}
-          <span className="text-muted-foreground/60 font-normal tabular-nums">({section.links.length})</span>
+          <span className="font-normal tabular-nums text-white/42">({section.links.length})</span>
         </h2>
       )}
       <ResultGrid

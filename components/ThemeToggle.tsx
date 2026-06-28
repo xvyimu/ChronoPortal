@@ -1,22 +1,35 @@
 "use client";
 
-import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-import { Sun, Moon } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
 
-export function ThemeToggle() {
+export function ThemeToggle({ variant = "default" }: { variant?: "default" | "cinematic" }) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const isCinematic = variant === "cinematic";
 
   useEffect(() => setMounted(true), []); // eslint-disable-line react-hooks/set-state-in-effect
 
-  if (!mounted) return <div className="h-8 w-8 animate-pulse rounded-md bg-muted/30" />;
+  if (!mounted) {
+    return (
+      <div
+        className={`h-8 w-8 animate-pulse ${
+          isCinematic ? "rounded-full bg-white/10" : "rounded-md bg-muted/30"
+        }`}
+      />
+    );
+  }
 
   return (
     <button
       type="button"
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground/50 hover:bg-muted hover:text-foreground transition-colors"
+      className={
+        isCinematic
+          ? "inline-flex h-8 w-8 items-center justify-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+          : "inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground/50 transition-colors hover:bg-muted hover:text-foreground"
+      }
       aria-label="切换主题"
     >
       {theme === "dark" ? (

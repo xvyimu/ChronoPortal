@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { Compass, X, ChevronRight, ChevronDown } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { ChevronDown, ChevronRight, Compass, X } from "lucide-react";
 import { getCategoryIcon } from "@/lib/category-icons";
-import { TagFilter } from "./TagFilter";
 import type { Tag } from "@/lib/types";
+import { TagFilter } from "./TagFilter";
 
-/** 侧边栏树节点（含子分类） */
 interface SidebarTabNode {
   key: string;
   label: string;
@@ -21,13 +20,9 @@ interface SidebarProps {
   onSelect: (key: string) => void;
   open: boolean;
   onClose: () => void;
-  /** 可选标签列表（按名称排序） */
   tags?: Tag[];
-  /** 当前选中的标签 slug 列表 */
   activeTags?: string[];
-  /** 切换标签选中状态 */
   onToggleTag?: (slug: string) => void;
-  /** 清除所有标签筛选 */
   onClearTags?: () => void;
 }
 
@@ -43,10 +38,8 @@ export function Sidebar({
   onClearTags,
 }: SidebarProps) {
   const sidebarRef = useRef<HTMLDivElement>(null);
-  // 展开的分类 slug 集合（分类层级用）
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-  // Close on Escape
   useEffect(() => {
     const handle = (e: globalThis.KeyboardEvent) => {
       if (e.key === "Escape" && open) onClose();
@@ -55,7 +48,6 @@ export function Sidebar({
     return () => document.removeEventListener("keydown", handle);
   }, [open, onClose]);
 
-  // Close on click outside (desktop)
   useEffect(() => {
     const handle = (e: MouseEvent) => {
       if (open && sidebarRef.current && !sidebarRef.current.contains(e.target as Node)) {
@@ -66,22 +58,22 @@ export function Sidebar({
     return () => document.removeEventListener("mousedown", handle);
   }, [open, onClose]);
 
-  // Prevent body scroll when open on mobile
   useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
     }
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [open]);
 
-  // 选中子分类时自动展开父分类
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setExpanded((prev) => {
       for (const tab of tabs) {
-        if (tab.children.some((c) => c.key === activeKey) && !prev.has(tab.key)) {
+        if (tab.children.some((child) => child.key === activeKey) && !prev.has(tab.key)) {
           const next = new Set(prev);
           next.add(tab.key);
           return next;
@@ -119,18 +111,14 @@ export function Sidebar({
             <button
               type="button"
               onClick={() => toggleExpand(tab.key)}
-              className="shrink-0 w-5 h-7 flex items-center justify-center text-muted-foreground/50 hover:text-foreground transition-colors"
+              className="flex h-7 w-5 shrink-0 items-center justify-center text-white/45 transition-colors hover:text-white"
               aria-label={isExpanded ? "收起子分类" : "展开子分类"}
               aria-expanded={isExpanded}
             >
-              {isExpanded ? (
-                <ChevronDown className="h-3 w-3" />
-              ) : (
-                <ChevronRight className="h-3 w-3" />
-              )}
+              {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
             </button>
           ) : (
-            <span className="shrink-0 w-5" aria-hidden="true" />
+            <span className="w-5 shrink-0" aria-hidden="true" />
           )}
           <button
             onClick={() => handleSelect(tab.key)}
@@ -139,11 +127,7 @@ export function Sidebar({
             style={isChild ? { paddingLeft: "0.25rem" } : undefined}
           >
             <span className="flex items-center gap-2.5">
-              <Icon
-                className={`h-4 w-4 shrink-0 transition-colors ${
-                  isActive ? "text-primary" : "text-muted-foreground/50"
-                }`}
-              />
+              <Icon className={`h-4 w-4 shrink-0 transition-colors ${isActive ? "text-emerald-100" : "text-white/42"}`} />
               {tab.label}
             </span>
             {tab.count > 0 && <span className="sidebar-badge">{tab.count}</span>}
@@ -174,7 +158,6 @@ export function Sidebar({
 
   return (
     <>
-      {/* Mobile overlay */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -182,13 +165,12 @@ export function Sidebar({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm md:hidden"
+            className="fixed inset-0 z-40 bg-black/45 backdrop-blur-sm md:hidden"
             aria-hidden="true"
           />
         )}
       </AnimatePresence>
 
-      {/* Mobile sidebar (slide-in) */}
       <AnimatePresence>
         {open && (
           <motion.aside
@@ -197,19 +179,19 @@ export function Sidebar({
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed left-0 top-0 z-50 h-full w-64 border-r border-border bg-background md:hidden"
+            className="fixed left-0 top-0 z-50 h-full w-72 border-r border-white/10 bg-[#07100f] text-white md:hidden"
             role="dialog"
             aria-modal="true"
             aria-label="导航分类"
           >
-            <div className="flex h-14 items-center justify-between border-b border-border/50 px-4">
-              <span className="flex items-center gap-2 text-sm font-medium text-foreground/80">
-                <Compass className="h-5 w-5 text-primary" />
-                综合导航站
+            <div className="flex h-16 items-center justify-between border-b border-white/10 px-4">
+              <span className="flex items-center gap-2 text-sm font-medium text-white/85">
+                <Compass className="h-5 w-5 text-emerald-100" />
+                Nav Atlas
               </span>
               <button
                 onClick={onClose}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/50 hover:bg-muted hover:text-foreground transition-colors"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-white/55 transition-colors hover:bg-white/10 hover:text-white"
                 aria-label="关闭侧边栏"
               >
                 <X className="h-4 w-4" />
@@ -220,11 +202,8 @@ export function Sidebar({
         )}
       </AnimatePresence>
 
-      {/* Desktop sidebar (always visible) */}
-      <aside className="hidden md:block w-64 shrink-0 border-r border-border/50 bg-background/80 h-[calc(100vh-3.5rem)] sticky top-14 overflow-y-auto">
-        <div className="px-4 py-4">
-          {links}
-        </div>
+      <aside className="sticky top-20 hidden h-[calc(100vh-5rem)] w-64 shrink-0 overflow-y-auto border-r border-white/10 bg-[#07100f]/88 py-4 text-white backdrop-blur-xl md:block">
+        {links}
       </aside>
     </>
   );

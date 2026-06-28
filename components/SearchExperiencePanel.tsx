@@ -72,10 +72,10 @@ export function SearchExperiencePanel({
     .slice(0, 3) as string[];
 
   return (
-    <div className="space-y-3 rounded-lg border border-border/70 bg-card/60 p-3">
+    <div className="nav-glass space-y-3 rounded-2xl p-3 text-white">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-          <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+        <span className="inline-flex items-center gap-1.5 text-xs font-mono uppercase text-white/62">
+          <Sparkles className="h-3.5 w-3.5 text-emerald-200" aria-hidden="true" />
           {query ? "搜索建议" : "热门查询"}
         </span>
         {visibleSuggestions.length > 0 ? visibleSuggestions.map((suggestion) => (
@@ -83,102 +83,74 @@ export function SearchExperiencePanel({
             key={`${suggestion.type}:${suggestion.value}`}
             type="button"
             onClick={() => onSuggestion(suggestion.value)}
-            className="inline-flex h-7 items-center gap-1 rounded-md border border-border/70 bg-background px-2 text-xs text-foreground/80 transition-colors hover:border-primary/40 hover:text-primary"
+            className="inline-flex h-7 items-center gap-1 rounded-full border border-white/12 bg-white/[0.06] px-2.5 text-xs text-white/82 transition-colors hover:border-emerald-200/45 hover:text-emerald-50"
           >
-            <span className="text-muted-foreground/60">{suggestionLabel(suggestion.type)}</span>
+            <span className="text-white/45">{suggestionLabel(suggestion.type)}</span>
             {suggestion.label}
             {suggestion.count !== undefined && (
-              <span className="tabular-nums text-muted-foreground/50">{suggestion.count}</span>
+              <span className="tabular-nums text-white/42">{suggestion.count}</span>
             )}
           </button>
         )) : (
-          <span className="text-xs text-muted-foreground/60">
+          <span className="text-xs text-white/55">
             {loading ? "正在分析匹配项" : "暂无建议"}
           </span>
         )}
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5 text-xs font-mono uppercase text-white/62">
           <Filter className="h-3.5 w-3.5" aria-hidden="true" />
           筛选
         </span>
 
         {visibleCategories.map((category) => (
-          <button
+          <FacetButton
             key={category.value}
-            type="button"
+            active={activeCategory === category.value}
             onClick={() => onCategoryChange(activeCategory === category.value ? "all" : category.value)}
-            className={`inline-flex h-7 max-w-full items-center gap-1 rounded-md border px-2 text-xs transition-colors ${
-              activeCategory === category.value
-                ? "border-primary/40 bg-primary/10 text-primary"
-                : "border-border/70 bg-background text-foreground/75 hover:border-primary/30"
-            }`}
-            aria-pressed={activeCategory === category.value}
-          >
-            <Folder className="h-3 w-3 shrink-0" aria-hidden="true" />
-            <span className="truncate">{category.label}</span>
-            <span className="tabular-nums text-muted-foreground/50">{category.count}</span>
-          </button>
+            icon={<Folder className="h-3 w-3 shrink-0" aria-hidden="true" />}
+            label={category.label}
+            count={category.count}
+          />
         ))}
 
         {visibleTags.map((tag) => (
-          <button
+          <FacetButton
             key={tag.value}
-            type="button"
+            active={activeTags.includes(tag.value)}
             onClick={() => onToggleTag(tag.value)}
-            className={`inline-flex h-7 max-w-full items-center gap-1 rounded-md border px-2 text-xs transition-colors ${
-              activeTags.includes(tag.value)
-                ? "border-primary/40 bg-primary/10 text-primary"
-                : "border-border/70 bg-background text-foreground/75 hover:border-primary/30"
-            }`}
-            aria-pressed={activeTags.includes(tag.value)}
-          >
-            <Tags className="h-3 w-3 shrink-0" aria-hidden="true" />
-            <span className="truncate">{tag.label}</span>
-            <span className="tabular-nums text-muted-foreground/50">{tag.count}</span>
-          </button>
+            icon={<Tags className="h-3 w-3 shrink-0" aria-hidden="true" />}
+            label={tag.label}
+            count={tag.count}
+          />
         ))}
 
         {facets.ratings.filter((rating) => rating.count > 0).map((rating) => {
           const value = Number(rating.value);
           return (
-            <button
+            <FacetButton
               key={rating.value}
-              type="button"
+              active={minRating === value}
               onClick={() => onMinRatingChange(minRating === value ? null : value)}
-              className={`inline-flex h-7 items-center gap-1 rounded-md border px-2 text-xs transition-colors ${
-                minRating === value
-                  ? "border-primary/40 bg-primary/10 text-primary"
-                  : "border-border/70 bg-background text-foreground/75 hover:border-primary/30"
-              }`}
-              aria-pressed={minRating === value}
-            >
-              <Star className="h-3 w-3" aria-hidden="true" />
-              {rating.label}
-              <span className="tabular-nums text-muted-foreground/50">{rating.count}</span>
-            </button>
+              icon={<Star className="h-3 w-3" aria-hidden="true" />}
+              label={rating.label}
+              count={rating.count}
+            />
           );
         })}
 
         {facets.popularity.filter((item) => item.count > 0).map((item) => {
           const value = item.value as PopularityFilter;
           return (
-            <button
+            <FacetButton
               key={item.value}
-              type="button"
+              active={popularity === value}
               onClick={() => onPopularityChange(popularity === value ? null : value)}
-              className={`inline-flex h-7 items-center gap-1 rounded-md border px-2 text-xs transition-colors ${
-                popularity === value
-                  ? "border-primary/40 bg-primary/10 text-primary"
-                  : "border-border/70 bg-background text-foreground/75 hover:border-primary/30"
-              }`}
-              aria-pressed={popularity === value}
-            >
-              <Flame className="h-3 w-3" aria-hidden="true" />
-              {item.label}
-              <span className="tabular-nums text-muted-foreground/50">{item.count}</span>
-            </button>
+              icon={<Flame className="h-3 w-3" aria-hidden="true" />}
+              label={item.label}
+              count={item.count}
+            />
           );
         })}
 
@@ -186,7 +158,7 @@ export function SearchExperiencePanel({
           <button
             type="button"
             onClick={onClearFilters}
-            className="h-7 rounded-md px-2 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="h-7 rounded-full px-2.5 text-xs text-white/58 transition-colors hover:bg-white/10 hover:text-white"
           >
             清除
           </button>
@@ -194,15 +166,46 @@ export function SearchExperiencePanel({
       </div>
 
       {topExplanations.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground/70">
+        <div className="flex flex-wrap items-center gap-1.5 text-xs text-white/58">
           <span>排序依据</span>
           {topExplanations.map((item, index) => (
-            <span key={`${item}:${index}`} className="rounded-md bg-muted/50 px-1.5 py-0.5">
+            <span key={`${item}:${index}`} className="rounded-full bg-white/10 px-2 py-0.5">
               {item}
             </span>
           ))}
         </div>
       )}
     </div>
+  );
+}
+
+function FacetButton({
+  active,
+  onClick,
+  icon,
+  label,
+  count,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  count: number;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex h-7 max-w-full items-center gap-1 rounded-full border px-2.5 text-xs transition-colors ${
+        active
+          ? "border-emerald-200/45 bg-emerald-200/14 text-emerald-50"
+          : "border-white/12 bg-white/[0.06] text-white/76 hover:border-emerald-200/35 hover:text-white"
+      }`}
+      aria-pressed={active}
+    >
+      {icon}
+      <span className="truncate">{label}</span>
+      <span className="tabular-nums text-white/42">{count}</span>
+    </button>
   );
 }
