@@ -85,20 +85,37 @@ CREATE INDEX IF NOT EXISTS idx_review_rate_limits_ip_created_at
 ALTER TABLE tool_reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tool_reviews FORCE ROW LEVEL SECURITY;
 
+REVOKE ALL ON tool_reviews FROM PUBLIC, anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tool_reviews TO service_role;
+GRANT SELECT, UPDATE, DELETE ON tool_reviews TO authenticated;
+
 DROP POLICY IF EXISTS "Anyone can read approved reviews" ON tool_reviews;
 DROP POLICY IF EXISTS "Anyone can submit reviews" ON tool_reviews;
+DROP POLICY IF EXISTS "Admin can read reviews" ON tool_reviews;
 
 -- Admin policies are intentionally tied to an optional profiles table.
 -- If the table is absent, these policies are skipped.
 DO $$
 BEGIN
   IF to_regclass('public.profiles') IS NOT NULL THEN
+    EXECUTE 'DROP POLICY IF EXISTS "Admin can read reviews" ON tool_reviews';
+    EXECUTE 'CREATE POLICY "Admin can read reviews"
+      ON tool_reviews FOR SELECT
+      TO authenticated
+      USING (
+        EXISTS (
+          SELECT 1 FROM profiles
+          WHERE id = auth.uid()
+          AND role = ''admin''
+        )
+      )';
+
     EXECUTE 'DROP POLICY IF EXISTS "Admin can manage reviews" ON tool_reviews';
     EXECUTE 'CREATE POLICY "Admin can manage reviews"
       ON tool_reviews FOR UPDATE
+      TO authenticated
       USING (
-        auth.role() = ''authenticated''
-        AND EXISTS (
+        EXISTS (
           SELECT 1 FROM profiles
           WHERE id = auth.uid()
           AND role = ''admin''
@@ -108,9 +125,9 @@ BEGIN
     EXECUTE 'DROP POLICY IF EXISTS "Admin can delete reviews" ON tool_reviews';
     EXECUTE 'CREATE POLICY "Admin can delete reviews"
       ON tool_reviews FOR DELETE
+      TO authenticated
       USING (
-        auth.role() = ''authenticated''
-        AND EXISTS (
+        EXISTS (
           SELECT 1 FROM profiles
           WHERE id = auth.uid()
           AND role = ''admin''
@@ -123,16 +140,23 @@ $$;
 ALTER TABLE review_rate_limits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE review_rate_limits FORCE ROW LEVEL SECURITY;
 
+REVOKE ALL ON review_rate_limits FROM PUBLIC, anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON review_rate_limits TO service_role;
+
 DROP POLICY IF EXISTS "Anyone can insert review rate limits" ON review_rate_limits;
 DROP POLICY IF EXISTS "Anyone can read review rate limits" ON review_rate_limits;
 DROP POLICY IF EXISTS "Service role can manage review rate limits" ON review_rate_limits;
 
 CREATE POLICY "Service role can manage review rate limits"
   ON review_rate_limits FOR ALL
-  USING (auth.role() = 'service_role')
-  WITH CHECK (auth.role() = 'service_role');
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
 
-CREATE OR REPLACE VIEW public_tool_reviews AS
+-- These are intentionally public, definer-owned views. Base tables stay private
+-- because they contain stored IPs; only the allowlisted columns below are exposed.
+CREATE OR REPLACE VIEW public_tool_reviews
+WITH (security_barrier = true, security_invoker = false) AS
 SELECT
   id,
   link_id,
@@ -144,7 +168,8 @@ SELECT
 FROM tool_reviews
 WHERE approved = true;
 
-CREATE OR REPLACE VIEW tool_review_stats AS
+CREATE OR REPLACE VIEW tool_review_stats
+WITH (security_barrier = true, security_invoker = false) AS
 SELECT
   link_id,
   COUNT(*)::INTEGER AS review_count,
@@ -163,10 +188,10 @@ COMMENT ON COLUMN tool_reviews.rating IS 'Rating from 1 to 5.';
 COMMENT ON COLUMN tool_reviews.comment IS 'Optional review text.';
 COMMENT ON COLUMN tool_reviews.approved IS 'Whether the review is approved for public display.';
 COMMENT ON TABLE review_rate_limits IS 'Review rate-limit attempt records.';
-COMMENT ON VIEW public_tool_reviews IS 'Approved public reviews without stored IP addresses.';
-COMMENT ON VIEW tool_review_stats IS 'Aggregate rating statistics per tool.';
+COMMENT ON VIEW public_tool_reviews IS 'Public definer view for approved reviews; exposes no stored IP addresses.';
+COMMENT ON VIEW tool_review_stats IS 'Public definer view for aggregate rating statistics per tool.';
 
-GRANT SELECT ON public_tool_reviews TO anon, authenticated;
-GRANT SELECT ON tool_review_stats TO anon, authenticated;
+GRANT SELECT ON public_tool_reviews TO anon, authenticated, service_role;
+GRANT SELECT ON tool_review_stats TO anon, authenticated, service_role;
 
 COMMIT;

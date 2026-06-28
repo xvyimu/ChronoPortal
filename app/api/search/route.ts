@@ -8,12 +8,14 @@
   import { createHash, randomUUID } from "node:crypto";
 
   export const dynamic = "force-dynamic";
+  export const runtime = "nodejs";
 
   const FETCH_TIMEOUT = 8000;
   const DEFAULT_EMBED_SERVER_URL = "http://127.0.0.1:8003";
   const MAX_QUERY_LENGTH = 120;
   const MAX_LIMIT = 100;
   const MIN_SEMANTIC_QUERY_LENGTH = 3;
+  const MIN_SEMANTIC_SIMILARITY = 0.35;
   const CATEGORY_SLUG_RE = /^[a-z0-9-]{1,50}$/;
   const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 
@@ -45,8 +47,14 @@
     semantic: boolean;
   }
 
-  function badRequest(message: string): NextResponse {
-    return NextResponse.json({ error: message, results: [], total: 0 }, { status: 400 });
+  function badRequest(message: string, requestId?: string): NextResponse {
+    return NextResponse.json(
+      { error: message, results: [], total: 0 },
+      {
+        status: 400,
+        headers: requestId ? { "x-request-id": requestId } : undefined,
+      }
+    );
   }
 
   function getRequestId(request: NextRequest): string {
@@ -77,21 +85,21 @@
     };
   }
 
-  function parseSearchParams(searchParams: URLSearchParams): SearchParams | NextResponse {
+  function parseSearchParams(searchParams: URLSearchParams, requestId?: string): SearchParams | NextResponse {
     const q = searchParams.get("q")?.trim().toLowerCase() ?? "";
     if (q.length > MAX_QUERY_LENGTH) {
-      return badRequest(`q must be ${MAX_QUERY_LENGTH} characters or fewer`);
+      return badRequest(`q must be ${MAX_QUERY_LENGTH} characters or fewer`, requestId);
     }
 
     const category = searchParams.get("category") ?? undefined;
     if (category && category !== "all" && !CATEGORY_SLUG_RE.test(category)) {
-      return badRequest("category must be a valid slug");
+      return badRequest("category must be a valid slug", requestId);
     }
 
     const limitParam = searchParams.get("limit");
     const limit = limitParam ? Number(limitParam) : 20;
     if (!Number.isInteger(limit) || limit < 1 || limit > MAX_LIMIT) {
-      return badRequest(`limit must be an integer from 1 to ${MAX_LIMIT}`);
+      return badRequest(`limit must be an integer from 1 to ${MAX_LIMIT}`, requestId);
     }
 
     return {
@@ -287,7 +295,9 @@
         ),
       }));
 
-      return rows.map((r) => {
+      return rows
+        .filter((r) => r.similarity >= MIN_SEMANTIC_SIMILARITY)
+        .map((r) => {
           const link = linksById?.get(r.id);
 
           return {
@@ -343,10 +353,34 @@
    * This replaces the old bucket-based merge that put all "strong keyword" hits
    * ahead of all semantic results, regardless of actual relevance.
    */
+  function keywordBoost(result: SearchResult, query: string): number {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) return 0;
+
+    const title = result.title.toLowerCase();
+    const description = (result.description ?? "").toLowerCase();
+    const categoryName = (result.category_name ?? "").toLowerCase();
+    const categorySlug = (result.category_slug ?? "").toLowerCase();
+
+    if (title === normalizedQuery) return 0.003;
+    if (title.includes(normalizedQuery)) return 0.002;
+    if (description.includes(normalizedQuery)) return 0.001;
+    if (categoryName.includes(normalizedQuery) || categorySlug.includes(normalizedQuery)) return 0.0005;
+    return 0;
+  }
+
+  function qualityBoost(result: SearchResult, query: string): number {
+    const fuseBoost = result.score === undefined ? 0 : Math.max(0, 1 - result.score) * 0.001;
+    const semanticBoost =
+      result.similarity === undefined ? 0 : Math.max(0, result.similarity - MIN_SEMANTIC_SIMILARITY) * 0.001;
+    return keywordBoost(result, query) + fuseBoost + semanticBoost;
+  }
+
   function mergeResults(
     semantic: SearchResult[],
     fuse: SearchResult[],
     limit: number,
+    query: string,
   ): SearchResult[] {
     if (semantic.length === 0 && fuse.length === 0) return [];
     if (semantic.length === 0) return fuse.slice(0, limit);
@@ -361,9 +395,9 @@
         const existing = scores.get(r.id);
         const score = 1 / (K + rank + 1);
         if (existing) {
-          existing.score += score;
+          existing.score += score + qualityBoost(r, query);
         } else {
-          scores.set(r.id, { result: r, score });
+          scores.set(r.id, { result: r, score: score + qualityBoost(r, query) });
         }
       }
     };
@@ -393,7 +427,7 @@
 
     try {
       const { searchParams } = new URL(request.url);
-      const parsed = parseSearchParams(searchParams);
+      const parsed = parseSearchParams(searchParams, requestId);
       if (parsed instanceof NextResponse) return parsed;
 
       const { q, category, limit, semantic } = parsed;
@@ -440,7 +474,7 @@
         } else {
           fallbackReason = "short_query";
         }
-        const results = mergeResults(semanticResults, fuseResults, limit);
+        const results = mergeResults(semanticResults, fuseResults, limit, q);
         logger.info("Search API completed", searchLogContext(requestId, parsed, startedAt, {
           resultCount: results.length,
           fuseCandidateCount: fuseResults.length,

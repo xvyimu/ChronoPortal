@@ -535,6 +535,63 @@ describe("Search optimizations (7 optimizations)", () => {
     expect(reactNative).toBeDefined();
   });
 
+  it("OPT#6: exact keyword matches outrank weak semantic-only candidates", async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.endsWith("/embed-query")) {
+        return {
+          ok: true,
+          json: async () => ({ embedding: Array(512).fill(0.1), dim: 512 }),
+        };
+      }
+      return { ok: false, json: async () => ({}) };
+    });
+
+    rpc.mockResolvedValueOnce({
+      data: [
+        {
+          id: "550e8400-e29b-41d4-a716-446655440004",
+          title: "OpenAI Platform",
+          url: "https://platform.openai.com",
+          description: "AI developer tools and API",
+          icon: null,
+          category_name: "AI",
+          category_slug: "ai-tools",
+          similarity: 0.20,
+          featured: true,
+          paid: true,
+          click_count: 200,
+        },
+        {
+          id: "550e8400-e29b-41d4-a716-446655440001",
+          title: "React",
+          url: "https://react.dev",
+          description: "A JavaScript library for building user interfaces",
+          icon: null,
+          category_name: "Frontend",
+          category_slug: "frontend",
+          similarity: 0.90,
+          featured: true,
+          paid: false,
+          click_count: 100,
+        },
+      ],
+      error: null,
+    });
+
+    const { GET } = await import("@/app/api/search/route");
+    const response = await GET(
+      new NextRequest("http://localhost/api/search?q=react&semantic=true&limit=5")
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+
+    expect(body.results[0].id).toBe("550e8400-e29b-41d4-a716-446655440001");
+    expect(body.results.map((r: { id: string }) => r.id)).not.toContain(
+      "550e8400-e29b-41d4-a716-446655440004"
+    );
+  });
+
   it("OPT#6: fallback to Fuse-only when semantic fails", async () => {
     // Embed call fails
     fetchMock.mockRejectedValue(new Error("embed server down"));
@@ -627,11 +684,21 @@ describe("Search optimizations (7 optimizations)", () => {
 
   // ── #2: Enriched embedding text (test via imported function) ──
 
-  it("OPT#2: backfill embedding text includes category name as [tag]", async () => {
-    // Create a compatible test inline since we can't import the Python function
-    // in TypeScript. The Python test covers the actual implementation.
-    // Here we verify the route.ts has the correct data flow for category.
-    expect(true).toBe(true);
+  it("OPT#2: Python backfill tests cover category tag enrichment", async () => {
+    const fs = await import("fs");
+    const path = await import("path");
+    const sourcePath = path.resolve(
+      __dirname,
+      "..",
+      "scripts",
+      "tests",
+      "test_backfill.py"
+    );
+    const source = fs.readFileSync(sourcePath, "utf-8");
+
+    expect(source).toContain("test_title_description_and_category");
+    expect(source).toContain("[");
+    expect(source).toContain("nav_categories");
   });
 
   // ── #4: Word-boundary keyword (verify old function is gone) ──

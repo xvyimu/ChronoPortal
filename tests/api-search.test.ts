@@ -57,10 +57,13 @@ describe("/api/search", () => {
     const { GET } = await import("@/app/api/search/route");
 
     const response = await GET(
-      new NextRequest(`http://localhost/api/search?q=${"a".repeat(121)}`)
+      new NextRequest(`http://localhost/api/search?q=${"a".repeat(121)}`, {
+        headers: { "x-request-id": "req-bad-search" },
+      })
     );
 
     expect(response.status).toBe(400);
+    expect(response.headers.get("x-request-id")).toBe("req-bad-search");
     expect(getApprovedLinks).not.toHaveBeenCalled();
   });
 
