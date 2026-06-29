@@ -207,14 +207,12 @@ describe("ToolQuickView", () => {
     expect(screen.queryByText("标签")).toBeNull();
   });
 
-  it("renders no stars when avg_rating is undefined", () => {
+  it("shows 暂无 rating when avg_rating is undefined", () => {
     render(<ToolQuickView link={makeLink({ avg_rating: undefined })} onClose={vi.fn()} />);
 
-    // 评分 Fact 的 label 仍渲染
-    expect(screen.getByText("评分")).toBeTruthy();
-    // rating 为 null 时不渲染星星（aria-label 不存在）
+    // rating 为 null 时显示"暂无"文本（Fact 渲染 <dt>{value}</dt>）
+    expect(screen.getByText("暂无")).toBeTruthy();
+    // 不渲染星星（aria-label 不存在）
     expect(screen.queryByLabelText(/评分/)).toBeNull();
-    // NOTE: value="暂无" 被传入但 Fact 在 label==="评分" 时不渲染 <dt>{value}</dt>，
-    // 属于组件渲染 bug —— 评分 dl 内容为空。修 Fact 即可让"暂无"显示。
   });
 });

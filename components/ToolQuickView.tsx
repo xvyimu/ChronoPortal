@@ -210,7 +210,7 @@ function Fact({ label, value, stars, rating }: { label: string; value: string; s
   return (
     <dl className="rounded-2xl border border-white/10 bg-white/[0.06] p-3">
       <div className="flex items-center gap-1.5 text-lg font-semibold text-white">
-        {label === "评分" && stars && (
+        {label === "评分" && stars ? (
           <span className="flex gap-0.5 text-amber-200" aria-label={`评分 ${rating?.toFixed(1) || "暂无"} 分`}>
             {stars.map((star, i) => (
               <Star
@@ -220,8 +220,9 @@ function Fact({ label, value, stars, rating }: { label: string; value: string; s
               />
             ))}
           </span>
+        ) : (
+          <dt className="truncate">{value}</dt>
         )}
-        {label !== "评分" && <dt className="truncate">{value}</dt>}
       </div>
       <dd className="mt-1 text-[10px] font-mono uppercase text-white/42">{label}</dd>
     </dl>
