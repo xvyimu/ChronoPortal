@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { isSafeUrl, withTimeout, extractDomain, getClientIp, escapeJsonForHtml } from "@/lib/utils";
-import { requireAdmin, unauthorized } from "@/lib/admin-auth";
+import { requireAdmin, unauthorized } from "@/lib/with-admin";
 import {
   urlSchema, titleSchema, slugSchema,
   createLinkSchema, createCategorySchema, submitLinkSchema,
@@ -19,7 +19,7 @@ import { auth } from "@/lib/auth";
 
 const mockAuth = vi.mocked(auth) as unknown as ReturnType<typeof vi.fn>;
 
-describe("admin-auth", () => {
+describe("admin-auth (now in with-admin)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -705,13 +705,15 @@ describe("lib/schemas — 链接 ID 列表 (linkIdsSchema)", () => {
 });
 
 // ─── with-admin 包装器 ───
+//
+// 合并后 requireAdmin/unauthorized 与 withAdmin* 在同一模块，
+// 通过 mock @/lib/auth 控制 requireAdmin 的返回值。
 
 describe("withAdminGet — 只读路由包装器", () => {
   it("鉴权通过时执行 handler", async () => {
     vi.resetModules();
-    vi.doMock("@/lib/admin-auth", () => ({
-      requireAdmin: vi.fn(() => Promise.resolve({ authorized: true })),
-      unauthorized: () => NextResponse.json({ error: "未授权" }, { status: 401 }),
+    vi.doMock("@/lib/auth", () => ({
+      auth: vi.fn(() => Promise.resolve({ user: { id: "admin", role: "admin" } })),
     }));
 
     const { withAdminGet } = await import("@/lib/with-admin");
@@ -725,9 +727,8 @@ describe("withAdminGet — 只读路由包装器", () => {
 
   it("鉴权失败时返回 401 不执行 handler", async () => {
     vi.resetModules();
-    vi.doMock("@/lib/admin-auth", () => ({
-      requireAdmin: vi.fn(() => Promise.resolve({ authorized: false })),
-      unauthorized: () => NextResponse.json({ error: "未授权" }, { status: 401 }),
+    vi.doMock("@/lib/auth", () => ({
+      auth: vi.fn(() => Promise.resolve(null)),
     }));
 
     const { withAdminGet } = await import("@/lib/with-admin");
@@ -740,15 +741,26 @@ describe("withAdminGet — 只读路由包装器", () => {
   });
 });
 
-describe("withAdminWrite — 写路由包装器（鉴权 + Zod 校验）", () => {
+describe("withAdminWrite — 写路由包装器（鉴权 + CSRF + Zod 校验）", () => {
   beforeEach(() => {
     vi.resetModules();
   });
 
+  // 同源 Origin 构造器：便于复用
+  const sameOriginReq = (body: unknown) =>
+    new Request("http://localhost/api/admin/x", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost",
+        host: "localhost",
+      },
+      body: JSON.stringify(body),
+    });
+
   it("鉴权通过 + 合法输入时执行 handler", async () => {
-    vi.doMock("@/lib/admin-auth", () => ({
-      requireAdmin: vi.fn(() => Promise.resolve({ authorized: true })),
-      unauthorized: () => NextResponse.json({ error: "未授权" }, { status: 401 }),
+    vi.doMock("@/lib/auth", () => ({
+      auth: vi.fn(() => Promise.resolve({ user: { id: "admin", role: "admin" } })),
     }));
 
     const { withAdminWrite } = await import("@/lib/with-admin");
@@ -758,19 +770,14 @@ describe("withAdminWrite — 写路由包装器（鉴权 + Zod 校验）", () =>
     );
     const wrapped = withAdminWrite(schema, handler);
 
-    const req = new Request("http://localhost", {
-      method: "POST",
-      body: JSON.stringify({ name: "test" }),
-    });
-    const res = await wrapped(req);
+    const res = await wrapped(sameOriginReq({ name: "test" }));
     expect(handler).toHaveBeenCalledOnce();
     expect(res.status).toBe(200);
   });
 
   it("鉴权失败时返回 401", async () => {
-    vi.doMock("@/lib/admin-auth", () => ({
-      requireAdmin: vi.fn(() => Promise.resolve({ authorized: false })),
-      unauthorized: () => NextResponse.json({ error: "未授权" }, { status: 401 }),
+    vi.doMock("@/lib/auth", () => ({
+      auth: vi.fn(() => Promise.resolve(null)),
     }));
 
     const { withAdminWrite } = await import("@/lib/with-admin");
@@ -778,19 +785,14 @@ describe("withAdminWrite — 写路由包装器（鉴权 + Zod 校验）", () =>
     const handler = vi.fn();
     const wrapped = withAdminWrite(schema, handler);
 
-    const req = new Request("http://localhost", {
-      method: "POST",
-      body: JSON.stringify({ name: "test" }),
-    });
-    const res = await wrapped(req);
+    const res = await wrapped(sameOriginReq({ name: "test" }));
     expect(handler).not.toHaveBeenCalled();
     expect(res.status).toBe(401);
   });
 
   it("非法输入时返回 400 并包含验证错误详情", async () => {
-    vi.doMock("@/lib/admin-auth", () => ({
-      requireAdmin: vi.fn(() => Promise.resolve({ authorized: true })),
-      unauthorized: () => NextResponse.json({ error: "未授权" }, { status: 401 }),
+    vi.doMock("@/lib/auth", () => ({
+      auth: vi.fn(() => Promise.resolve({ user: { id: "admin", role: "admin" } })),
     }));
 
     const { withAdminWrite } = await import("@/lib/with-admin");
@@ -798,17 +800,53 @@ describe("withAdminWrite — 写路由包装器（鉴权 + Zod 校验）", () =>
     const handler = vi.fn();
     const wrapped = withAdminWrite(schema, handler);
 
-    const req = new Request("http://localhost", {
-      method: "POST",
-      body: JSON.stringify({ name: "" }),
-    });
-    const res = await wrapped(req);
+    const res = await wrapped(sameOriginReq({ name: "" }));
     expect(handler).not.toHaveBeenCalled();
     expect(res.status).toBe(400);
 
     const body = await res.json();
     expect(body).toHaveProperty("error");
     expect(body).toHaveProperty("details");
+  });
+
+  it("跨站 Origin 请求被 CSRF 检查拒绝（403）", async () => {
+    vi.doMock("@/lib/auth", () => ({
+      auth: vi.fn(() => Promise.resolve({ user: { id: "admin", role: "admin" } })),
+    }));
+
+    const { withAdminWrite } = await import("@/lib/with-admin");
+    const schema = z.object({ name: z.string().min(1) });
+    const handler = vi.fn();
+    const wrapped = withAdminWrite(schema, handler);
+
+    const req = new Request("http://localhost/api/admin/x", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "https://evil.example.com",
+        host: "localhost",
+      },
+      body: JSON.stringify({ name: "test" }),
+    });
+    const res = await wrapped(req);
+    expect(handler).not.toHaveBeenCalled();
+    expect(res.status).toBe(403);
+  });
+
+  it("handler 抛错时被自动 try-catch 捕获（500）", async () => {
+    vi.doMock("@/lib/auth", () => ({
+      auth: vi.fn(() => Promise.resolve({ user: { id: "admin", role: "admin" } })),
+    }));
+
+    const { withAdminWrite } = await import("@/lib/with-admin");
+    const schema = z.object({ name: z.string().min(1) });
+    const handler = vi.fn(async () => {
+      throw new Error("DB down");
+    });
+    const wrapped = withAdminWrite(schema, handler);
+
+    const res = await wrapped(sameOriginReq({ name: "test" }));
+    expect(res.status).toBe(500);
   });
 });
 

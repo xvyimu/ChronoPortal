@@ -1,38 +1,22 @@
 import { NextResponse } from "next/server";
-import { requireAdmin, unauthorized } from "@/lib/admin-auth";
+import { withAdminWrite, withAdminDelete } from "@/lib/with-admin";
 import { updateCategorySchema } from "@/lib/schemas";
 import { updateCategory, deleteCategory } from "@/lib/repositories";
 
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { authorized } = await requireAdmin();
-  if (!authorized) return unauthorized();
-
-  const { id } = await params;
-  const body = await request.json();
-
-  const parsed = updateCategorySchema.safeParse(body);
-  if (!parsed.success) {
-    const errors = parsed.error.flatten().fieldErrors;
-    return NextResponse.json({ error: "输入验证失败", details: errors }, { status: 400 });
+export const PUT = withAdminWrite(updateCategorySchema, async ({ parsed, params }) => {
+  const id = params?.id;
+  if (!id) {
+    return NextResponse.json({ error: "缺少 id 参数" }, { status: 400 });
   }
+  const category = await updateCategory(id, parsed);
+  return NextResponse.json({ category });
+});
 
-  try {
-    const category = await updateCategory(id, parsed.data);
-    return NextResponse.json({ category });
-  } catch {
-    return NextResponse.json({ error: "更新分类失败" }, { status: 500 });
+export const DELETE = withAdminDelete(async ({ params }) => {
+  const id = params?.id;
+  if (!id) {
+    return NextResponse.json({ error: "缺少 id 参数" }, { status: 400 });
   }
-}
-
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { authorized } = await requireAdmin();
-  if (!authorized) return unauthorized();
-
-  const { id } = await params;
-  try {
-    await deleteCategory(id);
-    return NextResponse.json({ success: true });
-  } catch {
-    return NextResponse.json({ error: "删除分类失败" }, { status: 500 });
-  }
-}
+  await deleteCategory(id);
+  return NextResponse.json({ success: true });
+});
