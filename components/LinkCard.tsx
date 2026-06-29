@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useState } from "react";
+import { memo } from "react";
 import NextImage from "next/image";
 import { motion } from "motion/react";
 import { Eye, Globe, Heart, Sparkles } from "lucide-react";
@@ -9,6 +9,8 @@ import { fadeInUp } from "@/lib/animations";
 import { highlightSearchTerm } from "@/lib/highlight";
 import { getLinkType, relativeTime, type NavLink } from "@/lib/types";
 import { extractDomain, isSafeUrl } from "@/lib/utils";
+import { useFavicon } from "@/lib/use-favicon";
+import { trackClick } from "@/lib/track-click";
 
 function LinkCardComponent({
   link,
@@ -28,7 +30,7 @@ function LinkCardComponent({
   const searchMeta = link.searchMeta;
   const { isFavorite, toggleFavorite } = useFavoritesContext();
   const fav = isFavorite(link.id);
-  const [faviconUrl, setFaviconUrl] = useState<string | null>(null);
+  const faviconUrl = useFavicon(domain);
 
   function handleFavoriteClick(e: React.MouseEvent) {
     e.preventDefault();
@@ -37,36 +39,8 @@ function LinkCardComponent({
   }
 
   function handleLinkClick() {
-    navigator.sendBeacon(
-      "/api/click",
-      new Blob([JSON.stringify({ url: link.url })], { type: "application/json" }),
-    );
+    trackClick(link.url);
   }
-
-  useEffect(() => {
-    if (!domain) return;
-
-    let cancelled = false;
-    const proxyUrl = `/api/favicon?domain=${encodeURIComponent(domain)}&v=2`;
-    const img = new Image();
-    img.onload = () => {
-      if (!cancelled) setFaviconUrl(proxyUrl);
-    };
-    img.onerror = () => {
-      if (cancelled) return;
-      const fallbackUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
-      const img2 = new Image();
-      img2.onload = () => {
-        if (!cancelled) setFaviconUrl(fallbackUrl);
-      };
-      img2.src = fallbackUrl;
-    };
-    img.src = proxyUrl;
-
-    return () => {
-      cancelled = true;
-    };
-  }, [domain]);
 
   const badgeStyle =
     type === "official"

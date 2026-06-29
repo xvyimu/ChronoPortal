@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { ExternalLink, Globe, Heart, Sparkles, Star, Tags, X } from "lucide-react";
 import { useFavoritesContext } from "@/components/FavoritesProvider";
 import { extractDomain, isSafeUrl } from "@/lib/utils";
+import { useDialogFocus } from "@/lib/use-dialog-focus";
+import { trackClick } from "@/lib/track-click";
 import type { NavLink } from "@/lib/types";
 
 interface ToolQuickViewProps {
@@ -13,56 +15,16 @@ interface ToolQuickViewProps {
 
 export function ToolQuickView({ link, onClose }: ToolQuickViewProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
-  const triggerRef = useRef<HTMLElement | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const { isFavorite, toggleFavorite } = useFavoritesContext();
 
-  // 存储触发按钮引用，用于关闭后返回焦点
-  useEffect(() => {
-    if (link) {
-      triggerRef.current = document.activeElement as HTMLElement;
-    }
-  }, [link]);
-
-  useEffect(() => {
-    if (!link) return;
-
-    closeRef.current?.focus();
-    const dialog = dialogRef.current;
-
-    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-        return;
-      }
-
-      // 焦点陷阱：Tab 在对话框内循环
-      if (event.key === "Tab" && dialog) {
-        const focusable = dialog.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-        );
-        if (focusable.length === 0) return;
-
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-
-        if (event.shiftKey && document.activeElement === first) {
-          event.preventDefault();
-          last.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault();
-          first.focus();
-        }
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      // 关闭后焦点回到触发按钮
-      triggerRef.current?.focus();
-    };
-  }, [link, onClose]);
+  // 焦点陷阱 + Escape 关闭 + 焦点恢复（抽到 lib/use-dialog-focus.ts）
+  useDialogFocus({
+    open: link !== null,
+    onClose,
+    dialogRef,
+    closeRef,
+  });
 
   if (!link) return null;
 
@@ -83,10 +45,7 @@ export function ToolQuickView({ link, onClose }: ToolQuickViewProps) {
     : null;
 
   const handleOpen = () => {
-    navigator.sendBeacon(
-      "/api/click",
-      new Blob([JSON.stringify({ url: link.url })], { type: "application/json" }),
-    );
+    trackClick(link.url);
   };
 
   return (

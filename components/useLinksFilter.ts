@@ -4,6 +4,7 @@ import { useState, useMemo, useRef, useCallback, useEffect, type KeyboardEvent, 
 import type { NavLink, Category, Tag, ModelRanking } from "@/lib/types";
 import { SECTION_LABELS } from "@/lib/nav-config";
 import { isSafeUrl } from "@/lib/utils";
+import { trackClick } from "@/lib/track-click";
 import { getDescendantSlugs } from "@/lib/category-tree";
 import type {
   PopularityFilter,
@@ -705,10 +706,7 @@ function useKeyboardNav(params: KeyboardNavParams): KeyboardNavState {
           e.preventDefault();
           if (isSafeUrl(link.url)) {
             window.open(link.url, "_blank", "noopener,noreferrer");
-            navigator.sendBeacon(
-              "/api/click",
-              new Blob([JSON.stringify({ url: link.url })], { type: "application/json" }),
-            );
+            trackClick(link.url);
           }
           break;
       }
