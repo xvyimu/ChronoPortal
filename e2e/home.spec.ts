@@ -318,4 +318,43 @@ test.describe.serial("ToolQuickView 预览弹窗", () => {
     await expect(page.locator('[role="dialog"] dl:has(dd:text("点击量"))')).toBeVisible();
     await expect(page.locator('[role="dialog"] dl:has(dd:text("评分"))')).toBeVisible();
   });
+
+  test("Tab 键在弹窗内循环不外逸", async ({ page }) => {
+    const previewBtn = page.locator('button[aria-label^="预览"]').first();
+    await previewBtn.click();
+    await expect(page.locator('[role="dialog"]')).toBeVisible();
+
+    const aside = page.locator("aside.nav-quick-view");
+
+    // 初始焦点在关闭按钮（closeRef.current?.focus()）
+    // 连按 Tab 6 次（弹窗内仅 3 个可聚焦元素：关闭按钮 / 打开网站 / 收藏），
+    // 验证焦点始终在 aside 内，不外逸到页面其他元素
+    for (let i = 0; i < 6; i++) {
+      await page.keyboard.press("Tab");
+      const inAside = await aside.evaluate((el) => el.contains(document.activeElement));
+      expect(inAside, `Tab #${i + 1}: 焦点外逸到 aside 之外`).toBe(true);
+    }
+
+    // Shift+Tab 反向循环，同样不应外逸
+    for (let i = 0; i < 4; i++) {
+      await page.keyboard.press("Shift+Tab");
+      const inAside = await aside.evaluate((el) => el.contains(document.activeElement));
+      expect(inAside, `Shift+Tab #${i + 1}: 焦点外逸到 aside 之外`).toBe(true);
+    }
+
+    await page.keyboard.press("Escape");
+  });
+
+  test("关闭后焦点回到触发按钮", async ({ page }) => {
+    const previewBtn = page.locator('button[aria-label^="预览"]').first();
+    await previewBtn.click();
+    await expect(page.locator('[role="dialog"]')).toBeVisible();
+
+    // Escape 关闭
+    await page.keyboard.press("Escape");
+    await expect(page.locator('[role="dialog"]')).not.toBeVisible();
+
+    // 焦点应回到预览按钮（triggerRef.current?.focus()）
+    await expect(previewBtn).toBeFocused();
+  });
 });

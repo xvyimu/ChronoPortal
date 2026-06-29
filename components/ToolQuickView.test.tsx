@@ -1,12 +1,19 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ToolQuickView } from "./ToolQuickView";
 import type { NavLink } from "@/lib/types";
 
+// 可变收藏状态：测试通过 favoriteIds 控制 isFavorite 返回值
+const favoriteIds = new Set<string>();
+const toggleFavoriteMock = vi.fn((id: string) => {
+  if (favoriteIds.has(id)) favoriteIds.delete(id);
+  else favoriteIds.add(id);
+});
+
 vi.mock("@/components/FavoritesProvider", () => ({
   useFavoritesContext: () => ({
-    isFavorite: () => false,
-    toggleFavorite: vi.fn(),
+    isFavorite: (id: string) => favoriteIds.has(id),
+    toggleFavorite: toggleFavoriteMock,
   }),
 }));
 
@@ -34,6 +41,11 @@ function makeLink(overrides: Partial<NavLink> = {}): NavLink {
 }
 
 describe("ToolQuickView", () => {
+  beforeEach(() => {
+    favoriteIds.clear();
+    toggleFavoriteMock.mockClear();
+  });
+
   it("renders nothing when link is null", () => {
     const { container } = render(<ToolQuickView link={null} onClose={vi.fn()} />);
     expect(container.innerHTML).toBe("");
@@ -137,5 +149,72 @@ describe("ToolQuickView", () => {
     render(<ToolQuickView link={makeLink()} onClose={vi.fn()} />);
 
     expect(screen.getByText("收藏")).toBeTruthy();
+  });
+
+  // ── 收藏切换 ──
+
+  it("calls toggleFavorite with link id when favorite button clicked", () => {
+    render(<ToolQuickView link={makeLink()} onClose={vi.fn()} />);
+
+    const favBtn = screen.getByRole("button", { name: "收藏" });
+    fireEvent.click(favBtn);
+
+    expect(toggleFavoriteMock).toHaveBeenCalledTimes(1);
+    expect(toggleFavoriteMock).toHaveBeenCalledWith("figma-1");
+  });
+
+  it("shows collected state when link is favorited", () => {
+    favoriteIds.add("figma-1");
+    render(<ToolQuickView link={makeLink()} onClose={vi.fn()} />);
+
+    const favBtn = screen.getByRole("button", { name: "已收藏" });
+    expect(favBtn.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("shows uncollected state when link is not favorited", () => {
+    render(<ToolQuickView link={makeLink()} onClose={vi.fn()} />);
+
+    const favBtn = screen.getByRole("button", { name: "收藏" });
+    expect(favBtn.getAttribute("aria-pressed")).toBe("false");
+  });
+
+  // ── 不安全 URL 兜底 ──
+
+  it("renders href=# for unsafe url (javascript:)", () => {
+    render(
+      <ToolQuickView
+        link={makeLink({ url: "javascript:alert(1)" })}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const openLink = screen.getByText("打开网站").closest("a");
+    expect(openLink?.getAttribute("href")).toBe("#");
+  });
+
+  // ── 空状态 ──
+
+  it("omits description paragraph when description is null", () => {
+    render(<ToolQuickView link={makeLink({ description: null })} onClose={vi.fn()} />);
+
+    expect(screen.queryByText("Collaborative design tool")).toBeNull();
+  });
+
+  it("omits tags section when tags is empty", () => {
+    render(<ToolQuickView link={makeLink({ tags: [] })} onClose={vi.fn()} />);
+
+    // "标签"标题只在有 tags 时渲染
+    expect(screen.queryByText("标签")).toBeNull();
+  });
+
+  it("renders no stars when avg_rating is undefined", () => {
+    render(<ToolQuickView link={makeLink({ avg_rating: undefined })} onClose={vi.fn()} />);
+
+    // 评分 Fact 的 label 仍渲染
+    expect(screen.getByText("评分")).toBeTruthy();
+    // rating 为 null 时不渲染星星（aria-label 不存在）
+    expect(screen.queryByLabelText(/评分/)).toBeNull();
+    // NOTE: value="暂无" 被传入但 Fact 在 label==="评分" 时不渲染 <dt>{value}</dt>，
+    // 属于组件渲染 bug —— 评分 dl 内容为空。修 Fact 即可让"暂无"显示。
   });
 });
