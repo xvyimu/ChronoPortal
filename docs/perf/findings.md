@@ -12,15 +12,31 @@
 | # | 假设 | 优先级 | 状态 | commit |
 |---|---|---|---|---|
 | H1 | PanguSpacing 全 DOM 遍历拖慢 INP | P0 | 🔍 验证中（前提已修正） | — |
-| H2 | 513 LinkCard 实例造成首屏长任务 | P0 | 🔄 待验证 | — |
+| H2 | 513 LinkCard 实例造成首屏长任务 | P0 | ⚠️ 已坐实（代码层） | — |
 | H3 | Fuse.js 客户端索引残留 | P1 | ❌ 已排除（静态审查） | — |
 | H4 | Favicon 同步 `new Image()` 加载阻塞 CLS | P1 | ❌ 已排除（静态审查） | — |
-| H5 | Motion 动画在低端设备触发 layout thrashing | P2 | 🔄 待验证 | — |
+| H5 | Motion 动画在低端设备触发 layout thrashing | P2 | ⚠️ 重定位（layout prop 而非变体） | — |
 | H6 | 首屏 JS chunk 中存在可拆分的 sync import | P2 | 🔍 验证中（数据已采集） | — |
 | H7 | Sentry client bundle 占首屏 JS 比重过高 | P3 | ⚠️ 部分修复（-2.9KB，核心仍在） | — |
 | H8 | 路由切换无 prefetch 导致 TTFB 偏高 | P3 | ❌ 已排除（静态审查） | — |
 
 **状态图例**：🔄 待验证 / 🔍 验证中 / ❌ 已排除 / ✅ 已修复 / ⚠️ 部分修复
+
+---
+
+## 静态验证阶段小结（2026-06-30）
+
+本轮在**无头环境**完成了所有可静态/bundle 定性的验证，把 8 个假设从「全部待验证」收敛为：
+
+- **已排除（3）**：H3 / H4 / H8 —— 假设前提在代码层不成立，无需修复。
+- **已坐实（2）**：H2（513 全量挂载，无虚拟化）/ H7（Sentry 首屏 ~113KB）。
+- **重定位（1）**：H5 —— 真实风险是 `ResultGrid` 的 `layout` prop，非变体定义；与 H2 同源。
+- **数据已采集（1）**：H6 —— 首屏 472KB，结论：仅靠 bundle 拆分达不到 250KB，需 RSC 边界收缩。
+- **前提已修正（1）**：H1 —— 已无 500ms setTimeout，全 DOM 遍历开销待浏览器实测。
+
+**已实施修复**：H7 构建期 tree-shaking（-2.9KB，诚实有限）；附带修复了 Phase 1 测量工具 `extract-bundle-stats.mjs` 的 4 个解析 bug。
+
+**接手者第一优先级**：H2 + H5 的 `layout` prop 移除是最高杠杆且低风险，但需 `pnpm dev` + Chrome Performance（CPU 6x）做 before/after INP/TBT 量化——无头环境无法完成，必须人工实测。
 
 ---
 
@@ -84,15 +100,39 @@ _待填写_
 
 ### 验证结果
 
-_待填写_
+**⚠️ 已坐实（2026-06-30 代码层定量，无需浏览器）**
+
+首屏默认态（`activeCategory === "all"` 且无搜索）的渲染链路：
+
+1. `app/page.tsx` 把**全部 513 条** `getApprovedLinks()` 传给 `Navigation`
+2. `useLinksFilter` → `useDerivedLinks.linkSections`（`useLinksFilter.ts:513-553`）：默认态遍历所有顶级分类，
+   每个分类 section 渲染 `filtered.filter(属于该分类)` —— `filtered` 在 "all" 态即全部 513 条
+3. `CategorySection` → `ResultGrid`（`ResultGrid.tsx:34`）：`links.map` 全量渲染，**无分页/虚拟化/懒加载**
+4. 结果：首屏一次性挂载 ≈ 513 个 `LinkCard`（featured/latest/popular 各 ≤6 另算）
+
+**比假设更尖锐的发现**：`ResultGrid.tsx:38` 每个卡片外层是 `<motion.div layout>`，
+LinkCard 内层还有 `<motion.div variants={fadeInUp}>`。首屏约 **1000+ motion 组件**，
+其中 `layout` prop 会做 FLIP 测量（`getBoundingClientRect`），513 个并发 = 首次挂载强制同步重排。
+（此项与 H5 共因，见 H5。）
+
+`LinkCard.tsx:59` 的 `transition={{ delay: (index % 20) * 0.02 }}` stagger 说明设计上已知数量大，
+但 stagger 只错开动画时机，DOM 节点仍全量构建，不缓解 reconciliation 长任务。
 
 ### 修复方案
 
-候选：虚拟滚动 / 分页渲染 / 改用 react-window
+候选（按风险/收益）：
+1. **首屏分页 / 「加载更多」** — 默认每分类 section 首屏只渲染 N 条（如 12），其余点击展开。
+   最直接降低首屏 LinkCard 数量，风险中（改交互）
+2. **IntersectionObserver 懒挂载** — below-the-fold 的 section 进入视口才渲染卡片，保持「全部」语义
+3. **虚拟滚动**（react-window/virtua）— 收益最大但与现有多 section + 响应式 grid 布局冲突，重构成本高
+4. **移除首屏 `layout` prop**（见 H5）— 低风险，先做，量化 INP/TBT 改善
+
+> 推荐顺序：先做 H5 的 `layout` 移除（低风险、可量化），再评估是否需要 (1)/(2)。
+> 三者均需浏览器 Performance 面板 before/after（首次挂载长任务时长 + INP），无头环境无法量化，留给接手者实测。
 
 ### before/after 数据
 
-_待填写_
+_待浏览器实测（首屏挂载长任务时长 / INP）。代码层已确认 513 全量挂载。_
 
 ### commit
 
@@ -201,21 +241,38 @@ N/A（仅追踪表更新）
 
 ### 验证结果
 
-_待填写_
+**⚠️ 重定位（2026-06-30 代码层审查）：风险源不是变体定义，是 `layout` prop**
+
+1. **变体定义合规**（`lib/animations.ts`）：`fadeInUp` = `opacity` + `y`，`slideDown` = `opacity` + `y`，
+   `staggerContainer` = `opacity`。全部是 transform/opacity（GPU composited），**不触发 layout**。
+   假设里说的"width/height/top layout 动画"在变体层面**不成立**。
+
+2. **真实风险源**（`ResultGrid.tsx:38`）：每个卡片外层 `<motion.div layout>` 的 `layout` prop。
+   `layout` 让 Motion 在渲染时做 FLIP 测量（读 `getBoundingClientRect`），首屏 513 个并发，
+   构成首次挂载的强制同步重排 / layout thrashing。这才是 H5 的真实落点，且与 H2 同源。
 
 ### 修复方案
 
-候选：改用 transform/opacity / CSS transition 替代
+**移除首屏默认态的 `layout` prop**（低风险、可量化）：
+
+`layout` 仅在卡片**位置发生重排**时才有视觉价值（如筛选/排序后卡片平滑移位）。
+首屏初次挂载没有"上一帧位置"可 FLIP，`layout` 此时纯属开销。
+
+候选实现：
+- 简单版：直接去掉 `ResultGrid.tsx:38` 的 `layout` prop —— 失去筛选重排的位移动画，但 fadeInUp 入场动画保留
+- 保守版：仅在结果集较小（如 < 60）时启用 `layout`，大列表禁用
+- 进一步：用 `LayoutGroup` 限定 layout 作用域，避免跨 section 的全局 FLIP
+
+> ⚠️ 移除 `layout` 是行为改变（筛选时卡片不再平滑位移，直接重排）。
+> 需 before/after 录制确认 INP/TBT 改善幅度后再定夺是否接受该体验变化。无头环境无法量化，留给接手者。
 
 ### before/after 数据
 
-_待填写_
+_待浏览器实测（CPU 6x slowdown 下录制筛选切换，对比 Forced reflow 时长）。_
 
 ### commit
 
 _待填写_
-
----
 
 ## H6: 首屏 JS chunk 中存在可拆分的 sync import
 
