@@ -12,7 +12,7 @@
 | # | 假设 | 优先级 | 状态 | commit |
 |---|---|---|---|---|
 | H1 | PanguSpacing 全 DOM 遍历拖慢 INP | P0 | 🔍 验证中（前提已修正） | — |
-| H2 | 513 LinkCard 实例造成首屏长任务 | P0 | ✅ 已修复（TBT 4296→0ms） | layout prop |
+| H2 | 513 LinkCard 实例造成首屏长任务 | P0 | ✅ 已修复（CI TBT 85→36ms） | layout prop |
 | H3 | Fuse.js 客户端索引残留 | P1 | ❌ 已排除（静态审查） | — |
 | H4 | Favicon 同步 `new Image()` 加载阻塞 CLS | P1 | ❌ 已排除（CLS=0 实测） | — |
 | H5 | Motion 动画在低端设备触发 layout thrashing | P2 | ✅ 已修复（同 H2，layout prop） | layout prop |
@@ -36,14 +36,32 @@
 
 **🎯 本轮关键成果（H2+H5 修复，单次 `layout` prop 移除）**：
 
-| 指标 | before | after | 改善 |
-|---|---|---|---|
-| Performance | 25 | **57** | +32 |
-| TBT | 4296ms | **0ms** | -100% |
-| LCP | 11.1s | **5.5s** | -50% |
-| Script Evaluation | 10544ms | **~25ms** | -99.8% |
+> ⚠️ **诚实更正（2026-06-30 CI 真值回填后）**：此前以本地实测为头条的数据
+> 被开发机负载 + Chrome 冷启动 + 513 卡片放大，**不反映生产真相**。
+> 生产环境修复前即 Perf 91 / TBT 85ms，已全部达标。退出条件以 CI 生产真值为准。
 
-（本地生产服务器，desktop preset，两次 run 一致：57/57，TBT 0/0。绝对值含本地机器负载，但 delta 真实。）
+CI 生产真值（GitHub Actions LHCI，5 次 run 中位数，desktop preset）：
+
+| URL | 指标 | before (`c4244d89`) | after (`10d7cbb7`) | 结论 |
+|---|---|---|---|---|
+| `/` | Performance | 91 | 90 | 噪声内，无显著变化 |
+| `/` | TBT | **85ms** | **36ms** | **-57%，真改善** |
+| `/` | LCP | 1875ms | 2097ms | 噪声内 |
+| `/` | CLS | 0.000 | 0.000 | 坐实 H4 排除 |
+| `/favorites` | Performance | 98 | 98 | 无差异（不挂 513 卡片，符合预期） |
+
+**修正后的结论**：H2/H5 修复在生产环境的真实收益是 **home TBT 85→36ms（-57%）**，
+而非本地测的 4296→0。方向一致（同因同向：移除 `layout` prop 消除 FLIP 测量长任务），
+但幅度小一个数量级——生产环境本来就不慢。本地数据降级为辅助定性参考（见下）。
+
+本地实测（开发机单次 run，仅定性印证根因，不作量化依据）：
+
+| 指标 | before | after |
+|---|---|---|
+| Performance | 25 | 57 |
+| TBT | 4296ms | 0ms |
+| LCP | 11.1s | 5.5s |
+| Script Evaluation | 10544ms | ~25ms |
 
 **附带成果**：修复 Phase 1 测量工具 `extract-bundle-stats.mjs` 的 4 个解析 bug；建立 Lighthouse 本地基线方法（见 baseline 文档）。
 
@@ -143,26 +161,36 @@ LinkCard 内层还有 `<motion.div variants={fadeInUp}>`。首屏约 **1000+ mot
 
 ### before/after 数据
 
-**✅ 已修复（2026-06-30 本地 Lighthouse desktop，两次 run 一致）**
+**✅ 已修复（2026-06-30 CI Lighthouse + 本地验证）**
 
-移除 `ResultGrid.tsx` 的 `<motion.div layout>` 的 `layout` prop：
+> 权威数据：GitHub Actions LHCI，5 次 run 中位数，desktop preset（见 `baseline-2026-06-29.md`）。
 
-| 指标 | before | after | 改善 |
+CI 生产环境（权威）：
+
+| 指标 | before (`c4244d89`) | after (`10d7cbb7`) | 结论 |
 |---|---|---|---|
-| Performance | 25 | 57 | +32 |
-| TBT | 4296ms | 0ms | -100% |
-| LCP | 11.1s | 5.5s | -50% |
-| Script Evaluation | 10544ms | ~25ms | -99.8% |
-| 长任务数 | 20 | 0 | 清零 |
+| Performance | 91 | 90 | 噪声内 |
+| TBT | **85ms** | **36ms** | **-57%，真改善** |
+| LCP | 1875ms | 2097ms | 噪声内 |
+| CLS | 0.000 | 0.000 | 坐实 H4 |
 
-根因：513 个并发 `layout` 实例触发 Motion 对每元素的持续布局测量循环，
-把 Script Evaluation 从 10.5s 拖到 25ms。移除后 TBT 直接归零。
+本地开发机（仅定性印证，不作量化依据）：
+
+| 指标 | before | after | 方向 |
+|---|---|---|---|
+| Performance | 25 | 57 | 同向（CI 无显著变化） |
+| TBT | 4296ms | 0ms | 同向（CI 85→36） |
+| Script Evaluation | 10544ms | ~25ms | 定性印证根因 |
+| 长任务数 | 20 | 0 | 定性印证根因 |
+
+根因：513 个并发 `layout` 实例触发 Motion 对每元素的持续布局测量循环。
+CI TBT 85→36ms 是真实改善；本地 4296→0ms 因环境差异被放大，方向一致但幅度不同。
 
 **代价**：筛选/排序时卡片不再平滑位移（FLIP 动画），改为直接重排。fadeInUp 入场动画保留。
 
 ### commit
 
-`<待提交>` —— `ResultGrid.tsx` 移除 layout prop + findings/baseline 文档。
+`10d7cbb7` —— `ResultGrid.tsx` 移除 layout prop + findings/baseline 文档。已推送。
 
 ---
 
@@ -236,7 +264,7 @@ favicon 槽位有固定尺寸，不存在布局撑开：
 4. `useFavicon` 的 `new Image()` 是**离屏预加载**（从不插入 DOM），仅探测 URL 可用性，本身无法造成 CLS
 
 结论：假设前提（"图片加载完成时切换 src 造成 Layout Shift"）不成立，槽位尺寸固定。
-待 Lighthouse CI 出 CLS 数值做最终量化确认（预期 CLS 贡献来自 favicon ≈ 0）。
+Lighthouse CI 真值 CLS=0.000（双页 × 双状态均零），最终量化坐实排除。
 
 ### 修复方案
 
@@ -244,7 +272,7 @@ favicon 槽位有固定尺寸，不存在布局撑开：
 
 ### before/after 数据
 
-N/A（待 Lighthouse CLS 数值交叉确认）
+N/A（✅ Lighthouse CI 交叉确认：home + favorites CLS=0.000）
 
 ### commit
 
@@ -294,12 +322,13 @@ N/A（仅追踪表更新）
 
 ### before/after 数据
 
-同 H2（共因，同一处修复）：Performance 25→57，TBT 4296→0ms，Script Evaluation 10544→25ms。
+同 H2（共因，同一处修复）。CI 生产真值：home TBT **85→36ms（-57%）**，Performance/LCP 噪声内无显著变化。
+本地开发机定性印证：TBT 4296→0ms、Script Evaluation 10544→25ms（环境被放大，仅印证方向）。
 Style&Layout 767ms 的 FLIP 测量开销随 `layout` prop 移除而消除。
 
 ### commit
 
-`<待提交>` —— 同 H2，`ResultGrid.tsx` 移除 layout prop。
+`10d7cbb7` —— 同 H2，`ResultGrid.tsx` 移除 layout prop。已推送。
 
 ## H6: 首屏 JS chunk 中存在可拆分的 sync import
 
@@ -354,7 +383,8 @@ baseline（2026-06-30）：client 首屏 472.4 KB / 总 483.2 KB / 63 chunks
 
 ### commit
 
-工具修复 commit 待提交（extract-bundle-stats.mjs 三处 bug）。具体瘦身 commit 待 H7 推进。
+`72b33fc1` —— extract-bundle-stats.mjs 修复 + bundle baseline 基线 + H1/H3/H4/H6/H7/H8 静态验证。
+具体瘦身 commit 待 H7 方案 3 推进（当前方案 1 仅 -2.9KB，见 H7）。
 
 ---
 
@@ -421,6 +451,10 @@ Replay 核心 + rrweb 主体（~15-18KB）**仍在 bundle 中**——因为 SDK 
 ### commit
 
 待提交：`next.config.ts` bundleSizeOptimizations + `instrumentation-client.ts` 注释 + extract 脚本修复。
+
+---
+
+## H8: 路由切换无 prefetch 导致 TTFB 偏高
 
 ### 假设陈述
 
