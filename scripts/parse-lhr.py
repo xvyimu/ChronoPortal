@@ -8,6 +8,9 @@
 坑：raw report 的 JSON 嵌在 <script>window.__LIGHTHOUSE_JSON__ = {...}</script>，
 JSON 内部含字符串字面量里的 {}，不能用非贪婪正则 {.*?}（会在第一个 } 截断）。
 用括号配平扫描 + 字符串感知，与 extract-bundle-stats.mjs 同源手法。
+
+扩展（H1, 2026-06-30）：额外提取 user-timings 与 main-thread-tasks，
+定位 PanguSpacing 的 performance.measure 以及 pangu 相关长任务占用。
 """
 import json
 import sys
@@ -88,6 +91,39 @@ def extract_metrics(lhr):
     }
 
 
+def extract_pangu_timing(lhr):
+    """提取 pangu 相关计时：user-timings 标记 + main-thread-tasks 长任务中的 pangu 任务。
+
+    PanguSpacing.tsx 注入 performance.measure('pangu-spacing-init'/'-mutation')，
+    Lighthouse 的 user-timings audit 会捕获。main-thread-tasks 列出所有主线程任务，
+    用于交叉确认 pangu 是否构成长任务（>=50ms）及其总占用。
+    """
+    audits = lhr.get("audits", {})
+    out = {"user_timings": [], "long_tasks": [], "pangu_long_task_ms": 0}
+
+    ut = audits.get("user-timings", {})
+    for item in (ut.get("details", {}).get("items") or []):
+        name = item.get("name", "")
+        if "pangu" in name.lower() or "spacing" in name.lower():
+            out["user_timings"].append({
+                "name": name,
+                "type": item.get("timingType", "?"),
+                "duration": item.get("duration"),
+            })
+
+    mt = audits.get("main-thread-tasks", {})
+    pangu_total = 0.0
+    for item in (mt.get("details", {}).get("items") or []):
+        name = item.get("name", "")
+        dur = item.get("duration", 0) or 0
+        if dur >= 50:
+            out["long_tasks"].append({"name": name, "duration": round(dur)})
+        if "pangu" in name.lower() or "spacing" in name.lower():
+            pangu_total += dur
+    out["pangu_long_task_ms"] = round(pangu_total)
+    return out
+
+
 def main():
     if len(sys.argv) < 2:
         print("用法: python parse-lhr.py <report.html> [report2.html ...]")
@@ -113,6 +149,22 @@ def main():
         print(f"  Speed Index : {m['si']}")
         print(f"  Script Eval : {m['script_eval']}")
         print(f"  requestedUrl: {lhr.get('finalUrl', '?')}")
+
+        pt = extract_pangu_timing(lhr)
+        if pt["user_timings"]:
+            print(f"  pangu user-timings:")
+            for u in pt["user_timings"]:
+                d = u["duration"]
+                if d is not None:
+                    print(f"    {u['name']} ({u['type']}): {d:.1f}ms")
+                else:
+                    print(f"    {u['name']} ({u['type']}): mark")
+        else:
+            print(f"  pangu user-timings: （无 —— 可能未触发或被 Lighthouse 裁剪）")
+        print(f"  长任务(>=50ms): {len(pt['long_tasks'])} 个")
+        for lt in pt["long_tasks"][:8]:
+            print(f"    {lt['duration']}ms  {lt['name']}")
+        print(f"  pangu 主线程占用合计: {pt['pangu_long_task_ms']}ms")
 
 
 if __name__ == "__main__":

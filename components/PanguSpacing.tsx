@@ -16,6 +16,12 @@ import { useEffect, useRef } from "react";
  * 3. pangu 仅修改文本节点（nodeValue），不改变 DOM 结构，不会破坏 React 事件绑定
  * 4. 相比渲染时处理（需包装所有文本组件），此方案零侵入性，性能开销可忽略
  *
+ * 性能优化（H1 修复，2026-06-30）：
+ * - 初始挂载：scope 到 #atlas 子树而非 document.body，减少遍历节点数
+ * - MutationObserver：收集实际变动子树，用 spacingNode(el) 限定遍历范围，
+ *   不再全量 spacingPage()，避免每次筛选/搜索后重扫 ~2000 节点
+ * - performance.mark/measure 量化每次执行耗时，>50ms 时 emit console.warn
+ *
  * 替代方案评估：
  * - React 文本包装组件：需重构所有展示组件，侵入性高，收益低
  * - CSS text-spacing 属性：浏览器兼容性不足（仅 Chrome 115+）
@@ -24,6 +30,7 @@ import { useEffect, useRef } from "react";
 export function PanguSpacing() {
   const rafId = useRef<number | null>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingTargets = useRef<Set<Element>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -32,16 +39,47 @@ export function PanguSpacing() {
       try {
         const { default: pangu } = await import("pangu/browser");
 
-        function applySpacing() {
+        /**
+         * 限定 scope 的 spacingNode 替代全量 spacingPage
+         *
+         * @param targets - 需要遍历的子树根集合；空集表示首次全量挂载，scope 到 #atlas
+         */
+        function applySpacing(targets?: Set<Element>) {
           if (cancelled) return;
+          const label = `pangu-spacing-${targets ? "mutation" : "init"}`;
           try {
-            pangu.spacingPage();
+            performance.mark(`${label}-start`);
+
+            if (targets && targets.size > 0) {
+              // 仅遍历变动的子树，不再全量重扫
+              for (const el of targets) {
+                pangu.spacingNode(el);
+              }
+            } else {
+              // 首次挂载：scope 到 #atlas（主内容区），跳过 header/footer 等外围
+              const atlas = document.getElementById("atlas");
+              if (atlas) {
+                pangu.spacingNode(atlas);
+              } else {
+                // fallback：#atlas 不存在时退回全量（不应发生，但防崩溃）
+                pangu.spacingPage();
+              }
+            }
+
+            performance.mark(`${label}-end`);
+            performance.measure(label, `${label}-start`, `${label}-end`);
+            const measure = performance.getEntriesByName(label).at(-1);
+            if (measure && measure.duration > 50) {
+              console.warn(
+                `[pangu] ${label} took ${measure.duration.toFixed(1)}ms (>50ms threshold)`
+              );
+            }
           } catch {
             // 忽略个别节点的间距错误
           }
         }
 
-        // 在 layout 阶段（浏览器 paint 之前）应用间距
+        // 初始挂载：在 layout 阶段（浏览器 paint 之前）应用间距
         rafId.current = requestAnimationFrame(() => {
           if (!cancelled) {
             applySpacing();
@@ -49,12 +87,26 @@ export function PanguSpacing() {
         });
 
         // 监听动态内容变化（如搜索、筛选、懒加载）
-        // 使用 debounce 避免高频 DOM 变动导致性能问题
-        const observer = new MutationObserver(() => {
+        // 收集变动子树，限定 spacingNode 作用范围
+        const observer = new MutationObserver((mutations) => {
           if (cancelled) return;
+
+          for (const m of mutations) {
+            for (const node of m.addedNodes) {
+              if (node instanceof Element) {
+                pendingTargets.current.add(node);
+              }
+            }
+            // removedNodes 不需要处理（pangu 修改的 textNode 会随 DOM 移除而消失）
+          }
+
           if (debounceTimer.current) clearTimeout(debounceTimer.current);
           debounceTimer.current = setTimeout(() => {
-            if (!cancelled) applySpacing();
+            if (!cancelled) {
+              const targets = new Set(pendingTargets.current);
+              pendingTargets.current.clear();
+              applySpacing(targets);
+            }
           }, 300);
         });
 
