@@ -5,9 +5,9 @@
  * server / edge 端的 Sentry 初始化见 instrumentation.ts。
  */
 
-import * as Sentry from "@sentry/nextjs";
+import { captureRouterTransitionStart, init } from "@sentry/nextjs";
 
-Sentry.init({
+init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
   environment: process.env.NODE_ENV,
   release: `nav-site@${
@@ -47,4 +47,4 @@ Sentry.init({
 });
 
 // Sentry SDK 要求：导出此钩子以插桩 App Router 的路由切换。
-export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
+export const onRouterTransitionStart = captureRouterTransitionStart;

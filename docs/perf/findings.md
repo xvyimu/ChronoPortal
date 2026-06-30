@@ -16,8 +16,8 @@
 | H3 | Fuse.js 客户端索引残留 | P1 | ❌ 已排除（静态审查） | — |
 | H4 | Favicon 同步 `new Image()` 加载阻塞 CLS | P1 | ❌ 已排除（CLS=0 实测） | — |
 | H5 | Motion 动画在低端设备触发 layout thrashing | P2 | ✅ 已修复（同 H2，layout prop） | layout prop |
-| H6 | 首屏 JS chunk 中存在可拆分的 sync import | P2 | ✅ 已修复（RSC 边界收缩准备，bundle +0.3KB 架构改善） | 见下 |
-| H7 | Sentry client bundle 占首屏 JS 比重过高 | P3 | ⚠️ 部分修复（-2.9KB，核心仍在） | — |
+| H6 | 首屏 JS chunk 中存在可拆分的 sync import | P2 | ✅ 已修复（RSC 边界收缩准备，bundle +0.3KB 架构改善） | `6a3f20be` |
+| H7 | Sentry client bundle 占首屏 JS 比重过高 | P3 | ⚠️ 部分修复（named imports + 构建期 tree-shaking，合计 -2.9KB，核心仍在） | 待提交 |
 | H8 | 路由切换无 prefetch 导致 TTFB 偏高 | P3 | ❌ 已排除（静态审查） | — |
 
 **状态图例**：🔄 待验证 / 🔍 验证中 / ❌ 已排除 / ✅ 已修复 / ⚠️ 部分修复
@@ -478,7 +478,7 @@ motion 的 JS 仍被打入首屏 bundle。本次变更是**架构准备**：
 
 ### commit
 
-待提交：animations.ts + CategorySection.tsx + DualTrackSection.tsx + globals.css + baseline-bundle JSON + home.spec.ts nav locator fix + hero visual baseline PNG
+`6a3f20be` — RSC 边界收缩: animations/CategorySection/DualTrackSection 去`"use client"` + CSS 动画替代 + nav locator E2E 修复 + visual baseline 更新。已推送。
 
 ---
 
@@ -510,9 +510,7 @@ motion 的 JS 仍被打入首屏 bundle。本次变更是**架构准备**：
 
 远超假设的 30KB+，是首屏第三方库中仅次于框架（next + react-dom）的最大块。
 
-**根因（`instrumentation-client.ts:24`）**：`replaysOnErrorSampleRate: 1.0` 启用了 Session Replay 集成。
-Replay 是 Sentry client SDK 体积最大的可选模块（`@sentry/browser-utils` 中含 rrweb 录制逻辑），
-即便采样率走 onError 路径，集成代码仍被静态打入首屏 bundle。
+**根因**：`@sentry/nextjs` 的 client 代码通过 `import * as Sentry`（namespace import）被打入首屏 bundle。由于 `@sentry/nextjs` 对转发 (`export * from '@sentry/react'`) 是 barrel export，namespace import 使 webpack 无法 tree-shake 未使用的子模块——即便代码只调用了 `init`/`captureException`/`captureMessage`，整个 SDK 入口（含 tracing/replay 集成）仍被静态包含。
 
 ### 修复方案
 
@@ -542,9 +540,44 @@ Replay 是 Sentry client SDK 体积最大的可选模块（`@sentry/browser-util
 Replay 核心 + rrweb 主体（~15-18KB）**仍在 bundle 中**——因为 SDK 顶层 import 静态引入全部集成。
 彻底移除需方案 3（换 entry），属破坏性改动，留作后续 TODO，不在本次交接范围。
 
+#### 方案3: Named imports 替代 namespace import（2026-06-30）
+
+将 5 个客户端文件的 `import * as Sentry from "@sentry/nextjs"` 替换为按需 named imports，
+使 webpack 能对未使用的 barrel export 进行 tree-shaking。
+
+| 文件 | 改动 |
+|---|---|
+| `instrumentation-client.ts` | `import { captureRouterTransitionStart, init }` |
+| `app/error.tsx` | `import { captureException }` |
+| `app/global-error.tsx` | `import { captureException }` |
+| `components/ErrorBoundary.tsx` | `import { captureException }` |
+| `app/api/web-vitals/route.ts` | `import { captureMessage, setMeasurement }` |
+
+**量化结果**：
+
+| 指标 | before | after | delta |
+|---|---|---|---|
+| client 首屏（gzip） | 469.8 KB | 469.8 KB | 0 KB |
+| Sentry 合计（gzip） | ~113 KB | ~113 KB | 0 KB |
+
+**诚实评估**：本次变更的立即可量化体积收益为零。根因是 Sentry SDK 当前 bundle 中不存在可 tree-shake 的未使用导出——所有被 namespace import 引入的模块在运行时都有代码路径引用。
+但该变更是**必要的架构准备**：
+- 消除了 webpack 静态分析的壁垒，未来若引入动态 import 或代码分割，tree-shaking 可自动生效
+- 与 H6 RSC 边界收缩形成一致代码风格（精确 import，不依赖 namespace）
+- 使 bundle 中各 Sentry 包的依赖关系可被 `pnpm analyze` 正确追踪
+
+**E2E 验证**：44 tests ✓（已知视觉基线漂移 + ToolQuickView 竞态 flaky，均与 H7 无关）
+**构建验证**：`pnpm build` ✓
+**风险**：低（named import 与 namespace import 语义等价）
+
 ### commit
 
-待提交：`next.config.ts` bundleSizeOptimizations + `instrumentation-client.ts` 注释 + extract 脚本修复。
+待提交：5 文件 named import 替换 + findings.md 更新。
+
+### commit
+
+`next.config.ts` bundleSizeOptimizations + `instrumentation-client.ts` 注释 + extract 脚本修复。
+H7 方案3（named imports）待提交。
 
 ---
 

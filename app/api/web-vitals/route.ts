@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import * as Sentry from "@sentry/nextjs";
+import { captureMessage, setMeasurement } from "@sentry/nextjs";
 import { z } from "zod";
 
 /**
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
   const m = parsed.data;
 
   // 写入 Sentry：用 captureMessage + tags 便于 Dashboard 聚合
-  Sentry.captureMessage(`web-vital: ${m.name}`, {
+  captureMessage(`web-vital: ${m.name}`, {
     level: "info",
     tags: {
       metric: m.name,
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
   // CLS 是无单位分数，其他指标是毫秒
   const unit = m.name === "CLS" ? "none" : "millisecond";
   try {
-    Sentry.setMeasurement(m.name, m.value, unit);
+    setMeasurement(m.name, m.value, unit);
   } catch {
     // setMeasurement 在无 active transaction 时可能抛错，静默忽略
   }

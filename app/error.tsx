@@ -1,6 +1,6 @@
 "use client";
 
-import * as Sentry from "@sentry/nextjs";
+import { captureException } from "@sentry/nextjs";
 import { useEffect } from "react";
 import Link from "next/link";
 import { Waves, RefreshCw, Home } from "lucide-react";
@@ -13,7 +13,7 @@ export default function ErrorPage({
   reset: () => void;
 }) {
   useEffect(() => {
-    Sentry.captureException(error);
+    captureException(error);
     console.error("导航站全局错误:", error);
   }, [error]);
 
