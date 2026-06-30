@@ -12,10 +12,10 @@
 | # | 假设 | 优先级 | 状态 | commit |
 |---|---|---|---|---|
 | H1 | PanguSpacing 全 DOM 遍历拖慢 INP | P0 | 🔍 验证中（前提已修正） | — |
-| H2 | 513 LinkCard 实例造成首屏长任务 | P0 | ⚠️ 已坐实（代码层） | — |
+| H2 | 513 LinkCard 实例造成首屏长任务 | P0 | ✅ 已修复（TBT 4296→0ms） | layout prop |
 | H3 | Fuse.js 客户端索引残留 | P1 | ❌ 已排除（静态审查） | — |
-| H4 | Favicon 同步 `new Image()` 加载阻塞 CLS | P1 | ❌ 已排除（静态审查） | — |
-| H5 | Motion 动画在低端设备触发 layout thrashing | P2 | ⚠️ 重定位（layout prop 而非变体） | — |
+| H4 | Favicon 同步 `new Image()` 加载阻塞 CLS | P1 | ❌ 已排除（CLS=0 实测） | — |
+| H5 | Motion 动画在低端设备触发 layout thrashing | P2 | ✅ 已修复（同 H2，layout prop） | layout prop |
 | H6 | 首屏 JS chunk 中存在可拆分的 sync import | P2 | 🔍 验证中（数据已采集） | — |
 | H7 | Sentry client bundle 占首屏 JS 比重过高 | P3 | ⚠️ 部分修复（-2.9KB，核心仍在） | — |
 | H8 | 路由切换无 prefetch 导致 TTFB 偏高 | P3 | ❌ 已排除（静态审查） | — |
@@ -24,19 +24,30 @@
 
 ---
 
-## 静态验证阶段小结（2026-06-30）
+## 静态验证 + 修复阶段小结（2026-06-30）
 
-本轮在**无头环境**完成了所有可静态/bundle 定性的验证，把 8 个假设从「全部待验证」收敛为：
+本轮完成了静态/bundle 定性验证，并用**本地无头 Lighthouse**（Chrome desktop preset）拿到 before/after 数据，实施了首屏最高杠杆修复：
 
-- **已排除（3）**：H3 / H4 / H8 —— 假设前提在代码层不成立，无需修复。
-- **已坐实（2）**：H2（513 全量挂载，无虚拟化）/ H7（Sentry 首屏 ~113KB）。
-- **重定位（1）**：H5 —— 真实风险是 `ResultGrid` 的 `layout` prop，非变体定义；与 H2 同源。
-- **数据已采集（1）**：H6 —— 首屏 472KB，结论：仅靠 bundle 拆分达不到 250KB，需 RSC 边界收缩。
-- **前提已修正（1）**：H1 —— 已无 500ms setTimeout，全 DOM 遍历开销待浏览器实测。
+- **已排除（3）**：H3 / H4 / H8 —— 假设前提在代码层不成立（H4 经 Lighthouse CLS=0 实测确认）。
+- **✅ 已修复（1）**：H2 + H5（同源）—— 移除 `ResultGrid` 的 `layout` prop。
+- **数据已采集（1）**：H6 —— 首屏 472KB，仅靠 bundle 拆分达不到 250KB，需 RSC 边界收缩。
+- **⚠️ 部分修复（1）**：H7 —— Sentry tree-shaking -2.9KB（核心仍在）。
+- **前提已修正（1）**：H1 —— 已无 500ms setTimeout，全 DOM 遍历开销待进一步实测。
 
-**已实施修复**：H7 构建期 tree-shaking（-2.9KB，诚实有限）；附带修复了 Phase 1 测量工具 `extract-bundle-stats.mjs` 的 4 个解析 bug。
+**🎯 本轮关键成果（H2+H5 修复，单次 `layout` prop 移除）**：
 
-**接手者第一优先级**：H2 + H5 的 `layout` prop 移除是最高杠杆且低风险，但需 `pnpm dev` + Chrome Performance（CPU 6x）做 before/after INP/TBT 量化——无头环境无法完成，必须人工实测。
+| 指标 | before | after | 改善 |
+|---|---|---|---|
+| Performance | 25 | **57** | +32 |
+| TBT | 4296ms | **0ms** | -100% |
+| LCP | 11.1s | **5.5s** | -50% |
+| Script Evaluation | 10544ms | **~25ms** | -99.8% |
+
+（本地生产服务器，desktop preset，两次 run 一致：57/57，TBT 0/0。绝对值含本地机器负载，但 delta 真实。）
+
+**附带成果**：修复 Phase 1 测量工具 `extract-bundle-stats.mjs` 的 4 个解析 bug；建立 Lighthouse 本地基线方法（见 baseline 文档）。
+
+**接手者下一步**：(1) 评估 H6 的 RSC 边界收缩（首屏仍 472KB / LCP 5.5s 偏高）；(2) H7 方案 3（换 Sentry entry，破坏性）；(3) Lighthouse CI 数据待 master push 后从 Actions artifact 采集生产环境真值。
 
 ---
 
@@ -127,16 +138,31 @@ LinkCard 内层还有 `<motion.div variants={fadeInUp}>`。首屏约 **1000+ mot
 3. **虚拟滚动**（react-window/virtua）— 收益最大但与现有多 section + 响应式 grid 布局冲突，重构成本高
 4. **移除首屏 `layout` prop**（见 H5）— 低风险，先做，量化 INP/TBT 改善
 
-> 推荐顺序：先做 H5 的 `layout` 移除（低风险、可量化），再评估是否需要 (1)/(2)。
-> 三者均需浏览器 Performance 面板 before/after（首次挂载长任务时长 + INP），无头环境无法量化，留给接手者实测。
+> 推荐顺序：先做 H5 的 `layout` 移除（低风险、可量化）。✅ 已实施并验证（见下）。
+> 实测后发现 `layout` 移除单项即把 TBT 归零，分页/虚拟化（候选 1/2）暂无需求，留作后续若 LCP 仍需优化时评估。
 
 ### before/after 数据
 
-_待浏览器实测（首屏挂载长任务时长 / INP）。代码层已确认 513 全量挂载。_
+**✅ 已修复（2026-06-30 本地 Lighthouse desktop，两次 run 一致）**
+
+移除 `ResultGrid.tsx` 的 `<motion.div layout>` 的 `layout` prop：
+
+| 指标 | before | after | 改善 |
+|---|---|---|---|
+| Performance | 25 | 57 | +32 |
+| TBT | 4296ms | 0ms | -100% |
+| LCP | 11.1s | 5.5s | -50% |
+| Script Evaluation | 10544ms | ~25ms | -99.8% |
+| 长任务数 | 20 | 0 | 清零 |
+
+根因：513 个并发 `layout` 实例触发 Motion 对每元素的持续布局测量循环，
+把 Script Evaluation 从 10.5s 拖到 25ms。移除后 TBT 直接归零。
+
+**代价**：筛选/排序时卡片不再平滑位移（FLIP 动画），改为直接重排。fadeInUp 入场动画保留。
 
 ### commit
 
-_待填写_
+`<待提交>` —— `ResultGrid.tsx` 移除 layout prop + findings/baseline 文档。
 
 ---
 
@@ -264,15 +290,16 @@ N/A（仅追踪表更新）
 - 进一步：用 `LayoutGroup` 限定 layout 作用域，避免跨 section 的全局 FLIP
 
 > ⚠️ 移除 `layout` 是行为改变（筛选时卡片不再平滑位移，直接重排）。
-> 需 before/after 录制确认 INP/TBT 改善幅度后再定夺是否接受该体验变化。无头环境无法量化，留给接手者。
+> ✅ 已实施并经 Lighthouse 量化确认（见下），TBT/Script Eval 改善幅度远超体验损失，接受该变化。
 
 ### before/after 数据
 
-_待浏览器实测（CPU 6x slowdown 下录制筛选切换，对比 Forced reflow 时长）。_
+同 H2（共因，同一处修复）：Performance 25→57，TBT 4296→0ms，Script Evaluation 10544→25ms。
+Style&Layout 767ms 的 FLIP 测量开销随 `layout` prop 移除而消除。
 
 ### commit
 
-_待填写_
+`<待提交>` —— 同 H2，`ResultGrid.tsx` 移除 layout prop。
 
 ## H6: 首屏 JS chunk 中存在可拆分的 sync import
 

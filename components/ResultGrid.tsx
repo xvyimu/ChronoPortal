@@ -19,6 +19,11 @@ interface ResultGridProps {
  * 可键盘导航的链接卡片网格
  *
  * 被 DualTrackSection 和 CategorySection 复用，消除 ~80 行重复代码。
+ *
+ * 性能：不使用 motion `layout` prop。首屏默认态会挂载 ~513 张卡片，
+ * `layout` 会对每个元素做 FLIP 测量（getBoundingClientRect），513 个并发触发
+ * 强制同步重排，是首屏 TBT / Style&Layout 的主要来源（见 docs/perf/findings.md H2/H5）。
+ * 入场动画由 fadeInUp（opacity+transform，GPU 合成）承担，不需要 layout。
  */
 export function ResultGrid({
   links,
@@ -35,7 +40,6 @@ export function ResultGrid({
         const idx = baseIndex + i;
         return (
           <motion.div
-            layout
             key={link.id}
             id={`result-${idx}`}
             role="listitem"
