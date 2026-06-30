@@ -28,39 +28,106 @@ function formatBytes(bytes) {
 /**
  * 从 HTML 报告中提取 chunk 信息。
  * bundle-analyzer 的 HTML 是 webpack-bundle-analyzer 生成，
- * 数据嵌入在 <script> 标签的 window.chartData = {...} 中。
+ * 数据嵌入在 <script> 标签的 `window.chartData = [...]` 中（注意是数组）。
+ *
+ * 不能用非贪婪正则——chartData 内部嵌套对象含大量 `}`，
+ * `\{[\s\S]*?\}` 会在第一个闭括号处提前截断。
+ * 改用括号配平扫描，从 `=` 后的第一个 `[` 或 `{` 起逐字符计数深度，
+ * 同时跳过字符串字面量（避免字符串里的括号干扰深度计数）。
  */
 function extractChunksFromHtml(html) {
-  // 匹配 window.chartData = {...};
-  const match = html.match(/window\.chartData\s*=\s*(\{[\s\S]*?\});/);
-  if (!match) return null;
-  try {
-    const data = JSON.parse(match[1]);
-    return data;
-  } catch {
-    return null;
+  // 注意：必须匹配“赋值”形态 `window.chartData =`，
+  // 因为 HTML 中还存在消费它的代码（如 `setChart(window.chartData)`），
+  // 裸字符串 indexOf 会命中错误位置。
+  const assignRe = /window\.chartData\s*=\s*[[{]/;
+  const assignMatch = assignRe.exec(html);
+  if (!assignMatch) return null;
+
+  // JSON 起始为匹配串的最后一个字符（[ 或 {）
+  const start = assignMatch.index + assignMatch[0].length - 1;
+
+  const open = html[start];
+  const close = open === "[" ? "]" : "}";
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = start; i < html.length; i += 1) {
+    const ch = html[i];
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (ch === "\\") {
+        escaped = true;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+    } else if (ch === open) {
+      depth += 1;
+    } else if (ch === close) {
+      depth -= 1;
+      if (depth === 0) {
+        const jsonText = html.slice(start, i + 1);
+        try {
+          return JSON.parse(jsonText);
+        } catch {
+          return null;
+        }
+      }
+    }
   }
+  return null;
+}
+
+/** 取叶子节点真实体积：优先 gzip，回退 parsed，再回退 stat。 */
+function nodeSize(node) {
+  return node.gzipSize ?? node.parsedSize ?? node.statSize ?? node.size ?? 0;
+}
+
+/** 节点可读名：webpack-analyzer 用 `label`（顶层 chunk）或 `path`（模块叶子）。 */
+function nodeName(node) {
+  return node.label ?? node.path ?? node.name ?? "(unknown)";
 }
 
 /**
- * 递归遍历 chartData 树，收集所有叶子节点的 chunk 信息
+ * 递归遍历 chartData 树，收集所有叶子节点（真实模块）的 chunk 信息。
+ * webpack-bundle-analyzer 用 `groups` 作为子节点字段（非 `children`）。
  */
 function walkTree(node, parentPath = "", acc = []) {
   if (!node) return acc;
-  const currentPath = parentPath ? `${parentPath}/${node.name}` : node.name;
-  if (node.children && node.children.length > 0) {
-    for (const child of node.children) {
+  const name = nodeName(node);
+  const currentPath = parentPath ? `${parentPath}/${name}` : name;
+  const children = node.groups ?? node.children;
+  if (children && children.length > 0) {
+    for (const child of children) {
       walkTree(child, currentPath, acc);
     }
   } else {
-    // 叶子节点
-    acc.push({
-      path: currentPath,
-      size: node.size || 0,
-      sizeFormatted: formatBytes(node.size || 0),
-    });
+    const size = nodeSize(node);
+    acc.push({ path: currentPath, size, sizeFormatted: formatBytes(size) });
   }
   return acc;
+}
+
+/**
+ * 从叶子路径提取 node_modules 包名（含 scope 与 pnpm 虚拟目录）。
+ * 返回 null 表示非第三方模块（项目自身代码）。
+ */
+function packageOf(path) {
+  // pnpm: node_modules/.pnpm/foo@1.2.3/node_modules/foo/...
+  // 取最后一个 node_modules/ 之后的包名
+  const idx = path.lastIndexOf("node_modules/");
+  if (idx === -1) return null;
+  const rest = path.slice(idx + "node_modules/".length);
+  const parts = rest.split("/");
+  if (parts[0].startsWith("@") && parts.length > 1) {
+    return `${parts[0]}/${parts[1]}`;
+  }
+  return parts[0];
 }
 
 async function main() {
@@ -96,29 +163,59 @@ async function main() {
 
     // chartData 可能是数组或单个对象
     const trees = Array.isArray(chartData) ? chartData : [chartData];
+
     let totalSize = 0;
+    let initialSize = 0; // 首屏 first-load JS（isInitialByEntrypoint 非空的 chunk）
     const chunks = [];
+    const packageSizes = new Map(); // 包名 → 累计体积
 
     for (const tree of trees) {
-      const leaves = walkTree(tree);
-      for (const leaf of leaves) {
-        totalSize += leaf.size;
-        chunks.push(leaf);
+      const chunkSize = nodeSize(tree);
+      totalSize += chunkSize;
+
+      // 顶层 chunk 是否进入首屏：isInitialByEntrypoint 含至少一个 entry
+      const initialMap = tree.isInitialByEntrypoint ?? {};
+      const isInitial = Object.values(initialMap).some(Boolean);
+      if (isInitial) initialSize += chunkSize;
+
+      chunks.push({
+        path: nodeName(tree),
+        size: chunkSize,
+        sizeFormatted: formatBytes(chunkSize),
+        initial: isInitial,
+      });
+
+      // 模块级聚合到包名
+      for (const leaf of walkTree(tree)) {
+        const pkg = packageOf(leaf.path);
+        const key = pkg ?? "(app code)";
+        packageSizes.set(key, (packageSizes.get(key) ?? 0) + leaf.size);
       }
     }
 
-    // 按 size 降序排序，取 top 20
     chunks.sort((a, b) => b.size - a.size);
     const topChunks = chunks.slice(0, 20);
 
-    console.log(`  ✓ ${file} — 总计 ${formatBytes(totalSize)}, top ${topChunks.length} chunks`);
+    const topPackages = [...packageSizes.entries()]
+      .map(([name, size]) => ({ name, size, sizeFormatted: formatBytes(size) }))
+      .sort((a, b) => b.size - a.size)
+      .slice(0, 15);
+
+    console.log(
+      `  ✓ ${file} — 总计 ${formatBytes(totalSize)}` +
+        (initialSize > 0 ? `, 首屏 ${formatBytes(initialSize)}` : "") +
+        `, ${chunks.length} chunks`
+    );
 
     summary.reports.push({
       file,
       totalSize,
       totalSizeFormatted: formatBytes(totalSize),
+      initialSize,
+      initialSizeFormatted: formatBytes(initialSize),
       chunkCount: chunks.length,
       topChunks,
+      topPackages,
     });
   }
 

@@ -76,6 +76,14 @@ export default withBundleAnalyzer(
     silent: !process.env.CI,
     widenClientFileUpload: true,
     sourcemaps: { disable: false },
+    // 构建期 tree-shaking 削减 client bundle（详见 docs/perf/findings.md H7）。
+    // 本项目不使用 Session Replay / Canvas / Feedback，排除其代码以减小首屏 JS。
+    bundleSizeOptimizations: {
+      excludeReplayShadowDom: true,
+      excludeReplayIframe: true,
+      excludeReplayWorker: true,
+      excludeDebugStatements: true,
+    },
     // Turbopack 不支持以下选项，可忽略
     // disableLogger / automaticVercelMonitors 已废弃
   })
