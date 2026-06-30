@@ -16,6 +16,11 @@ import json
 import sys
 from pathlib import Path
 
+# Windows PowerShell 默认 stdout 走 locale 编码（常为 cp936/GBK），
+# 打印中文与全角符号（— （ ））会乱码。显式重配 UTF-8，落实 CLAUDE.md「I/O 一律 UTF-8」铁律。
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
 
 def extract_lhr(html: str):
     marker = "window.__LIGHTHOUSE_JSON__"
@@ -60,13 +65,13 @@ def extract_lhr(html: str):
 
 def fmt_ms(v):
     if v is None:
-        return "—"
+        return "-"
     return f"{v:.0f}ms"
 
 
 def fmt_score(v):
     if v is None:
-        return "—"
+        return "-"
     return f"{int(round(v * 100))}"
 
 
@@ -84,10 +89,10 @@ def extract_metrics(lhr):
         "fcp": fmt_ms(num("first-contentful-paint")),
         "lcp": fmt_ms(num("largest-contentful-paint")),
         "tbt": fmt_ms(num("total-blocking-time")),
-        "cls": f"{num('cumulative-layout-shift'):.3f}" if num("cumulative-layout-shift") is not None else "—",
+        "cls": f"{num('cumulative-layout-shift'):.3f}" if num("cumulative-layout-shift") is not None else "-",
         "ttfb": fmt_ms(num("server-response-time")),
         "si": fmt_ms(num("speed-index")),
-        "script_eval": fmt_ms(num("script-evaluation")) if num("script-evaluation") else "—",
+        "script_eval": fmt_ms(num("script-evaluation")) if num("script-evaluation") else "-",
     }
 
 
