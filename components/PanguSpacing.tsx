@@ -18,8 +18,8 @@ import { useEffect, useRef } from "react";
  *
  * 性能优化（H1 修复，2026-06-30）：
  * - 初始挂载：scope 到 #atlas 子树而非 document.body，减少遍历节点数
- * - MutationObserver：收集实际变动子树，用 spacingNode(el) 限定遍历范围，
- *   不再全量 spacingPage()，避免每次筛选/搜索后重扫 ~2000 节点
+ * - MutationObserver：监听 #main-content 而非 document.body，并合并父子 target，
+ *   用 spacingNode(el) 限定遍历范围，避免外围 UI 变化和重复子树扫描
  * - performance.mark/measure 量化每次执行耗时，>50ms 时 emit console.warn
  *
  * 替代方案评估：
@@ -39,10 +39,37 @@ export function PanguSpacing() {
       try {
         const { default: pangu } = await import("pangu/browser");
 
+        function getObserverRoot() {
+          return (
+            document.getElementById("main-content") ||
+            document.getElementById("atlas") ||
+            document.body
+          );
+        }
+
+        function getInitialTarget() {
+          return document.getElementById("atlas") || getObserverRoot();
+        }
+
+        function queueSpacingTarget(root: Element, target: Element) {
+          if (!target.isConnected || !root.contains(target)) return;
+
+          for (const existing of pendingTargets.current) {
+            if (existing === target || existing.contains(target)) {
+              return;
+            }
+            if (target.contains(existing)) {
+              pendingTargets.current.delete(existing);
+            }
+          }
+
+          pendingTargets.current.add(target);
+        }
+
         /**
          * 限定 scope 的 spacingNode 替代全量 spacingPage
          *
-         * @param targets - 需要遍历的子树根集合；空集表示首次全量挂载，scope 到 #atlas
+         * @param targets - 需要遍历的子树根集合；空集表示首次挂载，优先 scope 到 #atlas
          */
         function applySpacing(targets?: Set<Element>) {
           if (cancelled) return;
@@ -51,19 +78,13 @@ export function PanguSpacing() {
             performance.mark(`${label}-start`);
 
             if (targets && targets.size > 0) {
-              // 仅遍历变动的子树，不再全量重扫
               for (const el of targets) {
-                pangu.spacingNode(el);
+                if (el.isConnected) {
+                  pangu.spacingNode(el);
+                }
               }
             } else {
-              // 首次挂载：scope 到 #atlas（主内容区），跳过 header/footer 等外围
-              const atlas = document.getElementById("atlas");
-              if (atlas) {
-                pangu.spacingNode(atlas);
-              } else {
-                // fallback：#atlas 不存在时退回全量（不应发生，但防崩溃）
-                pangu.spacingPage();
-              }
+              pangu.spacingNode(getInitialTarget());
             }
 
             performance.mark(`${label}-end`);
@@ -86,19 +107,27 @@ export function PanguSpacing() {
           }
         });
 
-        // 监听动态内容变化（如搜索、筛选、懒加载）
-        // 收集变动子树，限定 spacingNode 作用范围
+        // 监听动态内容变化（如搜索、筛选、路由切换），限定到主内容区。
         const observer = new MutationObserver((mutations) => {
           if (cancelled) return;
+          const root = getObserverRoot();
 
           for (const m of mutations) {
+            if (m.addedNodes.length === 0) continue;
+
+            if (m.target instanceof Element && m.target !== root) {
+              queueSpacingTarget(root, m.target);
+              continue;
+            }
+
             for (const node of m.addedNodes) {
               if (node instanceof Element) {
-                pendingTargets.current.add(node);
+                queueSpacingTarget(root, node);
               }
             }
-            // removedNodes 不需要处理（pangu 修改的 textNode 会随 DOM 移除而消失）
           }
+
+          if (pendingTargets.current.size === 0) return;
 
           if (debounceTimer.current) clearTimeout(debounceTimer.current);
           debounceTimer.current = setTimeout(() => {
@@ -110,7 +139,7 @@ export function PanguSpacing() {
           }, 300);
         });
 
-        observer.observe(document.body, {
+        observer.observe(getObserverRoot(), {
           childList: true,
           subtree: true,
         });
