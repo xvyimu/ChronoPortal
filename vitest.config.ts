@@ -10,8 +10,6 @@ export default defineConfig({
       "node_modules/**",
       "node_modules_*/**",
       ".next/**",
-      "nav-site-audit/**",
-      "ai-nav-research/**",
       "deps/**",
     ],
     globals: true,
