@@ -14,8 +14,6 @@ import type {
 import { buildSearchFacets, buildSearchSuggestions } from "@/lib/search-experience";
 import {
   matchRankings,
-  buildDescendantSlugsMap as clientDescendantSlugsMap,
-  buildTabKeys as clientTabKeys,
   buildTabCounts as clientTabCounts,
   buildTabTree as clientTabTree,
   buildAvailableTags as clientAvailableTags,

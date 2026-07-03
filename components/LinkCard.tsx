@@ -74,7 +74,8 @@ function LinkCardComponent({
                   alt=""
                   width={24}
                   height={24}
-                  className="rounded"
+                  className="h-6 w-6 rounded"
+                  style={{ width: 24, height: 24 }}
                   unoptimized
                 />
               ) : (

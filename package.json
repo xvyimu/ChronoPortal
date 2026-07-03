@@ -23,7 +23,7 @@
     "db:reviews:apply": "node scripts/apply-reviews-migration.mjs",
     "db:reviews:apply:dry-run": "node scripts/apply-reviews-migration.mjs --dry-run",
     "db:reviews:verify": "node scripts/verify-reviews-migration.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit --incremental false"
   },
   "dependencies": {
     "next-auth": "5.0.0-beta.31",

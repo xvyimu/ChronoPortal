@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createRequire } from "node:module";
 import { faviconDomainSchema } from "@/lib/schemas";
 
 /**
@@ -25,16 +26,18 @@ const FAVICON_PROXY = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
 let proxyDispatcher: unknown;
 let proxyInitialized = false;
 
+export const runtime = "nodejs";
+
 /** 懒加载代理 dispatcher（仅当配置了 HTTPS_PROXY 时启用） */
 async function getProxyDispatcher(): Promise<{ dispatcher?: unknown }> {
   if (!FAVICON_PROXY) return {};
   if (!proxyInitialized) {
     proxyInitialized = true;
     try {
-      // undici 是 Node.js 18+ 内置模块，运行时一定可用；
-      // 无独立 @types 声明，用 @ts-expect-error 绕过 TS2307
-      // @ts-expect-error - Node 内置模块无类型声明
-      const mod = await import("undici");
+      const require = createRequire(import.meta.url);
+      const mod = require("undici") as {
+        ProxyAgent: new (proxy: string) => unknown;
+      };
       proxyDispatcher = new mod.ProxyAgent(FAVICON_PROXY);
     } catch {
       proxyDispatcher = undefined;
@@ -68,17 +71,16 @@ export async function GET(request: NextRequest) {
   ];
 
   for (const { url, label } of sources) {
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 3000);
+      timer = setTimeout(() => controller.abort(), 3000);
 
       const res = await fetch(url, {
         signal: controller.signal,
         headers: { "User-Agent": "nav-site-favicon-proxy/1.0" },
         ...dispatcherOption,
       });
-
-      clearTimeout(timer);
 
       if (res.ok) {
         const contentType = res.headers.get("content-type") || "";
@@ -103,6 +105,8 @@ export async function GET(request: NextRequest) {
       }
     } catch {
       // 继续尝试下一个源
+    } finally {
+      if (timer) clearTimeout(timer);
     }
   }
 

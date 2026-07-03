@@ -8,19 +8,24 @@
  * 为 Promise 添加超时限制
  * 在超时时间内未 resolve/reject，则 reject 超时错误
  */
-export function withTimeout<T>(promise: Promise<T>, ms: number, message?: string): Promise<T> {
-  if (ms <= 0) return promise;
+export function withTimeout<T>(
+  promise: Promise<T> | PromiseLike<T>,
+  ms: number,
+  message?: string
+): Promise<T> {
+  if (ms <= 0) return Promise.resolve(promise);
 
+  let timer: ReturnType<typeof setTimeout> | undefined;
   return Promise.race([
-    promise,
+    Promise.resolve(promise),
     new Promise<never>((_, reject) => {
-      const id = setTimeout(() => {
-        clearTimeout(id);
+      timer = setTimeout(() => {
         reject(new Error(message ?? `Timeout after ${ms}ms`));
       }, ms);
-      // 保持 Node.js 事件循环活跃（setTimeout 默认会保持，无需额外操作）
     }),
-  ]);
+  ]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
 }
 
 /**

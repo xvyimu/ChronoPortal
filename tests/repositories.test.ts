@@ -18,22 +18,22 @@ import {
 //  1. React cache() 以首个参数引用做 key。直接调用 getCategories()
 //     会导致所有测试命中同一缓存。解法：缓存函数接受 db 作为第一参数。
 //  2. createClient / createServiceRoleClient 均为 async function，
-//     需 mockReturnValue（非 mockResolvedValue）返回 MockDB 实例。
-//  3. 函数内部多数是 `const supabase = await createClient()`，
-//     所以 mock 的返回值直接就是 MockDB 即可。
+//     createClient 需 mockResolvedValue，service/static 客户端直接 mockReturnValue。
+//  3. 大多数 repository 函数已不再接受测试 db 参数，需通过工厂 mock 注入。
 //  4. MockDB 必须实现 `.upsert()` 和 `.lt()`（部分链路会调用）。
 
 // ═══════════════════════════════════════════════════════════════
 // MockDB
 // ═══════════════════════════════════════════════════════════════
 
-type RowMap = Record<string, { data?: unknown; error?: { code?: string; message?: string } }>;
+type MockError = { code?: string; message?: string } | null;
+type RowMap = Record<string, { data?: unknown; error?: MockError }>;
 
 class MockDB {
   private rows: RowMap = {};
   private _calls: Record<string, { table: string; args: unknown[] }[]> = {};
 
-  setResponse(table: string, r: { data?: unknown; error?: { code?: string; message?: string } }) {
+  setResponse(table: string, r: { data?: unknown; error?: MockError }) {
     this.rows[table] = r;
   }
 
@@ -45,26 +45,26 @@ class MockDB {
   }
   select(_c?: string) { this._call("select", _c); return this; }
   eq(c: string, v: unknown) { this._call("eq", c, v); return this; }
-  neq() { return this; }
+  neq(...a: unknown[]) { this._call("neq", ...a); return this; }
   in_(c: string, v: unknown[]) { this._call("in", c, v); return this; }
   /** .in() is the real Supabase chain method name, while .in_() is the JS reserved-word alias */
   in(c: string, v: unknown[]) { return this.in_(c, v); }
-  or_() { return this; }
-  order() { return this; }
-  limit() { return this; }
+  or_(...a: unknown[]) { this._call("or", ...a); return this; }
+  order(...a: unknown[]) { this._call("order", ...a); return this; }
+  limit(...a: unknown[]) { this._call("limit", ...a); return this; }
   range(...a: unknown[]) { this._call("range", ...a); return this; }
-  lt() { return this; }
-  gte() { return this; }
-  like() { return this; }
-  ilike() { return this; }
-  is() { return this; }
-  or() { return this; }
-  match() { return this; }
-  filter() { return this; }
-  not() { return this; }
-  contains() { return this; }
-  textSearch() { return this; }
-  foreignTable() { return this; }
+  lt(...a: unknown[]) { this._call("lt", ...a); return this; }
+  gte(...a: unknown[]) { this._call("gte", ...a); return this; }
+  like(...a: unknown[]) { this._call("like", ...a); return this; }
+  ilike(...a: unknown[]) { this._call("ilike", ...a); return this; }
+  is(...a: unknown[]) { this._call("is", ...a); return this; }
+  or(...a: unknown[]) { this._call("or", ...a); return this; }
+  match(...a: unknown[]) { this._call("match", ...a); return this; }
+  filter(...a: unknown[]) { this._call("filter", ...a); return this; }
+  not(...a: unknown[]) { this._call("not", ...a); return this; }
+  contains(...a: unknown[]) { this._call("contains", ...a); return this; }
+  textSearch(...a: unknown[]) { this._call("textSearch", ...a); return this; }
+  foreignTable(...a: unknown[]) { this._call("foreignTable", ...a); return this; }
 
   callsFor(table: string) {
     return this._calls[table] ?? [];
@@ -73,9 +73,9 @@ class MockDB {
   // Terminal async methods
   maybeSingle() { return Promise.resolve(this._resp()); }
   single() { return Promise.resolve(this._resp()); }
-  insert(_r: unknown) { this._call("insert"); return this; }
-  update(_r: unknown) { return this; }
-  upsert(_r: unknown) { return this; }
+  insert(...a: unknown[]) { this._call("insert", ...a); return this; }
+  update(...a: unknown[]) { this._call("update", ...a); return this; }
+  upsert(_r: unknown, ...a: unknown[]) { this._call("upsert", ...a); return this; }
   delete() { this._call("delete"); return this; }
 
   private _lastTable = "";
@@ -115,12 +115,19 @@ import {
   createServiceRoleClient,
 } from "@/lib/supabase/server";
 
+function asClient(db: MockDB): Awaited<ReturnType<typeof createClient>> {
+  return db as unknown as Awaited<ReturnType<typeof createClient>>;
+}
+
 /** 每个测试调用一次，三个工厂均返回此 db 实例 */
 function freshMocks() {
   const db = new MockDB();
-  vi.mocked(createClient).mockReturnValue(db);
-  vi.mocked(createStaticClient).mockReturnValue(db);
-  vi.mocked(createServiceRoleClient).mockReturnValue(db);
+  const client = asClient(db);
+  vi.mocked(createClient).mockResolvedValue(client);
+  vi.mocked(createStaticClient).mockReturnValue(client);
+  vi.mocked(createServiceRoleClient).mockReturnValue(
+    client as ReturnType<typeof createServiceRoleClient>
+  );
   return db;
 }
 
@@ -149,7 +156,7 @@ describe("repositories · 分类", () => {
   it("getCategories 成功返回列表", async () => {
     const db = freshMocks();
     db.setResponse("nav_categories", { data: [mockCat], error: null });
-    const result = await getCategories(db);
+    const result = await getCategories(asClient(db));
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe("AI");
   });
@@ -157,31 +164,31 @@ describe("repositories · 分类", () => {
   it("getCategories 出错抛异常", async () => {
     const db = freshMocks();
     db.setResponse("nav_categories", { data: null, error: { code: "PGRST205", message: "no table" } });
-    await expect(getCategories(db)).rejects.toThrow("Failed to fetch categories");
+    await expect(getCategories(asClient(db))).rejects.toThrow("Failed to fetch categories");
   });
 
   it("getAllCategoriesForAdmin", async () => {
     const db = freshMocks();
     db.setResponse("nav_categories", { data: [mockCat], error: null });
-    expect(await getAllCategoriesForAdmin(db)).toHaveLength(1);
+    expect(await getAllCategoriesForAdmin()).toHaveLength(1);
   });
 
   it("createCategory", async () => {
     const db = freshMocks();
     db.setResponse("nav_categories", { data: { ...mockCat, name: "New" }, error: null });
-    expect((await createCategory(db, { name: "New", slug: "new", description: null, icon: "x", sort_order: 5 })).name).toBe("New");
+    expect((await createCategory({ name: "New", slug: "new", description: null, icon: "x", sort_order: 5 })).name).toBe("New");
   });
 
   it("updateCategory", async () => {
     const db = freshMocks();
     db.setResponse("nav_categories", { data: { ...mockCat, name: "Upd" }, error: null });
-    expect((await updateCategory(db, "cat-1", { name: "Upd" })).name).toBe("Upd");
+    expect((await updateCategory("cat-1", { name: "Upd" })).name).toBe("Upd");
   });
 
   it("deleteCategory 成功", async () => {
     const db = freshMocks();
     db.setResponse("nav_categories", { data: null, error: null });
-    await expect(deleteCategory(db, "cat-1")).resolves.toBeUndefined();
+    await expect(deleteCategory("cat-1")).resolves.toBeUndefined();
   });
 });
 
@@ -195,7 +202,7 @@ describe("repositories · 链接", () => {
   it("getApprovedLinks 成功", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: [mockLinkRow], error: null });
-    const result = await getApprovedLinks(db);
+    const result = await getApprovedLinks();
     expect(result).toHaveLength(1);
     expect(result[0].title).toBe("ChatGPT");
   });
@@ -203,7 +210,7 @@ describe("repositories · 链接", () => {
   it("getApprovedLinks limit/offset → range", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: [mockLinkRow], error: null });
-    await getApprovedLinks(db, { limit: 5, offset: 10 });
+    await getApprovedLinks({ limit: 5, offset: 10 });
     const r = db.callsFor("nav_links").filter(c => c.args[0] === "range");
     expect(r.length).toBeGreaterThanOrEqual(1);
   });
@@ -211,13 +218,13 @@ describe("repositories · 链接", () => {
   it("getApprovedLinks 失败3次后抛错", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: null, error: { code: "PGRST301", message: "timeout" } });
-    await expect(getApprovedLinks(db)).rejects.toThrow("Failed to fetch links");
+    await expect(getApprovedLinks()).rejects.toThrow("Failed to fetch links");
   });
 
   it("getApprovedLinks 重试3次", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: null, error: { code: "XX", message: "tmp" } });
-    try { await getApprovedLinks(db); } catch {}
+    try { await getApprovedLinks(); } catch {}
     const sels = db.callsFor("nav_links").filter(c => c.args[0] === "select");
     expect(sels.length).toBe(3);
   });
@@ -225,77 +232,78 @@ describe("repositories · 链接", () => {
   it("getApprovedLinkBySlug slug 匹配", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: { ...mockLinkRow, slug: "chatgpt" }, error: null });
-    expect((await getApprovedLinkBySlug(db, "chatgpt"))?.title).toBe("ChatGPT");
+    expect((await getApprovedLinkBySlug("chatgpt"))?.title).toBe("ChatGPT");
   });
 
   it("getApprovedLinkBySlug 无命中", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: null, error: null });
-    expect(await getApprovedLinkBySlug(db, "nonexistent")).toBeNull();
+    expect(await getApprovedLinkBySlug("nonexistent")).toBeNull();
   });
 
   it("getAllApprovedLinkSlugs", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: [{ slug: "a", title: "A" }, { slug: null, title: "B" }], error: null });
-    expect(await getAllApprovedLinkSlugs(db)).toEqual(["a", "b"]);
+    expect(await getAllApprovedLinkSlugs(asClient(db))).toEqual(["a", "b"]);
   });
 
   it("getRelatedLinks 同分类返回", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: [mockLinkRow], error: null });
-    expect(await getRelatedLinks(db, "cat-1", "https://other.com", 3)).toHaveLength(1);
+    expect(await getRelatedLinks("cat-1", "https://other.com", 3)).toHaveLength(1);
   });
 
   it("getRelatedLinks categoryId null", async () => {
-    expect(await getRelatedLinks(freshMocks(), null, "https://other.com")).toEqual([]);
+    freshMocks();
+    expect(await getRelatedLinks(null, "https://other.com")).toEqual([]);
   });
 
   it("getApprovedLinksForApi 按分类过滤", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: [mockLinkRow], error: null });
-    expect(await getApprovedLinksForApi(db, "ai")).toHaveLength(1);
+    expect(await getApprovedLinksForApi("ai")).toHaveLength(1);
   });
 
   it("getApprovedLinksForApi all 回退", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: [mockLinkRow], error: null });
-    expect(await getApprovedLinksForApi(db, "all")).toHaveLength(1);
+    expect(await getApprovedLinksForApi("all")).toHaveLength(1);
   });
 
   it("findExistingLinkByUrl 命中", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: { id: "lnk-1", approved: true }, error: null });
-    expect((await findExistingLinkByUrl(db, "https://chat.openai.com/"))?.id).toBe("lnk-1");
+    expect((await findExistingLinkByUrl("https://chat.openai.com/"))?.id).toBe("lnk-1");
   });
 
   it("findExistingLinkByUrl null", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: null, error: null });
-    expect(await findExistingLinkByUrl(db, "https://nope.com")).toBeNull();
+    expect(await findExistingLinkByUrl("https://nope.com")).toBeNull();
   });
 
   it("submitLink 成功", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: null, error: null });
-    expect(await submitLink(db, { title: "N", url: "https://n.com", description: null, category_id: null })).toBe(true);
+    expect(await submitLink({ title: "N", url: "https://n.com", description: null, category_id: null })).toBe(true);
   });
 
   it("submitLink 失败", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: null, error: { code: "23505", message: "dup" } });
-    expect(await submitLink(db, { title: "N", url: "https://n.com", description: null, category_id: null })).toBe(false);
+    expect(await submitLink({ title: "N", url: "https://n.com", description: null, category_id: null })).toBe(false);
   });
 
   it("findApprovedLinkByUrl 命中", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: { id: "lnk-1" }, error: null });
-    expect((await findApprovedLinkByUrl(db, "https://x.com"))?.id).toBe("lnk-1");
+    expect((await findApprovedLinkByUrl("https://x.com"))?.id).toBe("lnk-1");
   });
 
   it("findApprovedLinkByUrl null", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: null, error: null });
-    expect(await findApprovedLinkByUrl(db, "https://nope.com")).toBeNull();
+    expect(await findApprovedLinkByUrl("https://nope.com")).toBeNull();
   });
 });
 
@@ -309,25 +317,25 @@ describe("repositories · 标签", () => {
   it("getAllTagsForAdmin", async () => {
     const db = freshMocks();
     db.setResponse("tags", { data: [mockTagRow], error: null });
-    expect((await getAllTagsForAdmin(db))[0].name).toBe("Hot");
+    expect((await getAllTagsForAdmin())[0].name).toBe("Hot");
   });
 
   it("createTag", async () => {
     const db = freshMocks();
     db.setResponse("tags", { data: { ...mockTagRow, name: "NewTag" }, error: null });
-    expect((await createTag(db, { name: "NewTag", slug: "newtag" })).name).toBe("NewTag");
+    expect((await createTag({ name: "NewTag", slug: "newtag" })).name).toBe("NewTag");
   });
 
   it("updateTag", async () => {
     const db = freshMocks();
     db.setResponse("tags", { data: { ...mockTagRow, name: "Upd" }, error: null });
-    expect((await updateTag(db, "tag-1", { name: "Upd" })).name).toBe("Upd");
+    expect((await updateTag("tag-1", { name: "Upd" })).name).toBe("Upd");
   });
 
   it("deleteTag", async () => {
     const db = freshMocks();
     db.setResponse("tags", { data: null, error: null });
-    await expect(deleteTag(db, "tag-1")).resolves.toBeUndefined();
+    await expect(deleteTag("tag-1")).resolves.toBeUndefined();
   });
 });
 
@@ -341,55 +349,55 @@ describe("repositories · 评价", () => {
   it("getToolReviews", async () => {
     const db = freshMocks();
     db.setResponse("public_tool_reviews", { data: [mockReviewRow], error: null });
-    expect(await getToolReviews(db, "lnk-1")).toHaveLength(1);
+    expect(await getToolReviews("lnk-1")).toHaveLength(1);
   });
 
   it("getToolReviews 出错返回[]", async () => {
     const db = freshMocks();
     db.setResponse("public_tool_reviews", { data: null, error: { message: "err" } });
-    expect(await getToolReviews(db, "lnk-1")).toEqual([]);
+    expect(await getToolReviews("lnk-1")).toEqual([]);
   });
 
   it("getReviewStats 有数据", async () => {
     const db = freshMocks();
     db.setResponse("tool_review_stats", { data: mockStatsRow, error: null });
-    expect((await getReviewStats(db, "lnk-1"))?.avg_rating).toBe(4.5);
+    expect((await getReviewStats("lnk-1"))?.avg_rating).toBe(4.5);
   });
 
   it("getReviewStats null", async () => {
     const db = freshMocks();
     db.setResponse("tool_review_stats", { data: null, error: null });
-    expect(await getReviewStats(db, "lnk-1")).toBeNull();
+    expect(await getReviewStats("lnk-1")).toBeNull();
   });
 
   it("hasUserReviewed 已评价", async () => {
     const db = freshMocks();
     db.setResponse("tool_reviews", { data: [{ id: "r1" }], error: null });
-    expect(await hasUserReviewed(db, "lnk-1", "1.1.1.1")).toBe(true);
+    expect(await hasUserReviewed("lnk-1", "1.1.1.1")).toBe(true);
   });
 
   it("hasUserReviewed 未评价", async () => {
     const db = freshMocks();
     db.setResponse("tool_reviews", { data: null, error: null });
-    expect(await hasUserReviewed(db, "lnk-1", "1.1.1.1")).toBe(false);
+    expect(await hasUserReviewed("lnk-1", "1.1.1.1")).toBe(false);
   });
 
   it("createReview", async () => {
     const db = freshMocks();
     db.setResponse("tool_reviews", { data: { ...mockReviewRow, rating: 4 }, error: null });
-    expect((await createReview(db, "lnk-1", "1.1.1.1", 4, "Nice"))?.rating).toBe(4);
+    expect((await createReview("lnk-1", "1.1.1.1", 4, "Nice"))?.rating).toBe(4);
   });
 
   it("checkReviewRateLimit 允许", async () => {
     const db = freshMocks();
     db.setResponse("review_rate_limits", { data: { allowed: true }, error: null });
-    expect(await checkReviewRateLimit(db, "1.1.1.1")).toBe(true);
+    expect(await checkReviewRateLimit("1.1.1.1")).toBe(true);
   });
 
   it("recordReviewAttempt", async () => {
     const db = freshMocks();
     db.setResponse("review_rate_limits", { data: null, error: null });
-    await expect(recordReviewAttempt(db, "1.1.1.1", "lnk-1")).resolves.toBeUndefined();
+    await expect(recordReviewAttempt("1.1.1.1", "lnk-1")).resolves.toBeUndefined();
   });
 });
 
@@ -403,39 +411,39 @@ describe("repositories · 用户收藏", () => {
   it("getUserFavorites", async () => {
     const db = freshMocks();
     db.setResponse("user_favorites", { data: [{ link_id: "lnk-1" }, { link_id: "lnk-2" }], error: null });
-    expect(await getUserFavorites(db, "u1")).toEqual(["lnk-1", "lnk-2"]);
+    expect(await getUserFavorites("u1")).toEqual(["lnk-1", "lnk-2"]);
   });
 
   it("getUserFavorites 出错返回[]", async () => {
     const db = freshMocks();
     db.setResponse("user_favorites", { data: null, error: { message: "err" } });
-    expect(await getUserFavorites(db, "u1")).toEqual([]);
+    expect(await getUserFavorites("u1")).toEqual([]);
   });
 
   it("addUserFavorites 成功", async () => {
     const db = freshMocks();
     db.setResponse("user_favorites", { data: null, error: null });
-    const result = await addUserFavorites(db, "u1", ["lnk-1", "lnk-2"]);
-    expect(result.added).toBe(2);
+    const result = await addUserFavorites(asClient(db), "u1", ["lnk-1", "lnk-2"]);
+    expect(result).toEqual({ added: 2 });
   });
 
   it("addUserFavorites 出错", async () => {
     const db = freshMocks();
     db.setResponse("user_favorites", { data: null, error: { message: "db err" } });
-    const result = await addUserFavorites(db, "u1", ["lnk-1"]);
+    const result = await addUserFavorites(asClient(db), "u1", ["lnk-1"]);
     expect(result).toHaveProperty("error");
   });
 
   it("removeUserFavorite", async () => {
     const db = freshMocks();
     db.setResponse("user_favorites", { data: null, error: null });
-    expect(await removeUserFavorite(db, "u1", "lnk-1")).toEqual({ ok: true });
+    expect(await removeUserFavorite("u1", "lnk-1")).toEqual({ ok: true });
   });
 
   it("clearUserFavorites", async () => {
     const db = freshMocks();
     db.setResponse("user_favorites", { data: null, error: null });
-    expect(await clearUserFavorites(db, "u1")).toEqual({ ok: true, cleared: true });
+    expect(await clearUserFavorites("u1")).toEqual({ ok: true, cleared: true });
   });
 });
 
@@ -449,13 +457,13 @@ describe("repositories · Admin 链接 CRUD", () => {
   it("getAllLinksForAdmin", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: [mockLinkRow], error: null });
-    expect(await getAllLinksForAdmin(db)).toHaveLength(1);
+    expect(await getAllLinksForAdmin()).toHaveLength(1);
   });
 
   it("createLink 无tag_ids", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: { ...mockLinkRow, id: "new-1" }, error: null });
-    expect((await createLink(db, {
+    expect((await createLink(asClient(db), {
       title: "N", url: "https://n.com", description: null, icon: "",
       category_id: null, approved: true, featured: false,
     })).id).toBe("new-1");
@@ -465,7 +473,7 @@ describe("repositories · Admin 链接 CRUD", () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: { ...mockLinkRow, id: "new-1" }, error: null });
     db.setResponse("nav_links_tags", { data: null, error: null });
-    await createLink(db, {
+    await createLink(asClient(db), {
       title: "N", url: "https://n.com", description: null, icon: "",
       category_id: null, approved: true, featured: false, tag_ids: ["t1", "t2"],
     });
@@ -477,8 +485,8 @@ describe("repositories · Admin 链接 CRUD", () => {
 
   it("createLink 空tag_ids不操作标签", async () => {
     const db = freshMocks();
-    db.setResponse("nav_links", { data: { id: "new-1", ...mockLinkRow }, error: null });
-    await createLink(db, {
+    db.setResponse("nav_links", { data: { ...mockLinkRow, id: "new-1" }, error: null });
+    await createLink(asClient(db), {
       title: "N", url: "https://n.com", description: null, icon: "",
       category_id: null, approved: true, featured: false, tag_ids: [],
     });
@@ -489,13 +497,13 @@ describe("repositories · Admin 链接 CRUD", () => {
   it("updateLink 无tag_ids", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: { id: "lnk-1", title: "Upd" }, error: null });
-    expect((await updateLink(db, "lnk-1", { title: "Upd" })).title).toBe("Upd");
+    expect((await updateLink("lnk-1", { title: "Upd" })).title).toBe("Upd");
   });
 
   it("deleteLink 成功", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: null, error: null });
-    await expect(deleteLink(db, "lnk-1")).resolves.toBeUndefined();
+    await expect(deleteLink("lnk-1")).resolves.toBeUndefined();
   });
 });
 
@@ -509,12 +517,12 @@ describe("repositories · 错误边界", () => {
   it("hasUserReviewed MissingDatabaseMigrationError", async () => {
     const db = freshMocks();
     db.setResponse("tool_reviews", { data: null, error: { code: "PGRST205", message: "no table" } });
-    await expect(hasUserReviewed(db, "lnk-1", "1.1.1.1")).rejects.toThrow(/reviews/);
+    await expect(hasUserReviewed("lnk-1", "1.1.1.1")).rejects.toThrow(/reviews/);
   });
 
   it("createReview MissingDatabaseMigrationError", async () => {
     const db = freshMocks();
     db.setResponse("tool_reviews", { data: null, error: { code: "PGRST205", message: "no table" } });
-    await expect(createReview(db, "lnk-1", "1.1.1.1", 5, null)).rejects.toThrow(/reviews/);
+    await expect(createReview("lnk-1", "1.1.1.1", 5, null)).rejects.toThrow(/reviews/);
   });
 });

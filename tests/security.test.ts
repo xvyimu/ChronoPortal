@@ -861,6 +861,17 @@ describe("withTimeout — Promise 超时", () => {
     expect(result).toBe("ok");
   });
 
+  it("在原 Promise 完成后清理 timeout timer", async () => {
+    vi.useFakeTimers();
+    try {
+      const result = await withTimeout(Promise.resolve("ok"), 1000);
+      expect(result).toBe("ok");
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("超时后 reject", async () => {
     const slow = new Promise<string>((resolve) => setTimeout(resolve, 500));
     await expect(withTimeout(slow, 10)).rejects.toThrow("Timeout after 10ms");

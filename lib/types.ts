@@ -143,6 +143,22 @@ export interface SearchMeta {
 
 // ── 模型排行榜 ──
 
+export interface ResourceItem {
+  id: string;
+  title: string;
+  url: string;
+  domain: string;
+  summary: string;
+  category: string;
+  tags: string[];
+  crawled_at: string;
+  rank: number;
+}
+
+export interface SearchResponse {
+  results: ResourceItem[];
+}
+
 export interface ModelRanking {
   id: string;
   rank: number;
