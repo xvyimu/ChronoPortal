@@ -6,7 +6,7 @@ import { NavSkeleton } from "@/components/NavSkeleton";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { getModelRankings } from "@/lib/model-rankings";
 import { getCategories, getApprovedLinks } from "@/lib/repositories";
-import { withTimeout, escapeJsonForHtml } from "@/lib/utils";
+import { escapeJsonForHtml } from "@/lib/utils";
 import { logger } from "@/lib/logger";
 import { SECTION_LABELS } from "@/lib/nav-config";
 import {
@@ -59,16 +59,20 @@ export default async function Home({
 }) {
   await connection();
 
+  const categoriesSignal = AbortSignal.timeout(FETCH_TIMEOUT);
+  const linksSignal = AbortSignal.timeout(FETCH_TIMEOUT);
+  const rankingsSignal = AbortSignal.timeout(FETCH_TIMEOUT);
+
   const [categories, links, rankings] = await Promise.all([
-    withTimeout(getCategories(), FETCH_TIMEOUT).catch(() => {
+    getCategories({ signal: categoriesSignal }).catch(() => {
       logger.warn("getCategories timed out, using empty fallback");
       return [];
     }),
-    withTimeout(getApprovedLinks(), FETCH_TIMEOUT).catch(() => {
+    getApprovedLinks({ signal: linksSignal }).catch(() => {
       logger.warn("getApprovedLinks timed out, using empty fallback");
       return [];
     }),
-    withTimeout(getModelRankings(), FETCH_TIMEOUT).catch(() => {
+    getModelRankings({ signal: rankingsSignal }).catch(() => {
       logger.warn("getModelRankings timed out, using empty fallback");
       return [];
     }),

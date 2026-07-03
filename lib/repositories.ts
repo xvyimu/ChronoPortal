@@ -15,6 +15,11 @@ import { cache } from "react";
 /** Supabase 客户端类型（与 createClient / createStaticClient 返回类型一致） */
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
+interface RepositoryQueryOptions {
+  client?: SupabaseServerClient;
+  signal?: AbortSignal;
+}
+
 export class MissingDatabaseMigrationError extends Error {
   constructor(feature: string, options?: { cause?: unknown }) {
     super(`${feature} database objects are missing`, options);
@@ -36,6 +41,17 @@ function isMissingTagsJoinError(error: { code?: string; message?: string }): boo
     error.code === "PGRST200" ||
     /nav_links_tags|tags|relationship/i.test(error.message ?? "")
   );
+}
+
+function isClientOption(input: unknown): input is SupabaseServerClient {
+  return typeof input === "object" && input !== null && "from" in input;
+}
+
+function resolveQueryOptions(
+  input?: SupabaseServerClient | RepositoryQueryOptions
+): RepositoryQueryOptions {
+  if (isClientOption(input)) return { client: input };
+  return input ?? {};
 }
 
 /**
@@ -81,14 +97,17 @@ function reportMissingTagsTablesOnce(code?: string) {
 async function attachTagsToLinks(
   supabase: SupabaseServerClient,
   links: NavLink[],
+  signal?: AbortSignal,
 ): Promise<NavLink[]> {
   if (links.length === 0) return links;
 
   const linkIds = links.map((link) => link.id);
-  const { data: linkTags, error: linkTagsError } = await supabase
+  let linkTagsQuery = supabase
     .from("nav_links_tags")
     .select("link_id, tag_id")
     .in("link_id", linkIds);
+  if (signal) linkTagsQuery = linkTagsQuery.abortSignal(signal);
+  const { data: linkTags, error: linkTagsError } = await linkTagsQuery;
 
   if (linkTagsError) {
     if (isMissingTagsJoinError(linkTagsError)) {
@@ -106,10 +125,12 @@ async function attachTagsToLinks(
   const tagIds = Array.from(new Set(rows.map((row) => row.tag_id)));
   if (tagIds.length === 0) return links;
 
-  const { data: tags, error: tagsError } = await supabase
+  let tagsQuery = supabase
     .from("tags")
     .select("id, name, slug, created_at")
     .in("id", tagIds);
+  if (signal) tagsQuery = tagsQuery.abortSignal(signal);
+  const { data: tags, error: tagsError } = await tagsQuery;
 
   if (tagsError) {
     if (isMissingTagsJoinError(tagsError)) {
@@ -142,12 +163,17 @@ async function attachTagsToLinks(
 
 // ── 分类 ──
 
-async function getCategoriesImpl(client?: SupabaseServerClient): Promise<Category[]> {
-  const supabase = client ?? await createClient();
-  const { data, error } = await supabase
+async function getCategoriesImpl(
+  input?: SupabaseServerClient | RepositoryQueryOptions
+): Promise<Category[]> {
+  const options = resolveQueryOptions(input);
+  const supabase = options.client ?? await createClient();
+  let query = supabase
     .from("nav_categories")
     .select("*")
     .order("sort_order");
+  if (options.signal) query = query.abortSignal(options.signal);
+  const { data, error } = await query;
 
   if (error) {
     logger.error("Failed to fetch categories", { source: "repositories" }, error);
@@ -164,6 +190,7 @@ export const getCategories = cache(getCategoriesImpl);
 interface GetApprovedLinksOpts {
   limit?: number;
   offset?: number;
+  signal?: AbortSignal;
 }
 
 /**
@@ -175,6 +202,10 @@ async function getApprovedLinksImpl(options?: GetApprovedLinksOpts): Promise<Nav
   // Retry up to 3 times with backoff on transient failures (Supabase connection pool exhaustion)
   let lastError: Error | null = null;
   for (let attempt = 1; attempt <= 3; attempt++) {
+    if (options?.signal?.aborted) {
+      throw new Error("Failed to fetch links");
+    }
+
     try {
       const supabase = await createClient();
       const selectBasic = "*, nav_categories(name, slug)";
@@ -195,6 +226,10 @@ async function getApprovedLinksImpl(options?: GetApprovedLinksOpts): Promise<Nav
           );
         }
 
+        if (options?.signal) {
+          query = query.abortSignal(options.signal);
+        }
+
         return query;
       };
 
@@ -203,13 +238,18 @@ async function getApprovedLinksImpl(options?: GetApprovedLinksOpts): Promise<Nav
       if (error) {
         logger.error("Failed to fetch links", { source: "repositories", attempt }, error);
         lastError = new Error("Failed to fetch links");
+        if (options?.signal?.aborted) break;
         if (attempt < 3) {
           await new Promise((r) => setTimeout(r, 1000 * attempt));
         }
         continue;
       }
 
-      const result = await attachTagsToLinks(supabase, ((data ?? []) as unknown as RawLinkRow[]).map(mapLinkRow));
+      const result = await attachTagsToLinks(
+        supabase,
+        ((data ?? []) as unknown as RawLinkRow[]).map(mapLinkRow),
+        options?.signal
+      );
 
       // Empty result with no error is unlikely but possible under transient conditions; retry once
       if (result.length === 0 && attempt < 2) {
@@ -221,6 +261,7 @@ async function getApprovedLinksImpl(options?: GetApprovedLinksOpts): Promise<Nav
       return result;
     } catch (e) {
       lastError = e instanceof Error ? e : new Error(String(e));
+      if (options?.signal?.aborted) break;
       if (attempt < 3) {
         await new Promise((r) => setTimeout(r, 1000 * attempt));
       }

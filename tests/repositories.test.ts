@@ -51,6 +51,7 @@ class MockDB {
   in(c: string, v: unknown[]) { return this.in_(c, v); }
   or_(...a: unknown[]) { this._call("or", ...a); return this; }
   order(...a: unknown[]) { this._call("order", ...a); return this; }
+  abortSignal(...a: unknown[]) { this._call("abortSignal", ...a); return this; }
   limit(...a: unknown[]) { this._call("limit", ...a); return this; }
   range(...a: unknown[]) { this._call("range", ...a); return this; }
   lt(...a: unknown[]) { this._call("lt", ...a); return this; }
@@ -159,6 +160,17 @@ describe("repositories · 分类", () => {
     const result = await getCategories(asClient(db));
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe("AI");
+  });
+
+  it("getCategories forwards AbortSignal to Supabase", async () => {
+    const db = freshMocks();
+    const signal = AbortSignal.timeout(1000);
+    db.setResponse("nav_categories", { data: [mockCat], error: null });
+
+    const result = await getCategories({ client: asClient(db), signal });
+
+    expect(result).toHaveLength(1);
+    expect(db.callsFor("nav_categories").some((call) => call.args[0] === "abortSignal")).toBe(true);
   });
 
   it("getCategories 出错抛异常", async () => {
