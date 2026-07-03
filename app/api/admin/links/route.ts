@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { withAdminGet, withAdminWrite } from "@/lib/with-admin";
 import { createLinkSchema } from "@/lib/schemas";
 import { getAllLinksForAdmin, createLink } from "@/lib/repositories";
-import { createClient } from "@/lib/supabase/server";
 
 export const GET = withAdminGet(async () => {
   const links = await getAllLinksForAdmin();
@@ -10,7 +9,7 @@ export const GET = withAdminGet(async () => {
 });
 
 export const POST = withAdminWrite(createLinkSchema, async ({ parsed }) => {
-  const link = await createLink(await createClient(), {
+  const link = await createLink({
     title: parsed.title,
     url: parsed.url,
     description: parsed.description || null,

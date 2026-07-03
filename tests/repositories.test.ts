@@ -132,6 +132,11 @@ function freshMocks() {
   return db;
 }
 
+function expectAdminClientOnly() {
+  expect(createServiceRoleClient).toHaveBeenCalled();
+  expect(createClient).not.toHaveBeenCalled();
+}
+
 // ═══════════════════════════════════════════════════════════════
 // 测试数据
 // ═══════════════════════════════════════════════════════════════
@@ -183,24 +188,28 @@ describe("repositories · 分类", () => {
     const db = freshMocks();
     db.setResponse("nav_categories", { data: [mockCat], error: null });
     expect(await getAllCategoriesForAdmin()).toHaveLength(1);
+    expectAdminClientOnly();
   });
 
   it("createCategory", async () => {
     const db = freshMocks();
     db.setResponse("nav_categories", { data: { ...mockCat, name: "New" }, error: null });
     expect((await createCategory({ name: "New", slug: "new", description: null, icon: "x", sort_order: 5 })).name).toBe("New");
+    expectAdminClientOnly();
   });
 
   it("updateCategory", async () => {
     const db = freshMocks();
     db.setResponse("nav_categories", { data: { ...mockCat, name: "Upd" }, error: null });
     expect((await updateCategory("cat-1", { name: "Upd" })).name).toBe("Upd");
+    expectAdminClientOnly();
   });
 
   it("deleteCategory 成功", async () => {
     const db = freshMocks();
     db.setResponse("nav_categories", { data: null, error: null });
     await expect(deleteCategory("cat-1")).resolves.toBeUndefined();
+    expectAdminClientOnly();
   });
 });
 
@@ -350,24 +359,28 @@ describe("repositories · 标签", () => {
     const db = freshMocks();
     db.setResponse("tags", { data: [mockTagRow], error: null });
     expect((await getAllTagsForAdmin())[0].name).toBe("Hot");
+    expectAdminClientOnly();
   });
 
   it("createTag", async () => {
     const db = freshMocks();
     db.setResponse("tags", { data: { ...mockTagRow, name: "NewTag" }, error: null });
     expect((await createTag({ name: "NewTag", slug: "newtag" })).name).toBe("NewTag");
+    expectAdminClientOnly();
   });
 
   it("updateTag", async () => {
     const db = freshMocks();
     db.setResponse("tags", { data: { ...mockTagRow, name: "Upd" }, error: null });
     expect((await updateTag("tag-1", { name: "Upd" })).name).toBe("Upd");
+    expectAdminClientOnly();
   });
 
   it("deleteTag", async () => {
     const db = freshMocks();
     db.setResponse("tags", { data: null, error: null });
     await expect(deleteTag("tag-1")).resolves.toBeUndefined();
+    expectAdminClientOnly();
   });
 });
 
@@ -490,22 +503,24 @@ describe("repositories · Admin 链接 CRUD", () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: [mockLinkRow], error: null });
     expect(await getAllLinksForAdmin()).toHaveLength(1);
+    expectAdminClientOnly();
   });
 
   it("createLink 无tag_ids", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: { ...mockLinkRow, id: "new-1" }, error: null });
-    expect((await createLink(asClient(db), {
+    expect((await createLink({
       title: "N", url: "https://n.com", description: null, icon: "",
       category_id: null, approved: true, featured: false,
     })).id).toBe("new-1");
+    expectAdminClientOnly();
   });
 
   it("createLink 带tag_ids同步标签关联", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: { ...mockLinkRow, id: "new-1" }, error: null });
     db.setResponse("nav_links_tags", { data: null, error: null });
-    await createLink(asClient(db), {
+    await createLink({
       title: "N", url: "https://n.com", description: null, icon: "",
       category_id: null, approved: true, featured: false, tag_ids: ["t1", "t2"],
     });
@@ -518,7 +533,7 @@ describe("repositories · Admin 链接 CRUD", () => {
   it("createLink 空tag_ids不操作标签", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: { ...mockLinkRow, id: "new-1" }, error: null });
-    await createLink(asClient(db), {
+    await createLink({
       title: "N", url: "https://n.com", description: null, icon: "",
       category_id: null, approved: true, featured: false, tag_ids: [],
     });
@@ -530,12 +545,14 @@ describe("repositories · Admin 链接 CRUD", () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: { id: "lnk-1", title: "Upd" }, error: null });
     expect((await updateLink("lnk-1", { title: "Upd" })).title).toBe("Upd");
+    expectAdminClientOnly();
   });
 
   it("deleteLink 成功", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: null, error: null });
     await expect(deleteLink("lnk-1")).resolves.toBeUndefined();
+    expectAdminClientOnly();
   });
 });
 

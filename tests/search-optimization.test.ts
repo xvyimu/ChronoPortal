@@ -292,6 +292,48 @@ describe("Search optimizations (7 optimizations)", () => {
     expect(fetchMock).toHaveBeenCalled();
   });
 
+  it("OPT#6: category semantic search expands the RPC candidate pool", async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.endsWith("/embed-query")) {
+        return {
+          ok: true,
+          json: async () => ({ embedding: Array(512).fill(0.1), dim: 512 }),
+        };
+      }
+      return { ok: false, json: async () => ({}) };
+    });
+
+    rpc.mockResolvedValueOnce({
+      data: [
+        {
+          id: "550e8400-e29b-41d4-a716-446655440001",
+          title: "React",
+          url: "https://react.dev",
+          description: "A JavaScript library for building user interfaces",
+          icon: null,
+          category_name: "Frontend",
+          category_slug: "frontend",
+          similarity: 0.85,
+          featured: true,
+          paid: false,
+          click_count: 100,
+        },
+      ],
+      error: null,
+    });
+
+    const { GET } = await import("@/app/api/search/route");
+    const response = await GET(
+      new NextRequest("http://localhost/api/search?q=react&semantic=true&category=frontend&limit=5")
+    );
+
+    expect(response.status).toBe(200);
+    expect(rpc).toHaveBeenCalledWith(
+      "search_links_semantic",
+      expect.objectContaining({ match_count: 50 })
+    );
+  });
+
   // ── #5: Business Signal Boost ──────────────────────────────
 
   it("OPT#5: featured/paid items get similarity boost in semantic results", async () => {

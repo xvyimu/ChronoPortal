@@ -215,7 +215,7 @@ export default async function ToolDetailPage({ params }: PageProps) {
               {relatedLinks.map((tool) => (
                 <Link
                   key={tool.id}
-                  href={`/tool/${slugify(tool.title)}`}
+                  href={`/tool/${tool.slug || slugify(tool.title)}`}
                   className="group rounded-lg border border-border p-4 transition-colors hover:border-primary/50 hover:bg-muted/30"
                 >
                   <div className="flex items-center gap-3">

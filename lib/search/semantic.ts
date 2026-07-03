@@ -148,7 +148,10 @@ export async function searchSemantic(
 ): Promise<SearchResult[]> {
   try {
     const supabase = createServiceRoleClient();
-    const matchCount = category && category !== "all" ? limit * 3 : limit;
+    const matchCount =
+      category && category !== "all"
+        ? Math.min(Math.max(limit * 10, 50), 200)
+        : limit;
 
     const { data, error } = await supabase.rpc("search_links_semantic", {
       query_embedding: embedding,

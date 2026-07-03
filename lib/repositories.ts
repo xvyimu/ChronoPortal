@@ -14,10 +14,16 @@ import { cache } from "react";
 
 /** Supabase 客户端类型（与 createClient / createStaticClient 返回类型一致） */
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+type SupabaseAdminClient = ReturnType<typeof createServiceRoleClient>;
+type SupabaseDataClient = SupabaseServerClient | SupabaseAdminClient;
 
 interface RepositoryQueryOptions {
   client?: SupabaseServerClient;
   signal?: AbortSignal;
+}
+
+function createAdminClient(): SupabaseAdminClient {
+  return createServiceRoleClient();
 }
 
 export class MissingDatabaseMigrationError extends Error {
@@ -536,7 +542,7 @@ export async function recordReviewAttempt(ip: string, linkId: string): Promise<v
  * 获取所有链接（含未批准，供 admin 管理）
  */
 export async function getAllLinksForAdmin(): Promise<NavLink[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("nav_links")
     .select("*, nav_categories(name, slug)")
@@ -555,7 +561,7 @@ export async function getAllLinksForAdmin(): Promise<NavLink[]> {
  * 用于 createLink / updateLink 时同步标签关联表
  */
 async function syncLinkTags(
-  supabase: SupabaseServerClient,
+  supabase: SupabaseDataClient,
   linkId: string,
   tagIds: string[]
 ): Promise<void> {
@@ -588,7 +594,7 @@ async function syncLinkTags(
  * 重新获取链接行（含 join），用于 createLink/updateLink 后返回完整数据
  */
 async function fetchLinkWithTags(
-  supabase: SupabaseServerClient,
+  supabase: SupabaseDataClient,
   id: string
 ): Promise<NavLink> {
   const { data, error } = await supabase
@@ -612,10 +618,8 @@ async function fetchLinkWithTags(
 /**
  * 创建链接（admin）
  *
- * @param supabase - 可选，用于测试传入 mock 实例
  */
 export async function createLink(
-  supabase: SupabaseServerClient,
   input: {
     title: string;
     url: string;
@@ -627,6 +631,7 @@ export async function createLink(
     tag_ids?: string[];
   }
 ): Promise<NavLink> {
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("nav_links")
     .insert({
@@ -663,7 +668,7 @@ export async function createLink(
  * - ['id1', 'id2']：同步为这些标签
  */
 export async function updateLink(id: string, input: Record<string, unknown>): Promise<NavLink> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   // 拆分 tag_ids（不写入 nav_links 表）
   const { tag_ids, ...linkFields } = input as { tag_ids?: string[] } & Record<string, unknown>;
@@ -692,7 +697,7 @@ export async function updateLink(id: string, input: Record<string, unknown>): Pr
  * 删除链接（admin）
  */
 export async function deleteLink(id: string): Promise<void> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("nav_links").delete().eq("id", id);
   if (error) {
     logger.error("Admin: Failed to delete link", { source: "repositories", id }, error);
@@ -706,7 +711,7 @@ export async function deleteLink(id: string): Promise<void> {
  * 获取所有分类（供 admin 管理）
  */
 export async function getAllCategoriesForAdmin(): Promise<Category[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("nav_categories")
     .select("*")
@@ -733,7 +738,7 @@ export async function createCategory(input: {
   sort_order: number;
   parent_id?: string | null;
 }): Promise<Category> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("nav_categories")
     .insert({
@@ -759,7 +764,7 @@ export async function createCategory(input: {
  * 更新分类（admin）
  */
 export async function updateCategory(id: string, input: Record<string, unknown>): Promise<Category> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("nav_categories")
     .update(input)
@@ -779,7 +784,7 @@ export async function updateCategory(id: string, input: Record<string, unknown>)
  * 删除分类（admin）
  */
 export async function deleteCategory(id: string): Promise<void> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("nav_categories").delete().eq("id", id);
   if (error) {
     logger.error("Admin: Failed to delete category", { source: "repositories", id }, error);
@@ -793,7 +798,7 @@ export async function deleteCategory(id: string): Promise<void> {
  * 获取所有标签（供 admin 管理）
  */
 export async function getAllTagsForAdmin(): Promise<Tag[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("tags")
     .select("*")
@@ -811,7 +816,7 @@ export async function getAllTagsForAdmin(): Promise<Tag[]> {
  * 创建标签（admin）
  */
 export async function createTag(input: { name: string; slug: string }): Promise<Tag> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("tags")
     .insert({ name: input.name, slug: input.slug })
@@ -833,7 +838,7 @@ export async function updateTag(
   id: string,
   input: { name?: string; slug?: string }
 ): Promise<Tag> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("tags")
     .update(input)
@@ -854,7 +859,7 @@ export async function updateTag(
  * 关联表 nav_links_tags 通过 ON DELETE CASCADE 自动清理
  */
 export async function deleteTag(id: string): Promise<void> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("tags").delete().eq("id", id);
   if (error) {
     logger.error("Admin: Failed to delete tag", { source: "repositories", id }, error);

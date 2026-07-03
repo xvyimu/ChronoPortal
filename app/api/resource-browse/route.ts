@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
-import { withTimeout } from "@/lib/utils";
 import { z } from "zod";
 
 // 资源库浏览 API
@@ -52,11 +51,7 @@ export async function GET(request: Request) {
 
     if (category) q = q.eq("category", category);
 
-    const { data, error } = await withTimeout(
-      Promise.resolve(q),
-      BROWSE_TIMEOUT_MS,
-      "Resource browse timed out"
-    );
+    const { data, error } = await q.abortSignal(AbortSignal.timeout(BROWSE_TIMEOUT_MS));
     if (error) {
       logger.warn("Resource browse query failed", {
         source: "resource-browse",

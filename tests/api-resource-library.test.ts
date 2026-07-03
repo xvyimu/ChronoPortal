@@ -42,6 +42,7 @@ function query(response: QueryResponse) {
     limit: vi.fn(function (this: unknown) { return this; }),
     eq: vi.fn(function (this: unknown) { return this; }),
     gte: vi.fn(function (this: unknown) { return this; }),
+    abortSignal: vi.fn(function (this: unknown) { return this; }),
     insert: vi.fn(function (this: unknown) { return this; }),
     maybeSingle: vi.fn(async () => response),
   };
@@ -104,6 +105,7 @@ describe("resource library API routes", () => {
         rank: 0,
       },
     ]);
+    expect(pages.abortSignal).toHaveBeenCalledWith(expect.any(AbortSignal));
   });
 
   it("does not expose vector RPC error details to the client", async () => {
@@ -156,6 +158,25 @@ describe("resource library API routes", () => {
     expect(mocks.createClient).not.toHaveBeenCalled();
   });
 
+  it("adds an abort signal to rating stats queries", async () => {
+    const stats = query({ count: 2, error: null });
+    mocks.createClient.mockReturnValue({ from: vi.fn(() => stats) });
+
+    const { GET } = await importRoute<typeof import("@/app/api/resource-ratings/route")>(
+      "@/app/api/resource-ratings/route"
+    );
+
+    const response = await GET(
+      new Request(
+        "http://localhost/api/resource-ratings?page_id=0194b64d-5cb6-7330-a273-1ab8f926e169"
+      )
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ count: 2 });
+    expect(stats.abortSignal).toHaveBeenCalledWith(expect.any(AbortSignal));
+  });
+
   it("rejects invalid rating payloads before opening a DB client", async () => {
     const { POST } = await importRoute<typeof import("@/app/api/resource-ratings/route")>(
       "@/app/api/resource-ratings/route"
@@ -204,6 +225,7 @@ describe("resource library API routes", () => {
 
     expect(html).toContain('href="#"');
     expect(html).not.toContain("javascript:alert");
+    expect(page.abortSignal).toHaveBeenCalledWith(expect.any(AbortSignal));
   });
 
   it("accepts a valid rating after rate-limit and page existence checks", async () => {
@@ -250,5 +272,8 @@ describe("resource library API routes", () => {
       rating: 5,
       ip: "203.0.113.10",
     });
+    expect(rateLimit.abortSignal).toHaveBeenCalledWith(expect.any(AbortSignal));
+    expect(page.abortSignal).toHaveBeenCalledWith(expect.any(AbortSignal));
+    expect(insert.abortSignal).toHaveBeenCalledWith(expect.any(AbortSignal));
   });
 });

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
-import { getClientIp, withTimeout } from "@/lib/utils";
+import { getClientIp } from "@/lib/utils";
 import { z } from "zod";
 
 // 资源库评分提交 API
@@ -59,17 +59,12 @@ export async function POST(request: Request) {
 
     // ── 速率限制：每 IP 每 15 分钟最多 10 次评分 ──
     const since = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-    const { count, error: rateLimitErr } = await withTimeout(
-      Promise.resolve(
-        supabase
-          .from("ratings")
-          .select("id", { count: "exact", head: true })
-          .eq("ip", ip)
-          .gte("created_at", since)
-      ),
-      RATING_TIMEOUT_MS,
-      "Resource ratings rate-limit check timed out"
-    );
+    const { count, error: rateLimitErr } = await supabase
+      .from("ratings")
+      .select("id", { count: "exact", head: true })
+      .eq("ip", ip)
+      .gte("created_at", since)
+      .abortSignal(AbortSignal.timeout(RATING_TIMEOUT_MS));
     if (rateLimitErr) {
       logger.warn("Resource ratings rate-limit check failed", {
         source: "resource-ratings",
@@ -84,15 +79,12 @@ export async function POST(request: Request) {
     }
 
     // 校验 pages 表中确实存在该 page_id
-    const { data: page, error: pageErr } = await withTimeout(
-      supabase
-        .from("pages")
-        .select("id")
-        .eq("id", page_id)
-        .maybeSingle(),
-      RATING_TIMEOUT_MS,
-      "Resource ratings page check timed out"
-    );
+    const { data: page, error: pageErr } = await supabase
+      .from("pages")
+      .select("id")
+      .eq("id", page_id)
+      .abortSignal(AbortSignal.timeout(RATING_TIMEOUT_MS))
+      .maybeSingle();
     if (pageErr || !page) {
       return NextResponse.json(
         { error: "资源不存在" },
@@ -100,18 +92,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const { error } = await withTimeout(
-      Promise.resolve(
-        supabase.from("ratings").insert({
-          page_id,
-          query_text,
-          rating,
-          ip,
-        })
-      ),
-      RATING_TIMEOUT_MS,
-      "Resource ratings insert timed out"
-    );
+    const { error } = await supabase
+      .from("ratings")
+      .insert({
+        page_id,
+        query_text,
+        rating,
+        ip,
+      })
+      .abortSignal(AbortSignal.timeout(RATING_TIMEOUT_MS));
 
     if (error) {
       logger.error("Failed to insert rating", { source: "resource-ratings", error: error.message });
@@ -152,16 +141,11 @@ export async function GET(request: Request) {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const { count, error } = await withTimeout(
-      Promise.resolve(
-        supabase
-          .from("ratings")
-          .select("id", { count: "exact", head: true })
-          .eq("page_id", pageId)
-      ),
-      RATING_TIMEOUT_MS,
-      "Resource ratings stats timed out"
-    );
+    const { count, error } = await supabase
+      .from("ratings")
+      .select("id", { count: "exact", head: true })
+      .eq("page_id", pageId)
+      .abortSignal(AbortSignal.timeout(RATING_TIMEOUT_MS));
 
     if (error) {
       return NextResponse.json({ error: "获取评分失败" }, { status: 500 });

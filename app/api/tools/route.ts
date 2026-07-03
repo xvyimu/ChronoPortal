@@ -76,10 +76,11 @@ export async function GET(request: NextRequest) {
     // 格式化为 Agent 友好的结构化数据
     const tools = result.map((link) => {
       const category = link.category_id ? categoryMap.get(link.category_id) : null;
+      const detailSlug = link.slug || slugify(link.title);
       return {
         id: link.id,
         name: link.title,
-        slug: slugify(link.title),
+        slug: detailSlug,
         url: link.url,
         description: link.description || "",
         icon: link.icon || "",
@@ -94,7 +95,7 @@ export async function GET(request: NextRequest) {
           Boolean
         ) as string[],
         click_count: link.click_count,
-        detail_page: `/tool/${slugify(link.title)}`,
+        detail_page: `/tool/${detailSlug}`,
       };
     });
 

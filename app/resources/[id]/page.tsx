@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { ResourceRating } from "../_components/ResourceRating";
-import { isSafeUrl, withTimeout } from "@/lib/utils";
+import { isSafeUrl } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -37,15 +37,19 @@ export default async function ResourceDetailPage({
   const supabase = createClient(RL_URL, RL_SERVICE_ROLE, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  const { data } = await withTimeout(
-    supabase
+  let pageResult: { data: unknown };
+  try {
+    pageResult = await supabase
       .from("pages")
       .select("id,title,url,domain,summary,category,tags,crawled_at")
       .eq("id", id)
-      .maybeSingle(),
-    DETAIL_TIMEOUT_MS,
-    "Resource detail query timed out"
-  ).catch(() => ({ data: null }));
+      .abortSignal(AbortSignal.timeout(DETAIL_TIMEOUT_MS))
+      .maybeSingle();
+  } catch {
+    pageResult = { data: null };
+  }
+
+  const { data } = pageResult;
 
   if (!data) notFound();
   const row = data as PageRow;
