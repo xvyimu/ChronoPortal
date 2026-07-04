@@ -6,9 +6,9 @@
 
 ## 当前结论
 
-**代码侧可以发布，但有 2 个黄色运维检查项。**
+**代码侧可以发布，但生产部署链路仍有 1 个红色项和 2 个黄色运维检查项。**
 
-当前代码、测试、构建、安全头和健康检查均已通过。黄色项有两个：生产 `/api/health` 显示 Sentry DSN 未配置；embedding 子检查为 `error`，说明生产运行环境暂时无法访问 `EMBED_SERVER_URL`。正式上线前需要补齐 `NEXT_PUBLIC_SENTRY_DSN`，并确认生产 embedding 服务可达，或明确接受语义搜索降级为文本/Fuse 搜索的行为。
+当前代码、测试、构建和本地安全头检查均已通过。红色项是 GitHub Actions 的 `netlify deploy --prod` 实际返回 `JSONHTTPError: Forbidden`，因此最新 `netlify.toml` 安全头配置尚未确认上线；工作流已改为部署失败即失败，避免假绿。黄色项有两个：生产 `/api/health` 显示 Sentry DSN 未配置；embedding 子检查为 `error`，说明生产运行环境暂时无法访问 `EMBED_SERVER_URL`。正式上线前需要修复 Netlify token/site 权限，补齐 `NEXT_PUBLIC_SENTRY_DSN`，并确认生产 embedding 服务可达，或明确接受语义搜索降级为文本/Fuse 搜索的行为。
 
 ## 已验证门禁
 
@@ -31,7 +31,7 @@
 
 | 项目 | 状态 | 结果 |
 |---|---:|---|
-| GitHub Actions | ✅ | `quality`、`build`、`e2e`、`deploy`、`link-check` 全部 success |
+| GitHub Actions | ⚠️ | `quality`、`build`、`e2e`、`link-check` 通过；deploy job 曾因 `continue-on-error` 假绿，日志显示 `netlify deploy --prod` 返回 `JSONHTTPError: Forbidden` |
 | Lighthouse CI | ✅ | 最新 `master` run success |
 | 生产首页 | ✅ | `GET /` 返回 200 |
 | 生产搜索 API | ✅ | `/api/search?q=ai&limit=5` 返回 200，5 条结果 |
@@ -39,7 +39,7 @@
 | Sitemap | ✅ | `/sitemap.xml` 返回 200，包含 `/tool/figma` |
 | Robots | ✅ | `/robots.txt` 返回 200，包含 `User-Agent` |
 | 生产健康检查 | ⚠️ | `/api/health` 返回 200/healthy；`database/env` ok；`sentry` skipped；`embedding` error |
-| 生产安全头 | ✅ | 已在 `netlify.toml` 加全站安全头，强制与 `next.config.ts` 对齐 |
+| 生产安全头 | ⚠️ | `netlify.toml` 已加全站安全头；生产 HEAD 仍为 `X-Frame-Options=SAMEORIGIN`、`Referrer-Policy=same-origin`，需待 Netlify 部署权限修复并重新部署后复验 |
 
 ## 发布前步骤
 
@@ -47,7 +47,7 @@
    - `quality`
    - `build`
    - `e2e`
-   - `deploy`
+   - `deploy`（必须真实成功，不能依赖 `continue-on-error`）
    - `link-check`
 2. 确认 Netlify 或生产部署环境已配置必要环境变量：
    - `NEXT_PUBLIC_SUPABASE_URL`
@@ -58,16 +58,20 @@
    - `SUPABASE_SERVICE_ROLE_KEY` 或 `SUPABASE_SERVICE_ROLE_KEY_PROD`
    - `NEXT_PUBLIC_SENTRY_DSN`
    - 可选：`EMBED_SERVER_URL`
-3. 配置 `NEXT_PUBLIC_SENTRY_DSN`，让生产 `/api/health` 的 Sentry 检查从 `skipped` 变为 `ok`。
-4. 如果需要完整语义搜索能力，确认生产运行环境能访问 `EMBED_SERVER_URL`。
-5. 打开生产站点做冒烟测试：
+3. 修复 Netlify 部署凭据或站点权限：
+   - `NETLIFY_AUTH_TOKEN` 需能访问目标站点。
+   - `NETLIFY_SITE_ID` 可配置为 GitHub secret 或 repository variable。
+   - 重新跑 deploy 后复验生产安全头。
+4. 配置 `NEXT_PUBLIC_SENTRY_DSN`，让生产 `/api/health` 的 Sentry 检查从 `skipped` 变为 `ok`。
+5. 如果需要完整语义搜索能力，确认生产运行环境能访问 `EMBED_SERVER_URL`。
+6. 打开生产站点做冒烟测试：
    - 首页可加载。
    - 搜索可返回结果。
    - 移动端 320px 和 390px 下底栏标签可读、无横向溢出。
    - `/api/health` 返回 200。
    - `/api/search?q=ai&limit=5` 返回 JSON。
    - `/tool/figma` 可渲染。
-6. 发布后检查 Sentry：
+7. 发布后检查 Sentry：
    - 无新增错误类型。
    - Web Vitals 事件有上报。
    - API failure 没有明显 spike。

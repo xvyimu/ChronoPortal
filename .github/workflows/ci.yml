@@ -154,17 +154,19 @@ jobs:
 
       - name: 部署到 Netlify
         id: deploy
-        continue-on-error: true
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ vars.NETLIFY_SITE_ID }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID || vars.NETLIFY_SITE_ID }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SOURCE_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SOURCE_SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_RESOURCE_LIBRARY_API_KEY: ${{ secrets.NEXT_PUBLIC_RESOURCE_LIBRARY_API_KEY }}
           RESOURCE_LIBRARY_SERVICE_ROLE_KEY: ${{ secrets.RESOURCE_LIBRARY_SERVICE_ROLE_KEY }}
         run: |
+          set -euo pipefail
+          : "${NETLIFY_AUTH_TOKEN:?NETLIFY_AUTH_TOKEN is not set}"
+          : "${NETLIFY_SITE_ID:?NETLIFY_SITE_ID is not set}"
           npm install -g netlify-cli
-          netlify deploy --prod
+          netlify deploy --prod --site "$NETLIFY_SITE_ID"
 
   link-check:
     name: 链接健康检测
