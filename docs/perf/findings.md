@@ -19,8 +19,8 @@
 | H6 | 首屏 JS chunk 中存在可拆分的 sync import | P2 | ✅ Phase 3 完成（RSC 边界收缩 + 预计算架构建立，bundle +0.1KB 架构收益显著） | `6a3f20be` + Phase3 |
 | H7 | Sentry client bundle 占首屏 JS 比重过高 | P3 | ⚠️ 部分修复（named imports + 构建期 tree-shaking，合计 -2.9KB，核心仍在） | `79f47095` |
 | H8 | 路由切换无 prefetch 导致 TTFB 偏高 | P3 | ❌ 已排除（静态审查） | — |
-| H9 | sonner toast 静态 import 增加首屏体积 | P3 | ✅ 已修复（动态 import 替代，架构改善） | 待提交 |
-| H10 | 初始加载路径残留 motion/react（ShortcutPanel/login/SubmitForm） | P2 | ✅ 已修复（CSS 动画替代，首屏 -40.2KB） | 待提交 |
+| H9 | sonner toast 静态 import 增加首屏体积 | P3 | ✅ 已修复（动态 import 替代，架构改善；layout 侧已由 ToasterWrapper 隔离） | `62261102` + `81f4d27a` |
+| H10 | 初始加载路径残留 motion/react（ShortcutPanel/login/SubmitForm） | P2 | ✅ 已修复（CSS 动画替代，首屏 -40.2KB） | `bff0fed8` |
 
 **状态图例**：🔄 待验证 / 🔍 验证中 / ❌ 已排除 / ✅ 已修复 / ⚠️ 部分修复
 
@@ -709,9 +709,20 @@ sonner 的 JS 仍因 `ui/sonner.tsx` 的静态 import 链而进首屏。
 但由于 root cause 在 layout 侧的 `ui/sonner.tsx` 引用，首屏 bundle 中 sonner 的体积**未减少**（仍为 9.0 KB）。
 Toaster 本身已是 dynamic import，真正移除 sonner 出首屏需将 `ui/sonner.tsx` 也改为 dynamic + 客户端加载。
 
+**2026-07-04 静态复核**：后续提交 `81f4d27a` 已新增 `components/ToasterWrapper.tsx`，
+并在 `app/layout.tsx` 中动态加载该包装组件。`components/ui/sonner.tsx` 的静态 `sonner`
+导入因此被隔离到动态客户端 chunk，不再由 layout 直接同步引用。
+
+**2026-07-04 Superpower follow-up**：`app/resources/_components/ResourceRating.tsx`
+也已移除静态 `import { toast } from "sonner"`，改为评分提交路径内按需动态导入。
+这不是首页初始 bundle 的核心瓶颈，但能避免资源详情路由把 toast 库作为同步依赖，并用
+`ResourceRating.test.tsx` 的静态边界测试防回退。
+
 **改动**：
 - `components/ReviewSection.tsx`：删除 `import { toast } from "sonner"`，改为 `handleSubmit` 内 `const { toast } = await import("sonner")`
 - 4 处 toast 调用全部改为动态 import，一次 import 复用
+- `components/ToasterWrapper.tsx`：后续新增 dynamic wrapper，`ssr: false` 懒加载 `components/ui/sonner`
+- `app/resources/_components/ResourceRating.tsx`：评分成功/失败 toast 改为提交路径内 `await import("sonner")`
 
 ### before/after 数据
 
@@ -726,7 +737,9 @@ Toaster 本身已是 dynamic import，真正移除 sonner 出首屏需将 `ui/so
 
 ### commit
 
-待提交。
+`62261102` —— ReviewSection toast 动态 import。
+`81f4d27a` —— 新增 ToasterWrapper，layout 侧动态加载 sonner UI。
+2026-07-04 Superpower follow-up —— ResourceRating toast 动态 import + 静态边界测试。
 
 ---
 
@@ -829,6 +842,9 @@ import 被 webpack 提升到了 layout 的初始 chunk（chunk 1915 + chunk 2554
 **关键验证**：递归扫描所有初始 chunk 的子树，确认 motion-dom / framer-motion 出现在 **0 个**初始 chunk 中。
 motion-dom（28.2 KB）和 framer-motion（8.7 KB）仅存在于动态 chunk（ModelRanking `ssr: false`）中。
 
+**2026-07-04 静态复核**：模型排行榜已在后续阶段移除；当前 `app/`、`components/` 中未发现
+运行时 `motion/react` 导入。`lib/animations.ts` 仅保留 type-only import，不进入运行时代码。
+
 **E2E 验证**：`pnpm e2e` 44 tests ✓（与 H9 同理，仅 CSS class 替换，无行为变更）
 
 **`prefers-reduced-motion`**：所有新增的 CSS 动画（`animate-fade-in`、`animate-fade-in-up`）均已由 globals.css 中的 `@media (prefers-reduced-motion: reduce)` 无条件覆盖，无障碍合规。
@@ -864,7 +880,7 @@ motion/react 已完全从初始加载路径中移除，仅在动态 chunk（Mode
 
 ### commit
 
-待提交（与 H9 一起）。
+`bff0fed8` —— H9/H10 累计性能修复：CSS animations 替代初始加载路径 motion，并更新 bundle 数据。
 
 1. 每个假设开始验证时，状态从 🔄 改为 🔍
 2. 验证完成后填写"验证结果"章节，状态改为 ❌（排除）或继续修复

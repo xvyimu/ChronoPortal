@@ -1,4 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { ResourceRating } from "./ResourceRating";
 
@@ -84,5 +86,12 @@ describe("ResourceRating", () => {
 
     await screen.findByText("已记录。");
     expect(screen.queryByText(/当前 \d+ 次评分/)).toBeNull();
+  });
+
+  it("loads sonner only when a toast is needed", () => {
+    const source = readFileSync(join(process.cwd(), "app/resources/_components/ResourceRating.tsx"), "utf8");
+
+    expect(source).not.toMatch(/import\s+\{\s*toast\s*\}\s+from\s+["']sonner["']/);
+    expect(source).toContain('await import("sonner")');
   });
 });
