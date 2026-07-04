@@ -1,4 +1,4 @@
-# Claude Code 项目接手提示词（v8 — 2026-06-29）
+# Claude Code 项目接手提示词（v9 — 2026-07-04）
 
 ## 项目接手：综合导航站 (nav-site)
 
@@ -14,19 +14,32 @@
 - Fuse.js 服务端搜索 + pgvector 语义搜索 + React cache() 数据去重
 - Motion 动画 + Lucide React 图标
 - Sentry 监控（共享配置 `sentry.shared.config.ts`，tracing 已开启）
-- Vitest 单元测试（205 个，6 skipped） + 20 Python 测试 + Playwright E2E 34 个
+- Vitest 单元测试（309 个，6 skipped） + 20 Python 测试 + Playwright E2E 34 个
 - **新增**：Lighthouse CI（`.github/workflows/lighthouse.yml`，warn-only）
 - **新增**：Web Vitals 实时上报（`app/_components/web-vitals.tsx` + `app/api/web-vitals/route.ts`）
 
 ## 当前状态
 
-- **513 个收录站点**，11 个分类，29 条模型排行榜数据
-- **205 个 Vitest 单元测试全部通过**（6 skipped）+ 20 Python 测试全绿
-- ESLint 0 errors, TypeScript 0 errors, 生产构建成功（`next build --webpack`），E2E 34/34 全绿
+- **513 个收录站点**，模型排行榜功能已从前台和代码路径移除（旧 `?cat=model-ranking` 自动回退到“全部”）
+- **309 个 Vitest 单元测试全部通过**（6 skipped）+ 20 Python 测试全绿
+- ESLint 0 errors, TypeScript 0 errors, 生产构建成功（`next build --webpack`）；历史 E2E 34/34 全绿，本轮收尾未重跑全量 E2E
 - 安全审计漏洞清零（51/51 项已修复，PROJECT-AUDIT.md）
 - **数据库迁移已确认**：slug 列索引/trigger + user_favorites 表/RLS 均已在生产库就绪
 - **pgvector 搜索质量调优已完成 (Phase 22)**：BGE query prefix, 增强 embedding 文本(含分类名), 短查询保护, RRF 混合排序, 金标准评估框架
 - 本地 embedding 微服务：`scripts/embed-server.py`，模型 `BAAI/bge-small-zh-v1.5`，默认 `http://127.0.0.1:8003`
+
+## v9 最新收尾（2026-07-04）
+
+最新 `origin/master`：
+
+| commit | 内容 |
+|---|---|
+| `352bfa02` | 移除模型排行榜、统一深色视觉背景、引入 `AtlasPill` 和 `InteractiveSurface` |
+| `b1fae067` | 数据访问边界加固：Admin write 使用 service role、JSON 400、Supabase abortSignal、slug 一致性、分类语义召回优化 |
+| `43b263a` | 首页 Supabase 慢查询超时降级 |
+| `fb59c60d` | embedding 服务故障重试节流 |
+
+当前工作树应为 clean，`master` 与 `origin/master` 对齐。最终验证：`pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build` 通过；浏览器在 7897 端口验证无排行榜入口，底部 `html/body/footer` 均为深色。本轮未重跑全量 Playwright E2E。
 
 ## v8 会话已完成（2026-06-29）
 
@@ -69,7 +82,7 @@ A+C 混合方案 Phase 1 完成（详见 `docs/superpowers/specs/2026-06-29-perf
 
 ## 下一步工作：Phase 2 假设验证
 
-**接手第一步**：读 `docs/perf/findings.md`，按优先级逐个验证 H1-H8 假设。
+**接手第一步**：先确认最新目标和工作树状态。若继续性能专项，再读 `docs/perf/findings.md` 并按优先级逐个验证 H1-H8 假设。
 
 每个假设必须走完整循环：**验证 → 修复 → 量化对比 → 提交**。
 
@@ -146,7 +159,7 @@ pnpm dev                        # 启动开发服务器（端口 3264，webpack 
 pnpm build                      # 生产构建（webpack 模式）
 pnpm lint                       # ESLint 检查
 pnpm typecheck                  # TypeScript 类型检查
-pnpm test                       # 单元测试（205 个）
+pnpm test                       # 单元测试（309 个，6 skipped）
 pnpm test:quality               # 搜索质量金标准评估（需 QUALITY_TEST_BASE_URL）
 pnpm e2e                        # E2E 测试（需先启动 dev server）
 pnpm analyze                    # Bundle 分析（生成 .next/analyze/*.html）
@@ -279,4 +292,4 @@ ADR-001 已合并双库为单库，通过 RLS 策略保证数据安全。
 
 ---
 
-**接手第一步**：读 `docs/perf/findings.md`，从 H1（PanguSpacing INP 影响）开始验证。
+**接手第一步**：先运行 `git status --branch --short` 确认工作树干净，再读 `README.md`、`docs/PROGRESS.md` 和最新 git log。性能专项仍可继续读 `docs/perf/findings.md`，但不要把 2026-06-29 的 Phase 2 计划误当成当前唯一任务。

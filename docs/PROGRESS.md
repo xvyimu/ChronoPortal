@@ -1,6 +1,6 @@
 # 综合导航站 — 项目进度文档
 
-> 最后更新：2026-06-28 · 版本 v14.0
+> 最后更新：2026-07-04 · 版本 v16.0
 > 项目路径：`d:\nav-site` · 开发端口：3264
 
 ---
@@ -11,11 +11,10 @@
 
 **当前数据规模**：
 - 收录站点：513 个（Phase 12 批量导入 + 持续扩充）
-- 分类数量：11 个（含"全部"和"模型排行榜"两个特殊分类）
-- 模型排行榜：29 条（7 个维度榜单）
+- 分类数量：9 个主分类（模型排行榜功能已移除，旧 `model-ranking` URL 自动回退到"全部"）
 - 向量维度：512 维（BAAI/bge-small-zh-v1.5 嵌入模型）
 
-> 文档版本 v14.0 · 2026-06-28 · Phase 22 完成：pgvector 搜索质量调优
+> 文档版本 v16.0 · 2026-07-04 · Phase 24 完成：数据访问边界加固 + 排行榜移除 + 视觉收尾
 
 ## 二、技术栈
 
@@ -778,6 +777,42 @@ pnpm sync         # 数据库同步
 
 ---
 
+### Phase 23：生产稳定性收尾（2026-07-03） ✅
+
+#### 23.1 数据访问边界加固
+
+提交：`b1fae067 fix: harden data access boundaries`
+
+| 项目 | 状态 | 说明 |
+|------|------|------|
+| Admin CRUD service_role 收口 | ✅ | Admin 写路径使用 `createServiceRoleClient()`，公开读保持 anon + RLS |
+| Slug 一致性 | ✅ | `/api/tools`、详情页和相关工具链接优先使用数据库 `slug` |
+| API JSON 错误边界 | ✅ | favorites/submit/click/reviews 无效 JSON 返回 400，不再落入 500 |
+| Supabase timeout 真实取消 | ✅ | 资源库接口和详情页使用 query builder `.abortSignal(...)` |
+| 分类语义搜索召回 | ✅ | 分类搜索扩大 RPC 候选池后再本地过滤，降低全局高分挤占风险 |
+
+#### 23.2 运行稳定性补丁
+
+| commit | 内容 |
+|------|------|
+| `43b263a` | 首页 Supabase 慢查询使用 `AbortSignal.timeout`，超时降级为空数据而非挂起 |
+| `fb59c60d` | embedding 服务故障重试节流，降低 outage 时的请求放大 |
+| `58dce1b3` | 明确 optional tags fallback 日志，减少误报 |
+
+### Phase 24：排行榜移除与视觉收尾（2026-07-04） ✅
+
+提交：`352bfa02 refactor: remove model rankings + unify visual primitives`
+
+| 项目 | 状态 | 说明 |
+|------|------|------|
+| 模型排行榜移除 | ✅ | 删除 `components/ModelRanking.tsx`、`lib/model-rankings.ts` 和页面加载链路 |
+| 旧 URL 兼容 | ✅ | `?cat=model-ranking` 归一化为 `all`，不会出现空白页 |
+| 深色背景统一 | ✅ | Header/Footer/atlas/html/body 统一 `#07100f`，修复底部白色区域 |
+| UI primitive | ✅ | 新增 `AtlasPill`、`InteractiveSurface`，复用到首页、搜索面板、卡片和移动导航 |
+| 回归验证 | ✅ | `pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build` 通过；7897 端口浏览器验证无排行榜入口且底部为深色 |
+
+---
+
 ## 九、待办事项
 
 ### 短期
@@ -796,7 +831,7 @@ pnpm sync         # 数据库同步
 - [x] 用户账号系统（GitHub OAuth + 收藏同步）
 - [x] 自定义 404 页面 + 路由级 loading 骨架屏
 - [x] 动态 OG 图片生成（next/og Edge Runtime）
-- [x] ModelRanking 动态导入（减少初始 JS bundle）
+- [x] 模型排行榜移除（减少维护面，旧 URL 回退到"全部"）
 - [x] 无障碍 skip-to-content 链接
 - [x] 运行 migration-slug.sql 到 Supabase — ✅ 已执行（slug 列+索引+trigger）
 - [x] 运行 migration-user-favorites.sql 到 Supabase — ✅ 已执行（表+RLS）
@@ -820,4 +855,4 @@ pnpm sync         # 数据库同步
 
 ---
 
-> 文档版本 v14.0 · 2026-06-28 · Phase 22 完成：搜索质量优化
+> 文档版本 v16.0 · 2026-07-04 · Phase 24 完成：生产稳定性与视觉收尾

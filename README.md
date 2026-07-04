@@ -134,13 +134,16 @@ nav-site/
 │   ├── ui/                     # UI 基础组件
 │   ├── Header.tsx              # 顶栏（含登录/退出）
 │   ├── Navigation.tsx          # 主导航
+│   ├── HomeHero.tsx            # 首页首屏搜索与概览
+│   ├── SearchExperiencePanel.tsx # 搜索建议、筛选和体验面板
 │   ├── Sidebar.tsx             # 侧边栏分类
 │   ├── LinkCard.tsx            # 链接卡片
 │   ├── SearchBar.tsx           # 搜索框
-│   ├── ModelRanking.tsx        # 模型排行榜
 │   ├── FavoritesProvider.tsx   # 收藏上下文
 │   ├── Providers.tsx           # SessionProvider 包装
 │   ├── Shell.tsx               # 布局壳
+│   ├── ui/atlas-pill.tsx       # 首页/搜索筛选 Pill primitive
+│   ├── ui/interactive-surface.tsx # 卡片交互高光 primitive
 │   └── ...
 ├── lib/                        # 工具库
 │   ├── supabase/               # Supabase 客户端
@@ -148,7 +151,6 @@ nav-site/
 │   ├── repositories.ts         # 数据访问层
 │   ├── use-favorites.ts        # 收藏 Hook
 │   ├── useLinksFilter.ts       # 搜索/过滤 Hook
-│   ├── model-rankings.ts       # 模型排行榜数据
 │   ├── slugify.ts              # URL slug 生成
 │   ├── rate-limit.ts           # 速率限制
 │   ├── logger.ts               # 结构化日志
@@ -218,7 +220,7 @@ push/PR → quality (lint + tsc + test+coverage)
 
 ### 数据访问层
 
-所有数据库操作通过 `lib/repositories.ts` 统一抽象，避免 API 路由直接调用 Supabase 客户端。
+所有公开读取和后台写入通过 `lib/repositories.ts` 统一抽象。公开读保持 anon + RLS；后台管理写入收口到 `createServiceRoleClient()`，由 admin 路由鉴权后执行，避免把 service role 暴露到客户端或公开 API。
 
 ### 程序化 SEO
 

@@ -1,7 +1,7 @@
 # 数据访问层边界设计
 
 > 日期：2026-07-03
-> 状态：方案 B 已批准，待实施
+> 状态：已实施（commit `b1fae067`）
 > 范围：生产稳定性收尾中的 Supabase 数据访问边界、Admin CRUD、超时、slug、输入错误边界和搜索召回
 
 ---
@@ -17,7 +17,7 @@
 - 工具详情 slug 部分位置使用 `slugify(title)`，没有优先使用数据库 `slug`。
 - 分类语义搜索先全局 RPC 再本地过滤，分类候选可能被全局高分结果挤掉。
 
-方案 B 的目标是先把数据访问层边界立清楚，再顺手修掉已确认的生产稳定性问题。
+方案 B 的目标是先把数据访问层边界立清楚，再顺手修掉已确认的生产稳定性问题。实现已在 `b1fae067 fix: harden data access boundaries` 落地：Admin 写路径收口到 service role、无效 JSON 返回 400、资源库 Supabase 查询使用 `abortSignal`、详情 slug 优先使用数据库 slug、分类语义搜索扩大候选池。
 
 ## 二、目标
 
@@ -259,4 +259,3 @@ rtk node scripts/pre-commit-secret-scan.mjs
 - 一致性检查：边界契约、实施顺序、测试计划一致，均不要求数据库迁移。
 - Scope 检查：只覆盖生产稳定性收尾，不包含视觉 redesign。
 - 歧义检查：service_role 使用范围限定为 admin/internal server 路径；public read 保持 anon + RLS。
-
