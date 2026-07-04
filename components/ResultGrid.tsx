@@ -34,7 +34,7 @@ export function ResultGrid({
   onPreview,
 }: ResultGridProps) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" role="list">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" role="list">
       {links.map((link, i) => {
         const idx = baseIndex + i;
         return (

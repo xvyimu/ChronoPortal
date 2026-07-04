@@ -69,7 +69,7 @@ export function Navigation({
   const visibleCategoryCount = tabTree.filter((tab) => tab.key !== "all").length;
 
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] bg-[#07100f]" data-nav-hydrated={mounted ? "true" : "false"}>
+    <div className="min-h-[calc(100vh-3.5rem)] bg-background" data-nav-hydrated={mounted ? "true" : "false"}>
       <HomeHero
         totalLinks={links.length}
         categoryCount={visibleCategoryCount}
@@ -88,7 +88,7 @@ export function Navigation({
 
       <div
         id="atlas"
-        className="flex border-t border-white/10 bg-[linear-gradient(180deg,#07100f_0%,#0b1215_42%,#08110f_100%)]"
+        className="flex border-t border-[var(--paper-line)] bg-[linear-gradient(180deg,#f8f6f2_0%,#f4f0e8_46%,#f8f6f2_100%)]"
       >
         <Sidebar
           tabs={tabTree}
@@ -130,12 +130,12 @@ export function Navigation({
 
             {activeCategory !== "all" && (
               <nav
-                className="flex animate-slide-down items-center gap-1.5 text-xs font-mono uppercase text-white/60"
+                className="flex animate-slide-down items-center gap-1.5 text-xs font-mono uppercase text-[var(--paper-muted)]"
                 aria-label="Breadcrumb"
               >
                 <span>Atlas</span>
                 <span aria-hidden="true">/</span>
-                <span className="text-white/85">{currentLabel}</span>
+                <span className="text-[var(--paper-ink)]">{currentLabel}</span>
               </nav>
             )}
 
@@ -199,7 +199,7 @@ export function Navigation({
                     clearSearchExperienceFilters();
                     inputRef.current?.focus();
                   }}
-                  className="text-xs underline underline-offset-2 transition-colors hover:text-white"
+                  className="text-xs underline underline-offset-2 transition-colors hover:text-[var(--paper-accent)]"
                 >
                   清除筛选
                 </button>
@@ -226,7 +226,7 @@ export function Navigation({
                       setActiveCategory("all");
                       inputRef.current?.focus();
                     }}
-                    className="text-xs underline underline-offset-2 transition-colors hover:text-white"
+                    className="text-xs underline underline-offset-2 transition-colors hover:text-[var(--paper-accent)]"
                   >
                     清除筛选
                   </button>

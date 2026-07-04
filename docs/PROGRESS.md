@@ -1,6 +1,6 @@
 # 综合导航站 — 项目进度文档
 
-> 最后更新：2026-07-04 · 版本 v16.0
+> 最后更新：2026-07-04 · 版本 v16.1
 > 项目路径：`d:\nav-site` · 开发端口：3264
 
 ---
@@ -14,7 +14,7 @@
 - 分类数量：9 个主分类（模型排行榜功能已移除，旧 `model-ranking` URL 自动回退到"全部"）
 - 向量维度：512 维（BAAI/bge-small-zh-v1.5 嵌入模型）
 
-> 文档版本 v16.0 · 2026-07-04 · Phase 24 完成：数据访问边界加固 + 排行榜移除 + 视觉收尾
+> 文档版本 v16.1 · 2026-07-04 · Phase 25 完成：Shijiucode-inspired 纸面视觉改造
 
 ## 二、技术栈
 
@@ -813,6 +813,28 @@ pnpm sync         # 数据库同步
 
 ---
 
+### Phase 25：Shijiucode-inspired 纸面视觉改造（2026-07-04） ✅
+
+设计文档：`docs/superpowers/specs/2026-07-04-shijiucode-inspired-visual-redesign.md`
+
+| 项目 | 状态 | 说明 |
+|------|------|------|
+| 全局纸面色彩 | ✅ | 新增 `--paper-*` 视觉变量，页面背景切为暖米白，主色统一为低饱和蓝灰 |
+| 首页 Hero | ✅ | 移除深色大图背景和玻璃感，压缩首屏高度，改为中文衬线标题 + 搜索优先布局 |
+| 导航外壳 | ✅ | Header、Sidebar、Footer、移动底栏统一浅色纸面样式，保留原有交互和键盘入口 |
+| 搜索与筛选 | ✅ | SearchBar、SearchExperiencePanel、AtlasPill 改为淡蓝灰纸面控件，语义搜索状态保留 |
+| 卡片与预览 | ✅ | LinkCard、ToolQuickView 改为浅色纸面卡片；ResultGrid 补 `grid-cols-1` 修复移动端内容撑宽 |
+| 浏览器验证 | ✅ | 7897 端口桌面 1440×1100、移动 390×844 检查通过，无 console error，无页面横向溢出 |
+
+质量验证：
+
+- `pnpm lint` ✅
+- `pnpm typecheck` ✅
+- `pnpm test` ✅ `309 passed / 6 skipped`
+- `pnpm build` ✅
+
+---
+
 ## 九、待办事项
 
 ### 短期
@@ -855,4 +877,4 @@ pnpm sync         # 数据库同步
 
 ---
 
-> 文档版本 v16.0 · 2026-07-04 · Phase 24 完成：生产稳定性与视觉收尾
+> 文档版本 v16.1 · 2026-07-04 · Phase 25 完成：Shijiucode-inspired 纸面视觉改造

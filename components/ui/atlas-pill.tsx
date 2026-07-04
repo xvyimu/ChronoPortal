@@ -30,20 +30,20 @@ export function AtlasPill({
       type="button"
       className={cn(
         "inline-flex max-w-full items-center rounded-full border font-mono uppercase transition-colors",
-        "focus-visible:outline-white disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-3 [&_svg]:shrink-0",
+        "focus-visible:outline-[var(--paper-accent)] disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-3 [&_svg]:shrink-0",
         compact ? "h-7 gap-1 px-2.5 text-xs" : "h-8 gap-1.5 px-3 text-xs",
         active
-          ? "border-emerald-200/55 bg-emerald-200/14 text-emerald-50"
-          : "border-white/12 bg-white/[0.06] text-white/76 hover:border-white/32 hover:text-white",
+          ? "border-[var(--paper-accent)] bg-[var(--paper-accent-soft)] text-[var(--paper-accent)]"
+          : "border-[var(--paper-line)] bg-[var(--paper-surface)]/70 text-[var(--paper-muted)] hover:border-[var(--paper-accent)] hover:text-[var(--paper-accent)]",
         className
       )}
       aria-pressed={ariaPressed}
       {...buttonProps}
     >
       {Icon && <Icon aria-hidden="true" />}
-      {labelPrefix && <span className="text-white/45">{labelPrefix}</span>}
+      {labelPrefix && <span className="text-[var(--paper-faint)]">{labelPrefix}</span>}
       <span className="truncate">{children}</span>
-      {count !== undefined && <span className="tabular-nums text-white/42">{count}</span>}
+      {count !== undefined && <span className="tabular-nums text-[var(--paper-faint)]">{count}</span>}
     </button>
   );
 }

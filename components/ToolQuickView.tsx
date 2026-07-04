@@ -56,14 +56,14 @@ export function ToolQuickView({ link, onClose }: ToolQuickViewProps) {
         aria-label="关闭工具预览"
         onClick={onClose}
       />
-      <aside ref={dialogRef} id="tool-quick-view-desc" className="nav-quick-view absolute inset-x-3 bottom-3 max-h-[86svh] overflow-y-auto rounded-3xl border border-white/14 bg-[#08110f]/94 p-4 text-white shadow-[0_30px_100px_rgba(0,0,0,0.48)] backdrop-blur-2xl md:inset-y-4 md:left-auto md:right-4 md:w-[430px] md:p-5">
+      <aside ref={dialogRef} id="tool-quick-view-desc" className="nav-quick-view absolute inset-x-3 bottom-3 max-h-[86svh] overflow-y-auto rounded-3xl border border-[var(--paper-line)] bg-[var(--paper-surface)]/96 p-4 text-[var(--paper-ink)] shadow-[0_30px_90px_rgba(61,74,90,0.24)] backdrop-blur-2xl md:inset-y-4 md:left-auto md:right-4 md:w-[430px] md:p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="mb-2 flex items-center gap-2 text-xs font-mono uppercase text-white/52">
+            <p className="mb-2 flex items-center gap-2 text-xs font-mono uppercase text-[var(--paper-muted)]">
               <Globe className="h-3.5 w-3.5" aria-hidden="true" />
               {domain || "external tool"}
             </p>
-            <h2 id="tool-quick-view-title" className="text-2xl font-semibold leading-tight text-white">
+            <h2 id="tool-quick-view-title" className="text-2xl font-semibold leading-tight text-[var(--paper-ink)]">
               {link.title}
             </h2>
           </div>
@@ -71,7 +71,7 @@ export function ToolQuickView({ link, onClose }: ToolQuickViewProps) {
             ref={closeRef}
             type="button"
             onClick={onClose}
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/8 text-white/58 transition hover:bg-white/12 hover:text-white"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--paper-line)] bg-[var(--paper-surface-soft)] text-[var(--paper-muted)] transition hover:bg-[var(--paper-accent-soft)] hover:text-[var(--paper-accent)]"
             aria-label="关闭工具预览"
           >
             <X className="h-4 w-4" />
@@ -79,7 +79,7 @@ export function ToolQuickView({ link, onClose }: ToolQuickViewProps) {
         </div>
 
         {link.description && (
-          <p className="mt-5 text-sm leading-6 text-white/72">
+          <p className="mt-5 text-sm leading-6 text-[var(--paper-muted)]">
             {link.description}
           </p>
         )}
@@ -90,31 +90,31 @@ export function ToolQuickView({ link, onClose }: ToolQuickViewProps) {
           <Fact label="评分" value={rating !== null ? `${rating.toFixed(1)}/5` : "暂无"} stars={stars} rating={rating} />
         </div>
 
-        <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.045] p-3">
-          <div className="text-xs font-mono uppercase text-white/42">收录说明</div>
-          <p className="mt-2 text-sm leading-6 text-white/68">
+        <div className="mt-5 rounded-2xl border border-[var(--paper-line)] bg-[var(--paper-surface-soft)] p-3">
+          <div className="text-xs font-mono uppercase text-[var(--paper-faint)]">收录说明</div>
+          <p className="mt-2 text-sm leading-6 text-[var(--paper-muted)]">
             {link.featured
               ? "该工具被标记为精选收录，出现在优先发现集中。"
               : "该工具已通过审核纳入导航图谱，可直接从卡片或此预览打开访问。"}
           </p>
-          <div className="mt-3 truncate rounded-full bg-white/8 px-3 py-2 font-mono text-xs text-white/48">
+          <div className="mt-3 truncate rounded-full bg-[var(--paper-surface)] px-3 py-2 font-mono text-xs text-[var(--paper-muted)]">
             {safeUrl}
           </div>
         </div>
 
         {link.searchMeta && (
-          <div className="mt-5 rounded-2xl border border-emerald-200/14 bg-emerald-200/[0.06] p-3">
-            <div className="flex items-center gap-2 text-xs font-mono uppercase text-emerald-100">
+          <div className="mt-5 rounded-2xl border border-[var(--paper-line)] bg-[var(--paper-accent-soft)] p-3">
+            <div className="flex items-center gap-2 text-xs font-mono uppercase text-[var(--paper-accent)]">
               <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
               匹配解释
             </div>
-            <p className="mt-2 text-sm leading-6 text-white/72">
+            <p className="mt-2 text-sm leading-6 text-[var(--paper-muted)]">
               {link.searchMeta.explanation.reason}
             </p>
             {link.searchMeta.highlights.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {link.searchMeta.highlights.slice(0, 4).map((highlight) => (
-                  <span key={`${highlight.field}:${highlight.value}`} className="rounded-full bg-white/10 px-2 py-1 text-xs text-white/64">
+                  <span key={`${highlight.field}:${highlight.value}`} className="rounded-full bg-[var(--paper-surface)] px-2 py-1 text-xs text-[var(--paper-accent)]">
                     {highlight.label}
                   </span>
                 ))}
@@ -125,13 +125,13 @@ export function ToolQuickView({ link, onClose }: ToolQuickViewProps) {
 
         {tags.length > 0 && (
           <div className="mt-5" aria-labelledby="tool-quick-view-tags">
-            <h3 id="tool-quick-view-tags" className="mb-2 flex items-center gap-2 text-xs font-mono uppercase text-white/52">
+            <h3 id="tool-quick-view-tags" className="mb-2 flex items-center gap-2 text-xs font-mono uppercase text-[var(--paper-muted)]">
               <Tags className="h-3.5 w-3.5" aria-hidden="true" />
               标签
             </h3>
             <ul className="flex flex-wrap gap-2" role="list">
               {tags.slice(0, 10).map((tag) => (
-                <li key={tag.id} className="rounded-full border border-white/12 bg-white/[0.06] px-2.5 py-1 text-xs text-white/68">
+                <li key={tag.id} className="rounded-full border border-[var(--paper-line)] bg-[var(--paper-surface-soft)] px-2.5 py-1 text-xs text-[var(--paper-muted)]">
                   {tag.name}
                 </li>
               ))}
@@ -145,7 +145,7 @@ export function ToolQuickView({ link, onClose }: ToolQuickViewProps) {
             target="_blank"
             rel="noopener noreferrer"
             onClick={handleOpen}
-            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-white text-sm font-semibold text-[#07100f] transition hover:bg-emerald-50"
+            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-[var(--paper-accent)] text-sm font-semibold text-[var(--paper-surface)] transition hover:bg-[#4f739e]"
           >
             打开网站
             <ExternalLink className="h-4 w-4" aria-hidden="true" />
@@ -153,10 +153,10 @@ export function ToolQuickView({ link, onClose }: ToolQuickViewProps) {
           <button
             type="button"
             onClick={() => toggleFavorite(link.id)}
-            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-white/14 bg-white/8 text-sm font-semibold text-white transition hover:bg-white/12"
+            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-[var(--paper-line)] bg-[var(--paper-surface-soft)] text-sm font-semibold text-[var(--paper-ink)] transition hover:border-[var(--paper-accent)] hover:text-[var(--paper-accent)]"
             aria-pressed={favorite}
           >
-            <Heart className={`h-4 w-4 ${favorite ? "fill-emerald-200 text-emerald-200" : ""}`} aria-hidden="true" />
+            <Heart className={`h-4 w-4 ${favorite ? "fill-[var(--paper-accent)] text-[var(--paper-accent)]" : ""}`} aria-hidden="true" />
             {favorite ? "已收藏" : "收藏"}
           </button>
         </div>
@@ -167,14 +167,14 @@ export function ToolQuickView({ link, onClose }: ToolQuickViewProps) {
 
 function Fact({ label, value, stars, rating }: { label: string; value: string; stars?: ("full" | "half" | "empty")[] | null; rating?: number | null }) {
   return (
-    <dl className="rounded-2xl border border-white/10 bg-white/[0.06] p-3">
-      <div className="flex items-center gap-1.5 text-lg font-semibold text-white">
+    <dl className="rounded-2xl border border-[var(--paper-line)] bg-[var(--paper-surface-soft)] p-3">
+      <div className="flex items-center gap-1.5 text-lg font-semibold text-[var(--paper-ink)]">
         {label === "评分" && stars ? (
-          <span className="flex gap-0.5 text-amber-200" aria-label={`评分 ${rating?.toFixed(1) || "暂无"} 分`}>
+          <span className="flex gap-0.5 text-[#b58157]" aria-label={`评分 ${rating?.toFixed(1) || "暂无"} 分`}>
             {stars.map((star, i) => (
               <Star
                 key={i}
-                className={`h-4 w-4 ${star === "full" ? "fill-current" : star === "half" ? "fill-current opacity-50" : "text-white/30"}`}
+                className={`h-4 w-4 ${star === "full" ? "fill-current text-[#b58157]" : star === "half" ? "fill-current text-[#b58157] opacity-50" : "text-[var(--paper-faint)]"}`}
                 aria-hidden="true"
               />
             ))}
@@ -183,7 +183,7 @@ function Fact({ label, value, stars, rating }: { label: string; value: string; s
           <dt className="truncate">{value}</dt>
         )}
       </div>
-      <dd className="mt-1 text-[10px] font-mono uppercase text-white/42">{label}</dd>
+      <dd className="mt-1 text-[10px] font-mono uppercase text-[var(--paper-faint)]">{label}</dd>
     </dl>
   );
 }

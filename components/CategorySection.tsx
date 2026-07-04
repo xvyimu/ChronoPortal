@@ -37,9 +37,9 @@ export function CategorySection({
   return (
     <section className="animate-fade-in-up">
       {(activeCategory === "all" || isSearchSection) && (
-        <h2 className={`atlas-section-label ${section.accent || "text-white/78"}`}>
+        <h2 className={`atlas-section-label ${section.accent || "text-[var(--paper-ink)]"}`}>
           {section.label}
-          <span className="font-normal tabular-nums text-white/42">({section.links.length})</span>
+          <span className="font-normal tabular-nums text-[var(--paper-faint)]">({section.links.length})</span>
         </h2>
       )}
       <ResultGrid

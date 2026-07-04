@@ -43,10 +43,10 @@ function LinkCardComponent({
 
   const badgeStyle =
     type === "official"
-      ? "text-sky-200"
+      ? "text-[var(--paper-accent)]"
       : type === "relay"
-        ? "text-amber-200"
-        : "text-emerald-100";
+        ? "text-[#b58157]"
+        : "text-[#6f8c74]";
 
   return (
     <div
@@ -62,12 +62,12 @@ function LinkCardComponent({
         aria-label={`${link.title}${link.description ? ` - ${link.description}` : ""}`}
       >
         <InteractiveSurface
-          className="min-h-[74px] rounded-xl border border-white/10 bg-white/[0.075] px-3.5 py-3 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-md card-hover"
-          glowColor="rgba(167, 243, 208, 0.18)"
+          className="min-h-[74px] rounded-xl border border-[var(--paper-line)] bg-[var(--paper-surface)] px-3.5 py-3 text-[var(--paper-ink)] shadow-[0_10px_28px_rgba(61,74,90,0.06)] card-hover"
+          spotlight={false}
         >
           <div className="flex min-h-[46px] items-center gap-3">
             <div
-              className="flex size-[42px] shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-white/10 transition-all duration-200"
+              className="flex size-[42px] shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[var(--paper-line)] bg-[var(--paper-surface-soft)] transition-all duration-200"
               style={{ transform: "scale(var(--card-icon-scale))" }}
             >
               {faviconUrl ? (
@@ -81,17 +81,17 @@ function LinkCardComponent({
                   unoptimized
                 />
               ) : (
-                <Globe className="size-5 text-white/45" />
+                <Globe className="size-5 text-[var(--paper-faint)]" />
               )}
             </div>
 
             <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
               <div className="flex items-center gap-2">
-                <span className="card-hover-title truncate text-[13.5px] font-medium text-white transition-colors duration-200">
+                <span className="card-hover-title truncate text-[13.5px] font-medium text-[var(--paper-ink)] transition-colors duration-200">
                   {highlightSearchTerm(link.title, searchQuery)}
                 </span>
                 {link.featured && (
-                  <span className="inline-flex shrink-0 items-center rounded-full bg-emerald-200/12 px-1.5 py-[1px] text-[10px] font-medium text-emerald-100">
+                  <span className="inline-flex shrink-0 items-center rounded-full bg-[var(--paper-accent-soft)] px-1.5 py-[1px] text-[10px] font-medium text-[var(--paper-accent)]">
                     荐
                   </span>
                 )}
@@ -101,7 +101,7 @@ function LinkCardComponent({
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-1.5 truncate text-[11px] text-white/52">
+              <div className="flex items-center gap-1.5 truncate text-[11px] text-[var(--paper-muted)]">
                 <span className="truncate font-mono">{domain}</span>
                 {ts && (
                   <>
@@ -111,10 +111,10 @@ function LinkCardComponent({
                 )}
               </div>
               {searchMeta && (
-                <div className="flex min-w-0 items-center gap-1.5 text-[10px] text-white/58">
-                  <Sparkles className="size-3 shrink-0 text-emerald-200/80" aria-hidden="true" />
+                <div className="flex min-w-0 items-center gap-1.5 text-[10px] text-[var(--paper-muted)]">
+                  <Sparkles className="size-3 shrink-0 text-[var(--paper-accent)]" aria-hidden="true" />
                   <span className="truncate">{searchMeta.explanation.reason}</span>
-                  <span className="shrink-0 rounded bg-white/10 px-1 py-[1px] text-[9px] text-white/62">
+                  <span className="shrink-0 rounded bg-[var(--paper-accent-soft)] px-1 py-[1px] text-[9px] text-[var(--paper-accent)]">
                     {searchMeta.explanation.label}
                   </span>
                 </div>
@@ -124,11 +124,11 @@ function LinkCardComponent({
             <button
               type="button"
               onClick={handleFavoriteClick}
-              className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-white/32 transition-colors hover:bg-white/10 hover:text-emerald-100"
+              className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-[var(--paper-faint)] transition-colors hover:bg-[var(--paper-accent-soft)] hover:text-[var(--paper-accent)]"
               aria-label={fav ? "取消收藏" : "添加收藏"}
               aria-pressed={fav}
             >
-              <Heart className={cn("size-3.5 transition-all", fav && "fill-emerald-200 text-emerald-200")} />
+              <Heart className={cn("size-3.5 transition-all", fav && "fill-[var(--paper-accent)] text-[var(--paper-accent)]")} />
             </button>
             {onPreview && (
               <button
@@ -138,7 +138,7 @@ function LinkCardComponent({
                   event.stopPropagation();
                   onPreview(link);
                 }}
-                className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-white/32 transition-colors hover:bg-white/10 hover:text-emerald-100"
+                className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-[var(--paper-faint)] transition-colors hover:bg-[var(--paper-accent-soft)] hover:text-[var(--paper-accent)]"
                 aria-label={`预览 ${link.title}`}
               >
                 <Eye className="size-3.5" aria-hidden="true" />

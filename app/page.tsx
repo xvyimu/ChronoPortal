@@ -88,7 +88,7 @@ export default async function Home({
   const collectionJsonLd = cat ? buildCollectionPageJsonLd(cat, categories) : null;
 
   return (
-    <div className="w-full bg-[#07100f]">
+    <div className="w-full bg-background">
       {collectionJsonLd && (
         <script
           type="application/ld+json"

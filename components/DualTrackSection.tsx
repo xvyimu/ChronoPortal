@@ -30,7 +30,7 @@ export function DualTrackSection({
     <>
       {featured.length > 0 && (
         <section className="animate-fade-in-up">
-          <h2 className="atlas-section-label text-emerald-100">推荐</h2>
+          <h2 className="atlas-section-label text-[var(--paper-accent)]">推荐</h2>
           <ResultGrid
             links={featured}
             baseIndex={featuredOffset}
@@ -45,7 +45,7 @@ export function DualTrackSection({
 
       {latest.length > 0 && (
         <section className="animate-fade-in-up">
-          <h2 className="atlas-section-label text-white/68">最新添加</h2>
+          <h2 className="atlas-section-label text-[var(--paper-muted)]">最新添加</h2>
           <ResultGrid
             links={latest}
             baseIndex={featuredOffset + featured.length}
@@ -60,8 +60,8 @@ export function DualTrackSection({
 
       {popular.length > 0 && (
         <section className="animate-fade-in-up">
-          <h2 className="atlas-section-label text-white/68">
-            <Flame className="h-3.5 w-3.5 text-amber-200/80" />
+          <h2 className="atlas-section-label text-[var(--paper-muted)]">
+            <Flame className="h-3.5 w-3.5 text-[#b58157]" />
             热门访问
           </h2>
           <ResultGrid

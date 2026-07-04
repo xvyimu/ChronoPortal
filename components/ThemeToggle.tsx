@@ -15,7 +15,7 @@ export function ThemeToggle({ variant = "default" }: { variant?: "default" | "ci
     return (
       <div
         className={`h-8 w-8 animate-pulse ${
-          isCinematic ? "rounded-full bg-white/10" : "rounded-md bg-muted/30"
+          isCinematic ? "rounded-full bg-[var(--paper-surface-soft)]" : "rounded-md bg-muted/30"
         }`}
       />
     );
@@ -27,7 +27,7 @@ export function ThemeToggle({ variant = "default" }: { variant?: "default" | "ci
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
       className={
         isCinematic
-          ? "inline-flex h-8 w-8 items-center justify-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+          ? "inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--paper-muted)] transition-colors hover:bg-[var(--paper-accent-soft)] hover:text-[var(--paper-accent)]"
           : "inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground/50 transition-colors hover:bg-muted hover:text-foreground"
       }
       aria-label="切换主题"

@@ -73,10 +73,10 @@ export function SearchExperiencePanel({
     .slice(0, 3) as string[];
 
   return (
-    <div className="nav-glass flex flex-col gap-3 rounded-2xl p-3 text-white">
+    <div className="nav-glass flex flex-col gap-3 rounded-2xl p-3 text-[var(--paper-ink)]">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 text-xs font-mono uppercase text-white/62">
-          <Sparkles className="size-3.5 text-emerald-200" aria-hidden="true" />
+        <span className="inline-flex items-center gap-1.5 text-xs font-mono uppercase text-[var(--paper-muted)]">
+          <Sparkles className="size-3.5 text-[var(--paper-accent)]" aria-hidden="true" />
           {query ? "搜索建议" : "热门查询"}
         </span>
         {visibleSuggestions.length > 0 ? visibleSuggestions.map((suggestion) => (
@@ -90,14 +90,14 @@ export function SearchExperiencePanel({
             {suggestion.label}
           </AtlasPill>
         )) : (
-          <span className="text-xs text-white/55">
+          <span className="text-xs text-[var(--paper-faint)]">
             {loading ? "正在分析匹配项" : "暂无建议"}
           </span>
         )}
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 text-xs font-mono uppercase text-white/62">
+        <span className="inline-flex items-center gap-1.5 text-xs font-mono uppercase text-[var(--paper-muted)]">
           <Filter className="size-3.5" aria-hidden="true" />
           筛选
         </span>
@@ -155,7 +155,7 @@ export function SearchExperiencePanel({
         {hasFilters && (
           <AtlasPill
             onClick={onClearFilters}
-            className="border-transparent bg-transparent text-white/58 hover:bg-white/10 hover:text-white"
+            className="border-transparent bg-transparent text-[var(--paper-muted)] hover:bg-[var(--paper-accent-soft)] hover:text-[var(--paper-accent)]"
             compact
           >
             清除
@@ -164,10 +164,10 @@ export function SearchExperiencePanel({
       </div>
 
       {topExplanations.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5 text-xs text-white/58">
+        <div className="flex flex-wrap items-center gap-1.5 text-xs text-[var(--paper-muted)]">
           <span>排序依据</span>
           {topExplanations.map((item, index) => (
-            <span key={`${item}:${index}`} className="rounded-full bg-white/10 px-2 py-0.5">
+            <span key={`${item}:${index}`} className="rounded-full bg-[var(--paper-accent-soft)] px-2 py-0.5 text-[var(--paper-accent)]">
               {item}
             </span>
           ))}

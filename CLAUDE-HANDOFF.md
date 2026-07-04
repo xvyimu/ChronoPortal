@@ -1,4 +1,4 @@
-# Claude Code 项目接手提示词（v9 — 2026-07-04）
+# Claude Code 项目接手提示词（v10 — 2026-07-04）
 
 ## 项目接手：综合导航站 (nav-site)
 
@@ -22,24 +22,27 @@
 
 - **513 个收录站点**，模型排行榜功能已从前台和代码路径移除（旧 `?cat=model-ranking` 自动回退到“全部”）
 - **309 个 Vitest 单元测试全部通过**（6 skipped）+ 20 Python 测试全绿
-- ESLint 0 errors, TypeScript 0 errors, 生产构建成功（`next build --webpack`）；历史 E2E 34/34 全绿，本轮收尾未重跑全量 E2E
+- ESLint 0 errors, TypeScript 0 errors, 生产构建成功（`next build --webpack`）；历史 E2E 34/34 全绿，本轮视觉收尾做了 7897 端口桌面/移动浏览器检查
 - 安全审计漏洞清零（51/51 项已修复，PROJECT-AUDIT.md）
 - **数据库迁移已确认**：slug 列索引/trigger + user_favorites 表/RLS 均已在生产库就绪
 - **pgvector 搜索质量调优已完成 (Phase 22)**：BGE query prefix, 增强 embedding 文本(含分类名), 短查询保护, RRF 混合排序, 金标准评估框架
+- **首页视觉已切换为浅色纸面搜索工作台**：参考 `shijiucode.cn` 的暖米白、灰蓝、中文衬线和低饱和节奏，设计文档在 `docs/superpowers/specs/2026-07-04-shijiucode-inspired-visual-redesign.md`
 - 本地 embedding 微服务：`scripts/embed-server.py`，模型 `BAAI/bge-small-zh-v1.5`，默认 `http://127.0.0.1:8003`
 
-## v9 最新收尾（2026-07-04）
+## v10 最新收尾（2026-07-04）
 
-最新 `origin/master`：
+本轮最新变更：
 
 | commit | 内容 |
 |---|---|
+| 本轮实现 | Shijiucode-inspired 纸面视觉改造：全局 `--paper-*` token、浅色 Header/Hero/Search/Sidebar/Card/MobileNav/Footer/ToolQuickView、移动端 ResultGrid 宽度修复 |
+| `160a430` | 新增 Shijiucode-inspired 视觉改造设计文档 |
 | `352bfa02` | 移除模型排行榜、统一深色视觉背景、引入 `AtlasPill` 和 `InteractiveSurface` |
 | `b1fae067` | 数据访问边界加固：Admin write 使用 service role、JSON 400、Supabase abortSignal、slug 一致性、分类语义召回优化 |
 | `43b263a` | 首页 Supabase 慢查询超时降级 |
 | `fb59c60d` | embedding 服务故障重试节流 |
 
-当前工作树应为 clean，`master` 与 `origin/master` 对齐。最终验证：`pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build` 通过；浏览器在 7897 端口验证无排行榜入口，底部 `html/body/footer` 均为深色。本轮未重跑全量 Playwright E2E。
+当前工作树在提交后应为 clean。最终验证：`pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build` 通过；浏览器在 7897 端口验证桌面 1440×1100、移动 390×844 无 console error、无页面横向溢出、底部/外壳均为浅色纸面背景。本轮未重跑全量 Playwright E2E。
 
 ## v8 会话已完成（2026-06-29）
 

@@ -46,7 +46,7 @@ export function SearchBar({
       <Search
         className={cn(
           "absolute top-1/2 -translate-y-1/2",
-          isHero ? "left-5 size-5 text-white/55" : "left-3 size-4 text-muted-foreground/30"
+          isHero ? "left-5 size-5 text-[var(--paper-faint)]" : "left-3 size-4 text-muted-foreground/30"
         )}
         aria-hidden="true"
       />
@@ -60,7 +60,7 @@ export function SearchBar({
         className={cn(
           "w-full border outline-none transition-all",
           isHero
-            ? "h-14 rounded-full border-white/20 bg-white/12 py-3 pl-14 pr-28 text-base text-white placeholder:text-white/45 backdrop-blur-xl focus:border-emerald-200/70 focus:ring-[3px] focus:ring-emerald-200/20"
+            ? "h-14 rounded-full border-[var(--paper-line)] bg-[var(--paper-surface)] py-3 pl-14 pr-28 text-base text-[var(--paper-ink)] shadow-[0_18px_45px_rgba(61,74,90,0.10)] placeholder:text-[var(--paper-faint)] backdrop-blur-xl focus:border-[var(--paper-accent)] focus:ring-[3px] focus:ring-[rgba(95,132,178,0.18)]"
             : "rounded-[24px] border-input bg-background/80 py-2.5 pl-10 pr-24 text-sm text-foreground/80 placeholder:text-muted-foreground/40 backdrop-blur-sm focus:border-primary/60 focus:ring-[3px] focus:ring-primary/20"
         )}
         aria-label="搜索导航站点"
@@ -76,8 +76,8 @@ export function SearchBar({
               "inline-flex size-7 items-center justify-center rounded-full border transition-colors",
               isHero
                 ? semantic
-                  ? "border-emerald-200/50 bg-emerald-200/15 text-emerald-100"
-                  : "border-white/18 bg-white/10 text-white/45 hover:text-white/80"
+                  ? "border-[var(--paper-accent)] bg-[var(--paper-accent-soft)] text-[var(--paper-accent)]"
+                  : "border-[var(--paper-line)] bg-[var(--paper-surface-soft)] text-[var(--paper-faint)] hover:text-[var(--paper-accent)]"
                 : semantic
                   ? "border-primary/40 bg-primary/10 text-primary"
                   : "border-border/70 bg-muted/30 text-muted-foreground/40 hover:text-muted-foreground/70"
@@ -91,7 +91,7 @@ export function SearchBar({
         )}
         {loading ? (
           <Loader2
-            className={cn("size-4 animate-spin", isHero ? "text-emerald-100" : "text-primary")}
+            className={cn("size-4 animate-spin", isHero ? "text-[var(--paper-accent)]" : "text-primary")}
             aria-hidden="true"
           />
         ) : value ? (
@@ -103,7 +103,7 @@ export function SearchBar({
             }}
             className={cn(
               "transition-colors",
-              isHero ? "text-white/45 hover:text-white/80" : "text-muted-foreground/30 hover:text-muted-foreground/60"
+              isHero ? "text-[var(--paper-faint)] hover:text-[var(--paper-accent)]" : "text-muted-foreground/30 hover:text-muted-foreground/60"
             )}
             aria-label="清除搜索"
           >
@@ -114,7 +114,7 @@ export function SearchBar({
             className={cn(
               "hidden items-center gap-0.5 rounded-md border px-1.5 py-0.5 font-mono text-[10px] transition-opacity sm:inline-flex",
               isHero
-                ? "border-white/15 bg-white/10 text-white/45"
+                ? "border-[var(--paper-line)] bg-[var(--paper-surface-soft)] text-[var(--paper-muted)]"
                 : "border-border bg-muted/40 text-muted-foreground/30",
               showHint ? "opacity-100" : "opacity-0"
             )}

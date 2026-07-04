@@ -102,7 +102,7 @@ export function Sidebar({
             <button
               type="button"
               onClick={() => toggleExpand(tab.key)}
-              className="flex h-7 w-5 shrink-0 items-center justify-center text-white/45 transition-colors hover:text-white"
+              className="flex h-7 w-5 shrink-0 items-center justify-center text-[var(--paper-faint)] transition-colors hover:text-[var(--paper-accent)]"
               aria-label={isExpanded ? "收起子分类" : "展开子分类"}
               aria-expanded={isExpanded}
             >
@@ -118,7 +118,7 @@ export function Sidebar({
             style={isChild ? { paddingLeft: "0.25rem" } : undefined}
           >
             <span className="flex items-center gap-2.5">
-              <Icon className={`h-4 w-4 shrink-0 transition-colors ${isActive ? "text-emerald-100" : "text-white/42"}`} />
+              <Icon className={`h-4 w-4 shrink-0 transition-colors ${isActive ? "text-[var(--paper-accent)]" : "text-[var(--paper-faint)]"}`} />
               {tab.label}
             </span>
             {tab.count > 0 && <span className="sidebar-badge">{tab.count}</span>}
@@ -159,19 +159,19 @@ export function Sidebar({
       {open && (
         <aside
           ref={sidebarRef}
-          className="fixed left-0 top-0 z-50 h-full w-72 border-r border-white/10 bg-[#07100f] text-white animate-slide-in md:hidden"
+          className="fixed left-0 top-0 z-50 h-full w-72 border-r border-[var(--paper-line)] bg-[var(--paper-bg)] text-[var(--paper-ink)] animate-slide-in md:hidden"
           role="dialog"
           aria-modal="true"
           aria-label="导航分类"
         >
-          <div className="flex h-16 items-center justify-between border-b border-white/10 px-4">
-            <span className="flex items-center gap-2 text-sm font-medium text-white/85">
-              <Compass className="h-5 w-5 text-emerald-100" />
+          <div className="flex h-16 items-center justify-between border-b border-[var(--paper-line)] px-4">
+            <span className="nav-display flex items-center gap-2 text-sm font-medium text-[var(--paper-ink)]">
+              <Compass className="h-5 w-5 text-[var(--paper-accent)]" />
               导航图谱
             </span>
             <button
               onClick={onClose}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-white/55 transition-colors hover:bg-white/10 hover:text-white"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--paper-muted)] transition-colors hover:bg-[var(--paper-accent-soft)] hover:text-[var(--paper-accent)]"
               aria-label="关闭侧边栏"
             >
               <X className="h-4 w-4" />
@@ -181,7 +181,7 @@ export function Sidebar({
         </aside>
       )}
 
-      <aside className="sticky top-20 hidden h-[calc(100vh-5rem)] w-64 shrink-0 overflow-y-auto border-r border-white/10 bg-[#07100f]/88 py-4 text-white backdrop-blur-xl md:block">
+      <aside className="sticky top-20 hidden h-[calc(100vh-5rem)] w-64 shrink-0 overflow-y-auto border-r border-[var(--paper-line)] bg-[var(--paper-bg)]/88 py-4 text-[var(--paper-ink)] backdrop-blur-xl md:block">
         {links}
       </aside>
     </>
