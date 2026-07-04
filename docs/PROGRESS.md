@@ -1,6 +1,6 @@
 # 综合导航站 — 项目进度文档
 
-> 最后更新：2026-07-04 · 版本 v16.1
+> 最后更新：2026-07-04 · 版本 v16.2
 > 项目路径：`d:\nav-site` · 开发端口：3264
 
 ---
@@ -14,13 +14,13 @@
 - 分类数量：9 个主分类（模型排行榜功能已移除，旧 `model-ranking` URL 自动回退到"全部"）
 - 向量维度：512 维（BAAI/bge-small-zh-v1.5 嵌入模型）
 
-> 文档版本 v16.1 · 2026-07-04 · Phase 25 完成：Shijiucode-inspired 纸面视觉改造
+> 文档版本 v16.2 · 2026-07-04 · Phase 25 完成：Shijiucode-inspired 纸面视觉改造与视觉回归收尾
 
 ## 二、技术栈
 
 | 层级 | 技术 | 版本 |
 |------|------|------|
-| 框架 | Next.js (App Router + Turbopack) | 16.2.9 |
+| 框架 | Next.js (App Router + webpack 构建) | 16.2.9 |
 | UI | React + Tailwind CSS v4 + shadcn/ui | 19.2.4 |
 | 图标 | Lucide React | 1.20.0 |
 | 数据库 | Supabase (PostgreSQL + RLS) | 单库模式 |
@@ -43,7 +43,7 @@
 | 单元测试 | 通过 | 169/169 (7 TypeScript test files + 20 Python tests) |
 | 搜索质量金标准 | 通过 | 6 条金标准查询 × recall@10 评估框架 |
 | 安全测试覆盖率 | 通过 | admin-auth 100%, schemas 100%, utils 100%, with-admin 100%, rate-limit 79% |
-| E2E 测试 | 通过 | 34/34 (chromium + mobile-chrome) |
+| E2E 测试 | 通过 | 50/50 (chromium + mobile-chrome) |
 | 生产构建 | 通过 | next build 成功 (28 routes) |
 
 ---
@@ -825,6 +825,7 @@ pnpm sync         # 数据库同步
 | 搜索与筛选 | ✅ | SearchBar、SearchExperiencePanel、AtlasPill 改为淡蓝灰纸面控件，语义搜索状态保留 |
 | 卡片与预览 | ✅ | LinkCard、ToolQuickView 改为浅色纸面卡片；ResultGrid 补 `grid-cols-1` 修复移动端内容撑宽 |
 | 浏览器验证 | ✅ | 7897 端口桌面 1440×1100、移动 390×844 检查通过，无 console error，无页面横向溢出 |
+| 视觉回归与 E2E | ✅ | 3264 端口刷新 Shijiucode-inspired hero 视觉快照；visual spec 2/2 通过，全量 Playwright E2E 50/50 通过 |
 
 质量验证：
 
@@ -832,6 +833,8 @@ pnpm sync         # 数据库同步
 - `pnpm typecheck` ✅
 - `pnpm test` ✅ `309 passed / 6 skipped`
 - `pnpm build` ✅
+- `pnpm exec playwright test e2e/visual.spec.ts --update-snapshots --reporter=line` ✅ 快照已刷新，复跑 `2 passed`
+- `pnpm exec playwright test --reporter=line` ✅ `50 passed`
 
 ---
 
@@ -877,4 +880,4 @@ pnpm sync         # 数据库同步
 
 ---
 
-> 文档版本 v16.1 · 2026-07-04 · Phase 25 完成：Shijiucode-inspired 纸面视觉改造
+> 文档版本 v16.2 · 2026-07-04 · Phase 25 完成：Shijiucode-inspired 纸面视觉改造与视觉回归收尾
