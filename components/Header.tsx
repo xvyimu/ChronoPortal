@@ -23,8 +23,8 @@ export function Header() {
   const isAdmin = isAuthenticated && (session?.user as { role?: string } | undefined)?.role === "admin";
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 bg-[var(--paper-bg)]/86 px-3 pt-3 backdrop-blur-md md:px-6">
-      <div className="mx-auto grid h-12 max-w-[1480px] grid-cols-[1fr_auto_1fr] items-center rounded-2xl border border-[var(--paper-line)] bg-[var(--paper-surface)]/76 px-3 text-[var(--paper-ink)] shadow-[0_18px_55px_rgba(61,74,90,0.09)] backdrop-blur-xl md:h-14 md:px-5">
+    <header className="fixed inset-x-0 top-0 z-50 bg-[var(--paper-bg)]/82 px-3 pt-3 backdrop-blur-sm md:px-6">
+      <div className="mx-auto grid h-12 max-w-[1480px] grid-cols-[1fr_auto_1fr] items-center rounded-2xl border border-[var(--paper-line)] bg-[var(--paper-surface)]/82 px-3 text-[var(--paper-ink)] shadow-[0_8px_28px_rgba(61,74,90,0.06)] backdrop-blur-md md:h-14 md:px-5">
         <div className="flex items-center gap-1.5">
           <button
             onClick={toggleSidebar}

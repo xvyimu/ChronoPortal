@@ -236,7 +236,7 @@ export function Navigation({
           </div>
 
           <MobileNav tabs={tabKeys} activeCategory={activeCategory} onSelect={setActiveCategory} />
-          <div className="h-16 md:hidden" />
+          <div className="h-24 md:hidden" />
         </div>
       </div>
       <ToolQuickView link={previewLink} onClose={closePreview} />

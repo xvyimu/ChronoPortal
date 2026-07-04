@@ -73,18 +73,19 @@ export function SearchExperiencePanel({
     .slice(0, 3) as string[];
 
   return (
-    <div className="nav-glass flex flex-col gap-3 rounded-2xl p-3 text-[var(--paper-ink)]">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="nav-glass flex flex-col gap-2.5 rounded-2xl p-2.5 text-[var(--paper-ink)] md:gap-3 md:p-3">
+      <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
         <span className="inline-flex items-center gap-1.5 text-xs font-mono uppercase text-[var(--paper-muted)]">
           <Sparkles className="size-3.5 text-[var(--paper-accent)]" aria-hidden="true" />
           {query ? "搜索建议" : "热门查询"}
         </span>
-        {visibleSuggestions.length > 0 ? visibleSuggestions.map((suggestion) => (
+        {visibleSuggestions.length > 0 ? visibleSuggestions.map((suggestion, index) => (
           <AtlasPill
             key={`${suggestion.type}:${suggestion.value}`}
             onClick={() => onSuggestion(suggestion.value)}
             labelPrefix={suggestionLabel(suggestion.type)}
             count={suggestion.count}
+            className={index >= 4 ? "hidden sm:inline-flex" : undefined}
             compact
           >
             {suggestion.label}
@@ -96,13 +97,13 @@ export function SearchExperiencePanel({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
         <span className="inline-flex items-center gap-1.5 text-xs font-mono uppercase text-[var(--paper-muted)]">
           <Filter className="size-3.5" aria-hidden="true" />
           筛选
         </span>
 
-        {visibleCategories.map((category) => (
+        {visibleCategories.map((category, index) => (
           <FacetButton
             key={category.value}
             active={activeCategory === category.value}
@@ -110,10 +111,11 @@ export function SearchExperiencePanel({
             icon={Folder}
             label={category.label}
             count={category.count}
+            className={index >= 6 ? "hidden sm:inline-flex" : undefined}
           />
         ))}
 
-        {visibleTags.map((tag) => (
+        {visibleTags.map((tag, index) => (
           <FacetButton
             key={tag.value}
             active={activeTags.includes(tag.value)}
@@ -121,6 +123,7 @@ export function SearchExperiencePanel({
             icon={Tags}
             label={tag.label}
             count={tag.count}
+            className={index >= 6 ? "hidden sm:inline-flex" : undefined}
           />
         ))}
 
@@ -183,12 +186,14 @@ function FacetButton({
   icon,
   label,
   count,
+  className,
 }: {
   active: boolean;
   onClick: () => void;
   icon: LucideIcon;
   label: string;
   count: number;
+  className?: string;
 }) {
   return (
     <AtlasPill
@@ -196,6 +201,7 @@ function FacetButton({
       active={active}
       icon={icon}
       count={count}
+      className={className}
       compact
       pressed
     >
