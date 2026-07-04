@@ -1,6 +1,10 @@
 import type { NavLink } from "@/lib/types";
 import type Fuse from "fuse.js";
-import type { SearchFilters } from "@/lib/search-experience";
+import type {
+  SearchFacets,
+  SearchFilters,
+  SearchSuggestion,
+} from "@/lib/search-experience";
 
 /**
  * 搜索模块的共享类型定义
@@ -38,6 +42,41 @@ export interface SearchParams {
   limit: number;
   semantic: boolean;
   filters: SearchFilters;
+}
+
+export type SearchMode = "fuse" | "semantic";
+
+export type SemanticFallbackReason =
+  | "short_query"
+  | "embedding_unavailable"
+  | "semantic_empty"
+  | null;
+
+export interface SearchSuccessBody {
+  results: NavLink[];
+  total: number;
+  query: string;
+  mode: SearchMode;
+  facets: SearchFacets;
+  suggestions: SearchSuggestion[];
+  recommendations: NavLink[];
+  expandedTerms: string[];
+  appliedSynonyms: string[];
+  fallbackReason?: SemanticFallbackReason;
+}
+
+export interface SearchErrorBody {
+  error: string;
+  results: [];
+  total: 0;
+}
+
+export type SearchApiBody = SearchSuccessBody | SearchErrorBody;
+
+export interface SearchResponseModel {
+  status: number;
+  headers: Record<string, string>;
+  body: SearchApiBody;
 }
 
 /** 用于 fuse.search() 的结果项类型（与 Fuse.js 内部类型对齐） */
