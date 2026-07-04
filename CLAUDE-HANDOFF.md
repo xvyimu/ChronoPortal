@@ -1,4 +1,4 @@
-# Claude Code 项目接手提示词（v10 — 2026-07-04）
+# Claude Code 项目接手提示词（v11 — 2026-07-04）
 
 ## 项目接手：综合导航站 (nav-site)
 
@@ -14,22 +14,47 @@
 - Fuse.js 服务端搜索 + pgvector 语义搜索 + React cache() 数据去重
 - Motion 动画 + Lucide React 图标
 - Sentry 监控（共享配置 `sentry.shared.config.ts`，tracing 已开启）
-- Vitest 单元测试（309 个，6 skipped） + 20 Python 测试 + Playwright E2E 52 个
+- Vitest 单元测试（316 个，6 skipped） + 20 Python 测试 + Playwright E2E 52 个
 - **新增**：Lighthouse CI（`.github/workflows/lighthouse.yml`，warn-only）
 - **新增**：Web Vitals 实时上报（`app/_components/web-vitals.tsx` + `app/api/web-vitals/route.ts`）
 
 ## 当前状态
 
 - **513 个收录站点**，模型排行榜功能已从前台和代码路径移除（旧 `?cat=model-ranking` 自动回退到“全部”）
-- **309 个 Vitest 单元测试全部通过**（6 skipped）+ 20 Python 测试全绿
-- ESLint 0 errors, TypeScript 0 errors, 生产构建成功（`next build --webpack`）；Playwright 全量 E2E 52/52 全绿，本轮视觉收尾做了 7897 端口桌面/移动浏览器检查，3264 端口视觉快照已按纸面设计刷新，移动底栏 320/360/390 低宽度可读性已验证
+- **316 个 Vitest 单元测试全部通过**（6 skipped）+ 20 Python 测试全绿
+- ESLint 0 errors, TypeScript 0 errors, 生产构建成功（`next build --webpack`）；Playwright 全量 E2E 52/52 全绿，Phase 2 浏览器复查使用 `localhost:3264`，移动底栏 320/360/390/430 低宽度可读性已验证
 - 安全审计漏洞清零（51/51 项已修复，PROJECT-AUDIT.md）
 - **数据库迁移已确认**：slug 列索引/trigger + user_favorites 表/RLS 均已在生产库就绪
 - **pgvector 搜索质量调优已完成 (Phase 22)**：BGE query prefix, 增强 embedding 文本(含分类名), 短查询保护, RRF 混合排序, 金标准评估框架
-- **首页视觉已切换为浅色纸面搜索工作台**：参考 `shijiucode.cn` 的暖米白、灰蓝、中文衬线和低饱和节奏，设计文档在 `docs/superpowers/specs/2026-07-04-shijiucode-inspired-visual-redesign.md`
+- **首页视觉已切换为浅色纸面搜索工作台**：参考 `shijiucode.cn` 的暖米白、灰蓝、中文衬线和低饱和节奏，Phase 2 继续做了移动优先密度收束。设计文档在 `docs/superpowers/specs/2026-07-04-shijiucode-inspired-visual-redesign.md` 和 `docs/superpowers/specs/2026-07-04-visual-polish-phase2-design.md`
 - 本地 embedding 微服务：`scripts/embed-server.py`，模型 `BAAI/bge-small-zh-v1.5`，默认 `http://127.0.0.1:8003`
 
-## v10 最新收尾（2026-07-04）
+## v11 最新收尾（2026-07-04）
+
+本轮最新变更：
+
+| commit | 内容 |
+|---|---|
+| `0322366a` | 新增 Visual Polish Phase 2 设计文档：移动优先纸面工作台精修 |
+| `9d2b773f` | 实现移动优先视觉精修：压缩 mobile hero、弱化 paper surface 阴影、降低 Header/MobileNav 重量、收紧 SearchExperiencePanel |
+
+验证记录：
+
+- `pnpm lint` 通过
+- `pnpm typecheck` 通过
+- `pnpm test` 通过：316 passed / 6 skipped
+- `pnpm build` 通过
+- 浏览器手动复查通过：desktop 1440×1100；mobile 390×844
+- 移动断言通过：320/360/390/430 宽度 hydration 正常、MobileNav 存在、无横向溢出、标签无裁切
+- 390×844 下 hero 高度从约 1126px 降到约 621px，atlas 顶部进入首屏
+
+注意事项：
+
+- `7897` 端口被本机进程占用且不返回 nav-site 页面；本轮视觉复查使用 `localhost:3264`。
+- Playwright CLI 跑目标 E2E 时在 webServer 生命周期处卡住，没有断言失败输出；已清理本轮 `nav-site` 的 Playwright/Next 进程。用系统 Chrome + Playwright API 完成等价移动底栏断言。
+- `3264` dev server 已停止，最终工作树应为 clean。
+
+## v10 收尾（2026-07-04）
 
 本轮最新变更：
 
@@ -164,7 +189,7 @@ pnpm dev                        # 启动开发服务器（端口 3264，webpack 
 pnpm build                      # 生产构建（webpack 模式）
 pnpm lint                       # ESLint 检查
 pnpm typecheck                  # TypeScript 类型检查
-pnpm test                       # 单元测试（309 个，6 skipped）
+pnpm test                       # 单元测试（316 个，6 skipped）
 pnpm test:quality               # 搜索质量金标准评估（需 QUALITY_TEST_BASE_URL）
 pnpm e2e                        # E2E 测试（需先启动 dev server）
 pnpm analyze                    # Bundle 分析（生成 .next/analyze/*.html）

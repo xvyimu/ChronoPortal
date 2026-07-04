@@ -1,6 +1,6 @@
 # 综合导航站 — 项目进度文档
 
-> 最后更新：2026-07-04 · 版本 v16.3
+> 最后更新：2026-07-04 · 版本 v16.4
 > 项目路径：`d:\nav-site` · 开发端口：3264
 
 ---
@@ -14,7 +14,7 @@
 - 分类数量：9 个主分类（模型排行榜功能已移除，旧 `model-ranking` URL 自动回退到"全部"）
 - 向量维度：512 维（BAAI/bge-small-zh-v1.5 嵌入模型）
 
-> 文档版本 v16.3 · 2026-07-04 · Phase 25 完成：Shijiucode-inspired 纸面视觉改造、视觉回归与移动底栏收尾
+> 文档版本 v16.4 · 2026-07-04 · Phase 26 完成：Visual Polish Phase 2 移动优先纸面工作台精修与交接同步
 
 ## 二、技术栈
 
@@ -840,6 +840,35 @@ pnpm sync         # 数据库同步
 
 ---
 
+### Phase 26：Visual Polish Phase 2 移动优先纸面工作台精修（2026-07-04） ✅
+
+设计文档：`docs/superpowers/specs/2026-07-04-visual-polish-phase2-design.md`
+
+| commit | 内容 |
+|---|---|
+| `0322366a` | 新增 Visual Polish Phase 2 设计文档：移动优先纸面工作台精修 |
+| `9d2b773f` | 实现移动优先视觉精修：压缩 mobile hero、弱化 paper surface 阴影、降低 Header/MobileNav 重量、收紧 SearchExperiencePanel |
+
+| 项目 | 状态 | 说明 |
+|------|------|------|
+| 移动首屏密度 | ✅ | 390×844 下 hero 高度从约 1126px 降到约 621px，Atlas 顶部进入首屏 |
+| 纸面层级减重 | ✅ | Header、MobileNav、`.nav-glass` surface 降低阴影和 blur，整体更接近简洁低饱和纸面工作台 |
+| 搜索面板收束 | ✅ | SearchExperiencePanel 移动端减少 chip 数量，降低首屏拥挤感 |
+| 移动底栏 | ✅ | 高度收束到约 66px，不再遮挡 hero metrics；320/360/390/430 宽度标签无裁切 |
+| 端口说明 | ✅ | `7897` 被本机进程占用且不返回 nav-site；本轮浏览器复查使用 `localhost:3264` |
+| Playwright caveat | ✅ | Playwright CLI 目标 E2E 在 webServer 生命周期处卡住且无断言失败；改用系统 Chrome + Playwright API 完成等价手动断言 |
+
+质量验证：
+
+- `pnpm lint` ✅
+- `pnpm typecheck` ✅
+- `pnpm test` ✅ `316 passed / 6 skipped`
+- `pnpm build` ✅
+- 浏览器手动复查 ✅ desktop 1440×1100、mobile 390×844
+- 移动断言 ✅ 320/360/390/430 宽度 hydration 正常、MobileNav 存在、无横向溢出、标签无裁切
+
+---
+
 ## 九、待办事项
 
 ### 短期
@@ -882,4 +911,4 @@ pnpm sync         # 数据库同步
 
 ---
 
-> 文档版本 v16.3 · 2026-07-04 · Phase 25 完成：Shijiucode-inspired 纸面视觉改造、视觉回归与移动底栏收尾
+> 文档版本 v16.4 · 2026-07-04 · Phase 26 完成：Visual Polish Phase 2 移动优先纸面工作台精修与交接同步
