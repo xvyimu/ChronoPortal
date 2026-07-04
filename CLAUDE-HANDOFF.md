@@ -14,7 +14,7 @@
 - Fuse.js 服务端搜索 + pgvector 语义搜索 + React cache() 数据去重
 - Motion 动画 + Lucide React 图标
 - Sentry 监控（共享配置 `sentry.shared.config.ts`，tracing 已开启）
-- Vitest 单元测试（309 个，6 skipped） + 20 Python 测试 + Playwright E2E 50 个
+- Vitest 单元测试（309 个，6 skipped） + 20 Python 测试 + Playwright E2E 52 个
 - **新增**：Lighthouse CI（`.github/workflows/lighthouse.yml`，warn-only）
 - **新增**：Web Vitals 实时上报（`app/_components/web-vitals.tsx` + `app/api/web-vitals/route.ts`）
 
@@ -22,7 +22,7 @@
 
 - **513 个收录站点**，模型排行榜功能已从前台和代码路径移除（旧 `?cat=model-ranking` 自动回退到“全部”）
 - **309 个 Vitest 单元测试全部通过**（6 skipped）+ 20 Python 测试全绿
-- ESLint 0 errors, TypeScript 0 errors, 生产构建成功（`next build --webpack`）；Playwright 全量 E2E 50/50 全绿，本轮视觉收尾做了 7897 端口桌面/移动浏览器检查，3264 端口视觉快照已按纸面设计刷新
+- ESLint 0 errors, TypeScript 0 errors, 生产构建成功（`next build --webpack`）；Playwright 全量 E2E 52/52 全绿，本轮视觉收尾做了 7897 端口桌面/移动浏览器检查，3264 端口视觉快照已按纸面设计刷新，移动底栏 320/360/390 低宽度可读性已验证
 - 安全审计漏洞清零（51/51 项已修复，PROJECT-AUDIT.md）
 - **数据库迁移已确认**：slug 列索引/trigger + user_favorites 表/RLS 均已在生产库就绪
 - **pgvector 搜索质量调优已完成 (Phase 22)**：BGE query prefix, 增强 embedding 文本(含分类名), 短查询保护, RRF 混合排序, 金标准评估框架
@@ -36,14 +36,15 @@
 | commit | 内容 |
 |---|---|
 | 本轮实现 | Shijiucode-inspired 纸面视觉改造：全局 `--paper-*` token、浅色 Header/Hero/Search/Sidebar/Card/MobileNav/Footer/ToolQuickView、移动端 ResultGrid 宽度修复 |
-| 本轮收尾 | 刷新 Shijiucode-inspired hero Playwright 视觉快照；visual spec 2/2 通过，全量 E2E 50/50 通过 |
+| 本轮收尾 | 刷新 Shijiucode-inspired hero Playwright 视觉快照；visual spec 2/2 通过，全量 E2E 52/52 通过 |
+| 本轮收尾 | 移动底栏分类项改为 76px 可横向滚动标签，支持两行可读文本；新增 320px E2E 防止文字裁切和页面横向溢出 |
 | `160a430` | 新增 Shijiucode-inspired 视觉改造设计文档 |
 | `352bfa02` | 移除模型排行榜、统一深色视觉背景、引入 `AtlasPill` 和 `InteractiveSurface` |
 | `b1fae067` | 数据访问边界加固：Admin write 使用 service role、JSON 400、Supabase abortSignal、slug 一致性、分类语义召回优化 |
 | `43b263a` | 首页 Supabase 慢查询超时降级 |
 | `fb59c60d` | embedding 服务故障重试节流 |
 
-当前工作树在提交后应为 clean。最终验证：`pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build` 通过；浏览器在 7897 端口验证桌面 1440×1100、移动 390×844 无 console error、无页面横向溢出、底部/外壳均为浅色纸面背景；3264 端口 visual spec 2/2 通过，全量 Playwright E2E 50/50 通过。
+当前工作树在提交后应为 clean。最终验证：`pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build` 通过；浏览器在 7897 端口验证桌面 1440×1100、移动 390×844 无 console error、无页面横向溢出、底部/外壳均为浅色纸面背景；3264 端口 visual spec 2/2 通过，全量 Playwright E2E 52/52 通过；移动底栏 320/360/390 宽度无遮挡、无裁切、无页面横向溢出。
 
 ## v8 会话已完成（2026-06-29）
 

@@ -29,15 +29,20 @@ export function MobileNav({ tabs, activeCategory, onSelect }: MobileNavProps) {
               onClick={() => onSelect(tab.key)}
               role="tab"
               aria-selected={isActive}
+              aria-label={tab.label}
+              title={tab.label}
               className={cn(
-                "relative flex min-w-[3.75rem] flex-col items-center gap-0.5 rounded-xl px-3 py-2.5 transition-all duration-150",
+                "relative flex min-w-[4.75rem] flex-col items-center gap-1 rounded-xl px-2 py-2 transition-all duration-150",
                 isActive
                   ? "bg-[var(--paper-accent-soft)] text-[var(--paper-accent)]"
                   : "text-[var(--paper-muted)] hover:bg-[var(--paper-accent-soft)] hover:text-[var(--paper-accent)]"
               )}
             >
               <Icon className="size-5 shrink-0" />
-              <span className="max-w-full truncate text-[11px] font-medium leading-tight">
+              <span
+                data-mobile-nav-label=""
+                className="grid h-7 w-full place-items-center whitespace-normal break-words text-center text-[11px] font-medium leading-[0.85rem]"
+              >
                 {tab.label}
               </span>
               {isActive && (

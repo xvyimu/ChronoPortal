@@ -252,6 +252,36 @@ test.describe("移动端", () => {
 		const menuButton = page.locator('button[aria-label*="导航"], button[aria-label*="菜单"]');
 		await expect(menuButton).toBeVisible();
 	});
+
+	test("低宽度底栏分类文字保持可读", async ({ page }) => {
+		await page.setViewportSize({ width: 320, height: 568 });
+		await page.goto("/", { waitUntil: "domcontentloaded" });
+
+		const mobileNav = page.locator('nav[aria-label="移动端导航分类"]');
+		await expect(mobileNav).toBeVisible({ timeout: 15000 });
+
+		const pageWidth = await page.evaluate(() => ({
+			viewportWidth: window.innerWidth,
+			scrollWidth: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
+		}));
+		expect(pageWidth.scrollWidth).toBeLessThanOrEqual(pageWidth.viewportWidth + 1);
+
+		const clippedLabels = await mobileNav.locator('[role="tab"]').evaluateAll((tabs) =>
+			tabs
+				.map((tab) => {
+					const label = tab.querySelector<HTMLElement>("[data-mobile-nav-label]");
+					if (!label) return null;
+					const text = label.textContent?.trim() ?? "";
+					const clipped =
+						label.scrollWidth > label.clientWidth + 1 ||
+						label.scrollHeight > label.clientHeight + 1;
+					return clipped ? text : null;
+				})
+				.filter(Boolean)
+		);
+
+		expect(clippedLabels).toEqual([]);
+	});
 });
 
 test.describe.serial("ToolQuickView 预览弹窗", () => {
