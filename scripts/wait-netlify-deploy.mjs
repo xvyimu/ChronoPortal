@@ -3,7 +3,10 @@ import { appendFileSync } from "node:fs";
 const token = process.env.NETLIFY_AUTH_TOKEN;
 const siteId = process.env.NETLIFY_SITE_ID;
 const targetSha = process.env.GITHUB_SHA?.toLowerCase();
-const targetBranch = process.env.GITHUB_REF_NAME || process.env.NETLIFY_DEPLOY_BRANCH;
+const targetBranch = process.env.NETLIFY_DEPLOY_BRANCH || process.env.GITHUB_REF_NAME;
+const createdAfter = process.env.NETLIFY_DEPLOY_CREATED_AFTER
+  ? Date.parse(process.env.NETLIFY_DEPLOY_CREATED_AFTER)
+  : Number.NaN;
 const timeoutMs = Number(process.env.NETLIFY_DEPLOY_POLL_TIMEOUT_MS ?? 8 * 60 * 1000);
 const intervalMs = Number(process.env.NETLIFY_DEPLOY_POLL_INTERVAL_MS ?? 10 * 1000);
 
@@ -43,7 +46,13 @@ function candidateValues(deploy) {
 }
 
 function matchesCommit(deploy) {
-  return candidateValues(deploy).some((value) => {
+  const values = candidateValues(deploy);
+
+  if (values.length === 0) {
+    return false;
+  }
+
+  return values.some((value) => {
     if (value === targetSha) {
       return true;
     }
@@ -58,6 +67,14 @@ function matchesBranch(deploy) {
   }
 
   return deploy.branch === targetBranch;
+}
+
+function matchesCreatedAfter(deploy) {
+  if (!Number.isFinite(createdAfter) || !deploy.created_at) {
+    return false;
+  }
+
+  return Date.parse(deploy.created_at) >= createdAfter;
 }
 
 function deployUrl(deploy) {
@@ -102,7 +119,9 @@ while (Date.now() - start < timeoutMs) {
   const latest = deploys.slice(0, 5).map(summarizeDeploy);
   console.log(`[netlify] latest deploys:\n${latest.map((item) => `- ${item}`).join("\n")}`);
 
-  const deploy = deploys.find((item) => matchesBranch(item) && matchesCommit(item));
+  const deploy = deploys.find(
+    (item) => matchesBranch(item) && (matchesCommit(item) || matchesCreatedAfter(item)),
+  );
 
   if (!deploy) {
     console.log(`[netlify] waiting for Git deploy for ${targetBranch ?? "unknown-branch"}@${targetShortSha}`);
