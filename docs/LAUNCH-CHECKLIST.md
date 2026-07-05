@@ -34,7 +34,8 @@
 | GitHub Actions quality/build/E2E | 通过 | 最近一次 `master` push run 中 quality/build/E2E 均为 success；用 `rtk gh run list --repo xvyimu/nav-site --branch master --limit 4` 复验 |
 | Lighthouse CI | 通过 | 最近一次 `master` push 对应 Lighthouse run 为 success |
 | Netlify 分支同步 | 通过 | CI deploy job 会将 `master` 镜像到 Netlify 监听的 `main` 分支 |
-| Deploy 后生产探针 | 已接入 | deploy job 输出 `deploy-url` 后，`link-check` 会先运行 `pnpm run verify:production:latest -- --base-url <deploy-url>` |
+| Deploy 后生产探针 | 已接入 | deploy job 输出 `deploy-url` 后，`link-check` 会先运行 `pnpm run verify:production:latest -- --base-url <deploy-url> --expect-commit "$GITHUB_SHA"` |
+| 发布版本识别 | 已接入 | 构建前生成 `/build-info.json`；部署后探针使用 `--expect-commit "$GITHUB_SHA"` 校验线上版本确为本次发布；`/api/health` 也会尽量暴露运行时可见的版本元数据 |
 | Netlify deploy preflight | 预期阻塞 | deploy job 在 preflight 阶段失败：`Netlify account credit usage exceeded`，且不触发新 build |
 | Link check | 未运行 | 依赖 deploy；deploy 因 Netlify credit 失败而 skipped |
 
@@ -57,10 +58,11 @@
 4. 复验生产主站：
    - `/` 返回 200。
    - `/api/health` 返回 200；未配置 `EMBED_SERVER_URL`，或在 Netlify/Serverless 上残留 loopback `EMBED_SERVER_URL` 时，`checks.embedding.status=skipped`。
+   - `/build-info.json` 的 `commit` 与本次发布 commit 匹配。
    - `/api/search?q=ai&limit=5` 返回 JSON。
    - `/tool/figma` 可渲染。
    - `/sitemap.xml` 和 `/robots.txt` 可访问。
-   - 或直接运行 `pnpm run verify:production:latest`。
+   - 或直接运行 `pnpm run verify:production:latest -- --expect-commit <commit-sha>`。
    - 若启用自定义域名，先确认 apex 和 `www` 都已正确解析到目标生产站点。
 5. 处理或接受黄色运行项：
    - `NEXT_PUBLIC_SENTRY_DSN` 未配置时，Sentry 健康检查保持 `skipped`。

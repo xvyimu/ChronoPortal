@@ -5,6 +5,35 @@ import { logger } from "@/lib/logger";
 
 const EMBED_HEALTH_TIMEOUT_MS = 1500;
 
+function readFirstEnv(names: string[]): string | null {
+  for (const name of names) {
+    const value = process.env[name]?.trim();
+    if (value) return value;
+  }
+  return null;
+}
+
+function getBuildVersion() {
+  return {
+    node: process.version,
+    app: process.env.npm_package_version || "0.1.0",
+    commit: readFirstEnv([
+      "NEXT_PUBLIC_BUILD_COMMIT",
+      "COMMIT_REF",
+      "NETLIFY_COMMIT_REF",
+      "GITHUB_SHA",
+      "VERCEL_GIT_COMMIT_SHA",
+    ]),
+    branch: readFirstEnv([
+      "BRANCH",
+      "HEAD",
+      "GITHUB_REF_NAME",
+      "VERCEL_GIT_COMMIT_REF",
+    ]),
+    deployId: readFirstEnv(["DEPLOY_ID", "NETLIFY_DEPLOY_ID", "VERCEL_DEPLOYMENT_ID"]),
+  };
+}
+
 function getEmbedHealthEndpoint() {
   return resolveLoopbackEmbedEndpoint({
     raw: process.env.EMBED_SERVER_URL,
@@ -122,10 +151,7 @@ export async function GET() {
       uptime_seconds: Math.round(process.uptime()),
       environment: process.env.NODE_ENV,
       latency_ms: latency,
-      version: {
-        node: process.version,
-        app: process.env.npm_package_version || "0.1.0",
-      },
+      version: getBuildVersion(),
       memory: {
         rss_mb: Math.round(memory.rss / 1024 / 1024),
         heap_used_mb: Math.round(memory.heapUsed / 1024 / 1024),

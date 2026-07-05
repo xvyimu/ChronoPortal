@@ -48,6 +48,9 @@ describe("scripts/probe-production", () => {
       [`${baseUrl}/`]: textResponse("<html></html>", "text/html; charset=utf-8"),
       [`${baseUrl}/api/health`]: jsonResponse({
         status: "healthy",
+        version: {
+          commit: "65031ff027e610e7734da2b5d8c82e708144cdd7",
+        },
         checks: {
           database: { status: "ok" },
           env: { status: "ok" },
@@ -62,6 +65,9 @@ describe("scripts/probe-production", () => {
       [`${baseUrl}/tool/figma`]: textResponse("<html></html>", "text/html; charset=utf-8"),
       [`${baseUrl}/sitemap.xml`]: textResponse("<urlset></urlset>", "application/xml"),
       [`${baseUrl}/robots.txt`]: textResponse("User-agent: *", "text/plain"),
+      [`${baseUrl}/build-info.json`]: jsonResponse({
+        commit: "65031ff027e610e7734da2b5d8c82e708144cdd7",
+      }),
     });
 
     const results = await runProductionProbe({
@@ -69,6 +75,7 @@ describe("scripts/probe-production", () => {
         baseUrl,
         timeoutMs: 1000,
         expectEmbeddingSkipped: true,
+        expectedCommit: "65031ff0",
       },
       fetchImpl,
     });
@@ -96,6 +103,7 @@ describe("scripts/probe-production", () => {
         baseUrl,
         timeoutMs: 1000,
         expectEmbeddingSkipped: true,
+        expectedCommit: "",
       },
       endpoints: [{ name: "health", path: "/api/health", contentType: /application\/json/i, json: "health" }],
       fetchImpl,
@@ -103,6 +111,42 @@ describe("scripts/probe-production", () => {
 
     expect(results[0].ok).toBe(false);
     expect(results[0].detail).toContain("expected embedding check skipped");
+    expect(() => assertProbePassed(results)).toThrow("Production probe failed");
+  });
+
+  it("flags a deployed commit mismatch when a release commit is expected", async () => {
+    const { runProductionProbe, assertProbePassed } = await importProbeModule();
+    const baseUrl = "https://nav-site.example";
+    const fetchImpl = makeFetch({
+      [`${baseUrl}/api/health`]: jsonResponse({
+        status: "healthy",
+        version: {
+          commit: "old-commit",
+        },
+        checks: {
+          database: { status: "ok" },
+          env: { status: "ok" },
+          embedding: { status: "skipped" },
+        },
+      }),
+      [`${baseUrl}/build-info.json`]: jsonResponse({
+        commit: "old-commit",
+      }),
+    });
+
+    const results = await runProductionProbe({
+      config: {
+        baseUrl,
+        timeoutMs: 1000,
+        expectEmbeddingSkipped: true,
+        expectedCommit: "65031ff027e610e7734da2b5d8c82e708144cdd7",
+      },
+      endpoints: [{ name: "health", path: "/api/health", contentType: /application\/json/i, json: "health" }],
+      fetchImpl,
+    });
+
+    expect(results.some((result) => result.name === "build-info" && !result.ok)).toBe(true);
+    expect(results.find((result) => result.name === "build-info")?.detail).toContain("expected build commit");
     expect(() => assertProbePassed(results)).toThrow("Production probe failed");
   });
 
@@ -115,6 +159,7 @@ describe("scripts/probe-production", () => {
           PRODUCTION_BASE_URL: "https://env.example",
           PRODUCTION_PROBE_TIMEOUT_MS: "5000",
           PRODUCTION_EXPECT_EMBEDDING_SKIPPED: "true",
+          PRODUCTION_EXPECT_COMMIT: "env-sha",
         } as unknown as NodeJS.ProcessEnv,
         ["--base-url", "https://cli.example", "--timeout-ms=7000"]
       )
@@ -122,6 +167,7 @@ describe("scripts/probe-production", () => {
       baseUrl: "https://cli.example",
       timeoutMs: 7000,
       expectEmbeddingSkipped: true,
+      expectedCommit: "env-sha",
     });
   });
 });

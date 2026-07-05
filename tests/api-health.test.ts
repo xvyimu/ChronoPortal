@@ -40,6 +40,29 @@ describe("/api/health", () => {
     delete process.env.VERCEL;
     delete process.env.AWS_LAMBDA_FUNCTION_NAME;
     delete process.env.AWS_EXECUTION_ENV;
+    delete process.env.NEXT_PUBLIC_BUILD_COMMIT;
+    delete process.env.COMMIT_REF;
+    delete process.env.BRANCH;
+    delete process.env.DEPLOY_ID;
+  });
+
+  it("reports deploy version metadata without exposing secrets", async () => {
+    process.env.NEXT_PUBLIC_BUILD_COMMIT = "65031ff027e610e7734da2b5d8c82e708144cdd7";
+    process.env.BRANCH = "main";
+    process.env.DEPLOY_ID = "deploy-123";
+
+    const { GET } = await import("@/app/api/health/route");
+    const response = await GET();
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.version).toMatchObject({
+      app: "0.1.0",
+      commit: "65031ff027e610e7734da2b5d8c82e708144cdd7",
+      branch: "main",
+      deployId: "deploy-123",
+    });
+    expect(JSON.stringify(body)).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
   });
 
   it("reports embedding health when the local embed service is reachable", async () => {

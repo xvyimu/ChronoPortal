@@ -13,6 +13,13 @@ const ENDPOINTS = [
   { name: "robots", path: "/robots.txt", contentType: /text\/plain/i },
 ];
 
+const BUILD_INFO_ENDPOINT = {
+  name: "build-info",
+  path: "/build-info.json",
+  contentType: /application\/json/i,
+  json: "build-info",
+};
+
 function normalize(value) {
   return typeof value === "string" ? value.toLowerCase() : "";
 }
@@ -46,6 +53,7 @@ export function readConfigFromEnv(env = process.env, args = process.argv.slice(2
     expectEmbeddingSkipped:
       args.includes("--expect-embedding-skipped") ||
       parseBoolean(env.PRODUCTION_EXPECT_EMBEDDING_SKIPPED),
+    expectedCommit: readArgValue(args, "--expect-commit") || env.PRODUCTION_EXPECT_COMMIT || "",
   };
 }
 
@@ -62,6 +70,22 @@ function getHeader(headers, name) {
 
 function errorMessage(error) {
   return error instanceof Error ? error.message : String(error);
+}
+
+function normalizeCommit(value) {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function commitMatches(actual, expected) {
+  const normalizedActual = normalizeCommit(actual);
+  const normalizedExpected = normalizeCommit(expected);
+  if (!normalizedExpected) return true;
+  if (!normalizedActual) return false;
+  return (
+    normalizedActual === normalizedExpected ||
+    normalizedActual.startsWith(normalizedExpected) ||
+    normalizedExpected.startsWith(normalizedActual)
+  );
 }
 
 export function validateHealthPayload(payload, { expectEmbeddingSkipped } = {}) {
@@ -86,6 +110,16 @@ export function validateHealthPayload(payload, { expectEmbeddingSkipped } = {}) 
     if (embeddingStatus !== "skipped") {
       failures.push(`expected embedding check skipped, got ${embeddingStatus ?? "missing"}`);
     }
+  }
+
+  return failures;
+}
+
+export function validateBuildInfoPayload(payload, { expectedCommit } = {}) {
+  const failures = [];
+
+  if (expectedCommit && !commitMatches(payload?.commit, expectedCommit)) {
+    failures.push(`expected build commit ${expectedCommit}, got ${payload?.commit ?? "missing"}`);
   }
 
   return failures;
@@ -121,6 +155,7 @@ export async function probeEndpoint(endpoint, {
   baseUrl,
   timeoutMs,
   expectEmbeddingSkipped,
+  expectedCommit,
   fetchImpl = fetch,
 }) {
   const url = makeProbeUrl(baseUrl, endpoint.path);
@@ -146,6 +181,11 @@ export async function probeEndpoint(endpoint, {
     if (endpoint.json === "health") {
       const payload = await readJson(response);
       failures.push(...validateHealthPayload(payload, { expectEmbeddingSkipped }));
+    }
+
+    if (endpoint.json === "build-info") {
+      const payload = await readJson(response);
+      failures.push(...validateBuildInfoPayload(payload, { expectedCommit }));
     }
 
     if (endpoint.json === "search") {
@@ -177,8 +217,11 @@ export async function runProductionProbe({
   endpoints = ENDPOINTS,
 } = {}) {
   const results = [];
+  const probeEndpoints = config.expectedCommit
+    ? [...endpoints, BUILD_INFO_ENDPOINT]
+    : endpoints;
 
-  for (const endpoint of endpoints) {
+  for (const endpoint of probeEndpoints) {
     results.push(await probeEndpoint(endpoint, { ...config, fetchImpl }));
   }
 

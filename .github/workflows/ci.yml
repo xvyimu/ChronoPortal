@@ -223,7 +223,7 @@ jobs:
       - name: 生产冒烟探针
         run: |
           : "${PRODUCTION_BASE_URL:?deploy-url is not set}"
-          pnpm run verify:production:latest -- --base-url "$PRODUCTION_BASE_URL"
+          pnpm run verify:production:latest -- --base-url "$PRODUCTION_BASE_URL" --expect-commit "$GITHUB_SHA"
         env:
           PRODUCTION_BASE_URL: ${{ needs.deploy.outputs.deploy-url }}
 

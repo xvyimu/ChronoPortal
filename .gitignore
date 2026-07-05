@@ -42,6 +42,7 @@ yarn-error.log*
 
 # netlify (local state + build artifacts)
 .netlify
+/public/build-info.json
 
 # vercel
 .vercel
