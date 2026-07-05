@@ -1,7 +1,8 @@
 # 发布检查清单
 
 > 最后更新：2026-07-05
-> 当前 release line：`master` HEAD（最近已推送基线：`da242508 ci: extend netlify credit preflight window`）
+> 当前 release line：`master`
+> 上一轮已验证远端基线：`c4e4eea1 chore: finalize production readiness checklist`
 > 目标分支：`master`
 
 ## 当前结论
@@ -30,12 +31,12 @@
 | Typecheck | 通过 | `pnpm run typecheck` |
 | Lint | 通过 | `pnpm run lint` |
 | Build | 通过 | `pnpm run build` |
-| GitHub Actions quality | 通过 | run `28734503520`：quality success |
-| GitHub Actions build | 通过 | run `28734503520`：build success |
-| GitHub Actions E2E | 通过 | run `28734503520`：E2E success |
-| Lighthouse CI | 通过 | run `28734503518` success |
-| Netlify 分支同步 | 通过 | `main` mirror 已同步到 `da242508` |
-| Netlify deploy preflight | 预期阻塞 | run `28734503520` deploy job 在 preflight 阶段失败：`Netlify account credit usage exceeded`，未触发新 build |
+| GitHub Actions quality | 通过 | run `28735135122`：quality success |
+| GitHub Actions build | 通过 | run `28735135122`：build success |
+| GitHub Actions E2E | 通过 | run `28735135122`：E2E success |
+| Lighthouse CI | 通过 | run `28735135132` success |
+| Netlify 分支同步 | 通过 | `main` mirror 已同步到 `c4e4eea1` |
+| Netlify deploy preflight | 预期阻塞 | run `28735135122` deploy job 在 preflight 阶段失败：`Netlify account credit usage exceeded`，未触发新 build |
 | Link check | 未运行 | 依赖 deploy；deploy 因 Netlify credit 失败而 skipped |
 
 ## 生产现状

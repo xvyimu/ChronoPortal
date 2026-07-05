@@ -90,7 +90,7 @@ export function PanguSpacing() {
             performance.mark(`${label}-end`);
             performance.measure(label, `${label}-start`, `${label}-end`);
             const measure = performance.getEntriesByName(label).at(-1);
-            if (measure && measure.duration > 50) {
+            if (process.env.NODE_ENV === "development" && measure && measure.duration > 50) {
               console.warn(
                 `[pangu] ${label} took ${measure.duration.toFixed(1)}ms (>50ms threshold)`
               );

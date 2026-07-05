@@ -14,7 +14,9 @@ export default function ErrorPage({
 }) {
   useEffect(() => {
     captureException(error);
-    console.error("导航站全局错误:", error);
+    if (process.env.NODE_ENV === "development") {
+      console.error("导航站全局错误:", error);
+    }
   }, [error]);
 
   return (
