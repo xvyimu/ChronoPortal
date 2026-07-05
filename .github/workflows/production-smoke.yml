@@ -1,0 +1,86 @@
+name: Production smoke monitor
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 */6 * * *"
+
+jobs:
+  smoke:
+    name: Production smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Run production smoke probe
+        id: smoke
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          node scripts/probe-production.mjs 2>&1 | tee production-smoke-output.txt
+
+      - name: Upload smoke output
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: production-smoke-output
+          path: production-smoke-output.txt
+          retention-days: 14
+
+      - name: Create or update outage issue
+        if: steps.smoke.outcome == 'failure'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const fs = require('fs');
+            const output = fs.readFileSync('production-smoke-output.txt', 'utf8');
+            const title = 'Production smoke monitor failing';
+            const marker = '<!-- nav-site-production-smoke-monitor -->';
+            const body = `${marker}
+            ## Production smoke monitor failing
+
+            Run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}
+            Time: ${new Date().toISOString()}
+
+            \`\`\`text
+            ${output.slice(-6000)}
+            \`\`\`
+            `;
+
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 50,
+            });
+
+            const found = existing.data.find((issue) => issue.title === title || issue.body?.includes(marker));
+
+            if (found) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: found.number,
+                body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+              });
+            }
+
+      - name: Fail workflow when smoke fails
+        if: steps.smoke.outcome == 'failure'
+        run: exit 1
