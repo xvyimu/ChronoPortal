@@ -23,6 +23,8 @@
     "db:reviews:apply": "node scripts/apply-reviews-migration.mjs",
     "db:reviews:apply:dry-run": "node scripts/apply-reviews-migration.mjs --dry-run",
     "db:reviews:verify": "node scripts/verify-reviews-migration.mjs",
+    "verify:production": "node scripts/probe-production.mjs",
+    "verify:production:latest": "node scripts/probe-production.mjs --expect-embedding-skipped",
     "typecheck": "tsc --noEmit --incremental false"
   },
   "dependencies": {

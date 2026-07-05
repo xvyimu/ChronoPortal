@@ -148,6 +148,8 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: write
+    outputs:
+      deploy-url: ${{ steps.deploy.outputs.deploy-url }}
     environment:
       name: production
       url: ${{ steps.deploy.outputs.deploy-url }}
@@ -216,6 +218,13 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+
+      - name: 生产冒烟探针
+        run: |
+          : "${PRODUCTION_BASE_URL:?deploy-url is not set}"
+          pnpm run verify:production:latest -- --base-url "$PRODUCTION_BASE_URL"
+        env:
+          PRODUCTION_BASE_URL: ${{ needs.deploy.outputs.deploy-url }}
 
       - name: 运行链接健康检测
         continue-on-error: true
