@@ -2,7 +2,6 @@
 
 > 最后更新：2026-07-05
 > 当前 release line：`master`
-> 上一轮已验证远端基线：`c4e4eea1 chore: finalize production readiness checklist`
 > 目标分支：`master`
 
 ## 当前结论
@@ -25,18 +24,16 @@
 
 | 项目 | 状态 | 证据 |
 |---|---:|---|
-| Git 状态 | 通过 | 本轮开始时工作区仅有本地 `.planning/` 未跟踪目录；发布代码基线已推送 `origin/master` |
+| Git 状态 | 通过 | 发布代码基线已推送 `origin/master`；本地 `.planning/` 为未跟踪工作目录，不纳入发布 |
 | 本地定向测试 | 通过 | `pnpm test tests/api-health.test.ts tests/wait-netlify-deploy.test.ts`：14 passed |
 | 本地全量测试 | 通过 | `pnpm test`：327 passed / 6 skipped |
 | Typecheck | 通过 | `pnpm run typecheck` |
 | Lint | 通过 | `pnpm run lint` |
 | Build | 通过 | `pnpm run build` |
-| GitHub Actions quality | 通过 | run `28735135122`：quality success |
-| GitHub Actions build | 通过 | run `28735135122`：build success |
-| GitHub Actions E2E | 通过 | run `28735135122`：E2E success |
-| Lighthouse CI | 通过 | run `28735135132` success |
-| Netlify 分支同步 | 通过 | `main` mirror 已同步到 `c4e4eea1` |
-| Netlify deploy preflight | 预期阻塞 | run `28735135122` deploy job 在 preflight 阶段失败：`Netlify account credit usage exceeded`，未触发新 build |
+| GitHub Actions quality/build/E2E | 通过 | 最近一次 `master` push run 中 quality/build/E2E 均为 success；用 `rtk gh run list --repo xvyimu/nav-site --branch master --limit 4` 复验 |
+| Lighthouse CI | 通过 | 最近一次 `master` push 对应 Lighthouse run 为 success |
+| Netlify 分支同步 | 通过 | CI deploy job 会将 `master` 镜像到 Netlify 监听的 `main` 分支 |
+| Netlify deploy preflight | 预期阻塞 | deploy job 在 preflight 阶段失败：`Netlify account credit usage exceeded`，且不触发新 build |
 | Link check | 未运行 | 依赖 deploy；deploy 因 Netlify credit 失败而 skipped |
 
 ## 生产现状
