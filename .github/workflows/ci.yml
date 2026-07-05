@@ -153,6 +153,8 @@ jobs:
       url: ${{ steps.deploy.outputs.deploy-url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: 同步到 Netlify 生产分支
         id: mirror
@@ -160,7 +162,19 @@ jobs:
           set -euo pipefail
           mirror_time="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
           echo "mirror-time=$mirror_time" >> "$GITHUB_OUTPUT"
-          git push --porcelain origin "${GITHUB_SHA}:refs/heads/main"
+          remote_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          if [ -z "$remote_main" ]; then
+            echo "Remote main branch was not found."
+            exit 1
+          fi
+
+          git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          if git merge-base --is-ancestor "$remote_main" "$GITHUB_SHA"; then
+            git push --porcelain origin "${GITHUB_SHA}:refs/heads/main"
+          else
+            echo "::warning::Remote main diverged from master; updating Netlify mirror branch with lease protection."
+            git push --porcelain --force-with-lease=refs/heads/main:"$remote_main" origin "${GITHUB_SHA}:refs/heads/main"
+          fi
 
       - uses: actions/setup-node@v4
         with:
