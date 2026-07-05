@@ -3,7 +3,7 @@ import { pathToFileURL } from "node:url";
 
 const DEFAULT_TIMEOUT_MS = 8 * 60 * 1000;
 const DEFAULT_INTERVAL_MS = 10 * 1000;
-const DEFAULT_CREDIT_BLOCK_PREFLIGHT_WINDOW_MS = 30 * 60 * 1000;
+const DEFAULT_CREDIT_BLOCK_PREFLIGHT_WINDOW_MS = 24 * 60 * 60 * 1000;
 const FAILED_STATES = new Set(["error", "failed", "rejected", "skipped", "canceled", "cancelled"]);
 const TRUE_VALUES = new Set(["1", "true", "yes", "on"]);
 const CREDIT_USAGE_EXCEEDED_PATTERN = /account credit usage exceeded/i;

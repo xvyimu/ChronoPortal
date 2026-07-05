@@ -219,6 +219,42 @@ describe("scripts/wait-netlify-deploy", () => {
     );
   });
 
+  it("keeps credit exhaustion preflight active beyond a short retry window", async () => {
+    const { main } = await importDeployModule();
+    const logger = { log: vi.fn(), error: vi.fn() };
+    const thirtyOneMinutesAgo = new Date(Date.now() - 31 * 60 * 1000).toISOString();
+    const fetchImpl = vi.fn(async () => ({
+      ok: true,
+      json: async () => [
+        {
+          id: "credit-blocked",
+          state: "error",
+          branch: "main",
+          created_at: thirtyOneMinutesAgo,
+          error_message: "Skipped due to account credit usage exceeded",
+        },
+      ],
+    }));
+
+    await expect(
+      main({
+        env: {
+          NETLIFY_AUTH_TOKEN: "test-token",
+          NETLIFY_SITE_ID: "site-id",
+          NETLIFY_TRIGGER_BUILD: "true",
+          NETLIFY_DEPLOY_BRANCH: "main",
+          GITHUB_SHA: "abcdef1234567890",
+        } as unknown as NodeJS.ProcessEnv,
+        fetchImpl: asFetch(fetchImpl),
+        logger: asConsole(logger),
+      })
+    ).rejects.toThrow("Netlify account credit usage exceeded");
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    const fetchCalls = fetchImpl.mock.calls as unknown as Array<[URL, RequestInit?]>;
+    expect(fetchCalls[0]?.[1]?.method).not.toBe("POST");
+  });
+
   it("waits once, writes the deploy URL, and returns the ready deploy", async () => {
     const { waitForNetlifyDeploy } = await importDeployModule();
     const output: string[] = [];
