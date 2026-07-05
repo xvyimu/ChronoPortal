@@ -7,6 +7,7 @@ const withBundleAnalyzer = bundleAnalyzer({
 });
 
 const isDev = process.env.NODE_ENV !== "production";
+const hasSentryAuthToken = Boolean(process.env.SENTRY_AUTH_TOKEN);
 
 const securityHeaders = [
   {
@@ -75,7 +76,8 @@ export default withBundleAnalyzer(
     project: "javascript-nextjs",
     silent: !process.env.CI,
     widenClientFileUpload: true,
-    sourcemaps: { disable: false },
+    release: { create: hasSentryAuthToken },
+    sourcemaps: { disable: !hasSentryAuthToken },
     // 构建期 tree-shaking 削减 client bundle（详见 docs/perf/findings.md H7）。
     // 本项目不使用 Session Replay / Canvas / Feedback，排除其代码以减小首屏 JS。
     bundleSizeOptimizations: {

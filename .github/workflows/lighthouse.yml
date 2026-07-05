@@ -52,7 +52,7 @@ jobs:
 
       - name: 运行 Lighthouse CI
         continue-on-error: true
-        run: npx @lhci/cli@0.13.x autorun --config=./lighthouserc.json
+        run: npx @lhci/cli@0.15.x autorun --config=./lighthouserc.json
 
       - name: 上传 Lighthouse 报告
         if: always()
