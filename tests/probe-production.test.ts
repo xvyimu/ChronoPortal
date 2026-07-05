@@ -76,8 +76,11 @@ describe("scripts/probe-production", () => {
         timeoutMs: 1000,
         expectEmbeddingSkipped: true,
         expectedCommit: "65031ff0",
+        retries: 1,
+        retryDelayMs: 1,
       },
       fetchImpl,
+      waitImpl: async () => {},
     });
 
     expect(results.every((result) => result.ok)).toBe(true);
@@ -104,13 +107,16 @@ describe("scripts/probe-production", () => {
         timeoutMs: 1000,
         expectEmbeddingSkipped: true,
         expectedCommit: "",
+        retries: 1,
+        retryDelayMs: 1,
       },
       endpoints: [{ name: "health", path: "/api/health", contentType: /application\/json/i, json: "health" }],
       fetchImpl,
+      waitImpl: async () => {},
     });
 
-    expect(results[0].ok).toBe(false);
-    expect(results[0].detail).toContain("expected embedding check skipped");
+    expect(results[0]?.ok).toBe(false);
+    expect(results[0]?.detail).toContain("expected embedding check skipped");
     expect(() => assertProbePassed(results)).toThrow("Production probe failed");
   });
 
@@ -140,9 +146,12 @@ describe("scripts/probe-production", () => {
         timeoutMs: 1000,
         expectEmbeddingSkipped: true,
         expectedCommit: "65031ff027e610e7734da2b5d8c82e708144cdd7",
+        retries: 1,
+        retryDelayMs: 1,
       },
       endpoints: [{ name: "health", path: "/api/health", contentType: /application\/json/i, json: "health" }],
       fetchImpl,
+      waitImpl: async () => {},
     });
 
     expect(results.some((result) => result.name === "build-info" && !result.ok)).toBe(true);
@@ -160,6 +169,8 @@ describe("scripts/probe-production", () => {
           PRODUCTION_PROBE_TIMEOUT_MS: "5000",
           PRODUCTION_EXPECT_EMBEDDING_SKIPPED: "true",
           PRODUCTION_EXPECT_COMMIT: "env-sha",
+          PRODUCTION_PROBE_RETRIES: "3",
+          PRODUCTION_PROBE_RETRY_DELAY_MS: "25",
         } as unknown as NodeJS.ProcessEnv,
         ["--base-url", "https://cli.example", "--timeout-ms=7000"]
       )
@@ -168,6 +179,63 @@ describe("scripts/probe-production", () => {
       timeoutMs: 7000,
       expectEmbeddingSkipped: true,
       expectedCommit: "env-sha",
+      retries: 3,
+      retryDelayMs: 25,
     });
+  });
+
+  it("retries transient network failures without hiding persistent semantic failures", async () => {
+    const { runProductionProbe, assertProbePassed } = await importProbeModule();
+    const baseUrl = "https://nav-site.example";
+    const fetchImpl = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("fetch failed"))
+      .mockResolvedValueOnce(textResponse("<html></html>", "text/html; charset=utf-8")) as unknown as typeof fetch;
+
+    const results = await runProductionProbe({
+      config: {
+        baseUrl,
+        timeoutMs: 1000,
+        expectEmbeddingSkipped: false,
+        expectedCommit: "",
+        retries: 1,
+        retryDelayMs: 1,
+      },
+      endpoints: [{ name: "home", path: "/", contentType: /text\/html/i }],
+      fetchImpl,
+      waitImpl: async () => {},
+    });
+
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(results[0]).toMatchObject({ ok: true, attempts: 2 });
+    expect(() => assertProbePassed(results)).not.toThrow();
+  });
+
+  it("does not retry old deployment build-info 404 responses as network failures", async () => {
+    const { runProductionProbe } = await importProbeModule();
+    const baseUrl = "https://nav-site.example";
+    const fetchImpl = vi.fn(async () =>
+      textResponse("<!doctype html><title>404</title>", "text/html; charset=utf-8", 404)
+    ) as unknown as typeof fetch;
+
+    const results = await runProductionProbe({
+      config: {
+        baseUrl,
+        timeoutMs: 1000,
+        expectEmbeddingSkipped: false,
+        expectedCommit: "e26dab909d9936c08fc5163809dccf64cd4d0df3",
+        retries: 3,
+        retryDelayMs: 1,
+      },
+      endpoints: [],
+      fetchImpl,
+      waitImpl: async () => {},
+    });
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(results[0]).toMatchObject({ name: "build-info", status: 404, ok: false, attempts: 1 });
+    expect(results[0]?.detail).toContain("HTTP 404");
+    expect(results[0]?.detail).toContain("unexpected content-type");
+    expect(results[0]?.detail).toContain("invalid JSON response");
   });
 });

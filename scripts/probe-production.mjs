@@ -2,6 +2,8 @@ import { pathToFileURL } from "node:url";
 
 const DEFAULT_BASE_URL = "https://nav-site.netlify.app";
 const DEFAULT_TIMEOUT_MS = 45_000;
+const DEFAULT_RETRIES = 1;
+const DEFAULT_RETRY_DELAY_MS = 750;
 const TRUE_VALUES = new Set(["1", "true", "yes", "on"]);
 
 const ENDPOINTS = [
@@ -34,6 +36,12 @@ function parsePositiveNumber(value, fallback) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function parseNonNegativeInteger(value, fallback) {
+  if (value === undefined || value === null || value === "") return fallback;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
 function readArgValue(args, name) {
   const inline = args.find((arg) => arg.startsWith(`${name}=`));
   if (inline) return inline.slice(name.length + 1);
@@ -54,6 +62,14 @@ export function readConfigFromEnv(env = process.env, args = process.argv.slice(2
       args.includes("--expect-embedding-skipped") ||
       parseBoolean(env.PRODUCTION_EXPECT_EMBEDDING_SKIPPED),
     expectedCommit: readArgValue(args, "--expect-commit") || env.PRODUCTION_EXPECT_COMMIT || "",
+    retries: parseNonNegativeInteger(
+      readArgValue(args, "--retries") || env.PRODUCTION_PROBE_RETRIES,
+      DEFAULT_RETRIES
+    ),
+    retryDelayMs: parsePositiveNumber(
+      readArgValue(args, "--retry-delay-ms") || env.PRODUCTION_PROBE_RETRY_DELAY_MS,
+      DEFAULT_RETRY_DELAY_MS
+    ),
   };
 }
 
@@ -143,15 +159,30 @@ export function validateSearchPayload(payload) {
   return failures;
 }
 
+function isRetryableResult(result) {
+  return (
+    !result.ok &&
+    (result.status === 0 ||
+      result.status === 408 ||
+      result.status === 425 ||
+      result.status === 429 ||
+      result.status >= 500)
+  );
+}
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function readJson(response) {
   try {
-    return await response.json();
+    return { payload: await response.json() };
   } catch (error) {
-    throw new Error(`invalid JSON response: ${errorMessage(error)}`);
+    return { failure: `invalid JSON response: ${errorMessage(error)}` };
   }
 }
 
-export async function probeEndpoint(endpoint, {
+async function probeEndpointOnce(endpoint, {
   baseUrl,
   timeoutMs,
   expectEmbeddingSkipped,
@@ -179,18 +210,30 @@ export async function probeEndpoint(endpoint, {
     }
 
     if (endpoint.json === "health") {
-      const payload = await readJson(response);
-      failures.push(...validateHealthPayload(payload, { expectEmbeddingSkipped }));
+      const { payload, failure } = await readJson(response);
+      if (failure) {
+        failures.push(failure);
+      } else {
+        failures.push(...validateHealthPayload(payload, { expectEmbeddingSkipped }));
+      }
     }
 
     if (endpoint.json === "build-info") {
-      const payload = await readJson(response);
-      failures.push(...validateBuildInfoPayload(payload, { expectedCommit }));
+      const { payload, failure } = await readJson(response);
+      if (failure) {
+        failures.push(failure);
+      } else {
+        failures.push(...validateBuildInfoPayload(payload, { expectedCommit }));
+      }
     }
 
     if (endpoint.json === "search") {
-      const payload = await readJson(response);
-      failures.push(...validateSearchPayload(payload));
+      const { payload, failure } = await readJson(response);
+      if (failure) {
+        failures.push(failure);
+      } else {
+        failures.push(...validateSearchPayload(payload));
+      }
     }
 
     return {
@@ -199,6 +242,7 @@ export async function probeEndpoint(endpoint, {
       status: response.status,
       ok: failures.length === 0,
       detail: failures.length === 0 ? "ok" : failures.join("; "),
+      attempts: 1,
     };
   } catch (error) {
     return {
@@ -207,13 +251,37 @@ export async function probeEndpoint(endpoint, {
       status: 0,
       ok: false,
       detail: errorMessage(error),
+      attempts: 1,
     };
   }
+}
+
+export async function probeEndpoint(endpoint, {
+  retries = DEFAULT_RETRIES,
+  retryDelayMs = DEFAULT_RETRY_DELAY_MS,
+  waitImpl = wait,
+  ...options
+}) {
+  const maxAttempts = retries + 1;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const result = await probeEndpointOnce(endpoint, options);
+    result.attempts = attempt;
+
+    if (!isRetryableResult(result) || attempt === maxAttempts) {
+      return result;
+    }
+
+    await waitImpl(retryDelayMs);
+  }
+
+  throw new Error("production probe retry loop exited unexpectedly");
 }
 
 export async function runProductionProbe({
   config = readConfigFromEnv(),
   fetchImpl = fetch,
+  waitImpl = wait,
   endpoints = ENDPOINTS,
 } = {}) {
   const results = [];
@@ -222,7 +290,7 @@ export async function runProductionProbe({
     : endpoints;
 
   for (const endpoint of probeEndpoints) {
-    results.push(await probeEndpoint(endpoint, { ...config, fetchImpl }));
+    results.push(await probeEndpoint(endpoint, { ...config, fetchImpl, waitImpl }));
   }
 
   return results;
@@ -231,7 +299,8 @@ export async function runProductionProbe({
 export function summarizeResults(results) {
   return results.map((result) => {
     const mark = result.ok ? "PASS" : "FAIL";
-    return `[${mark}] ${result.name} ${result.status || "ERR"} ${result.detail}`;
+    const attempts = result.attempts > 1 ? ` attempts=${result.attempts}` : "";
+    return `[${mark}] ${result.name} ${result.status || "ERR"} ${result.detail}${attempts}`;
   });
 }
 

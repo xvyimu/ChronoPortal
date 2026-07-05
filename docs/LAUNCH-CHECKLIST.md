@@ -19,6 +19,7 @@
 | embedding 健康检查 | 通过 | 未配置 `EMBED_SERVER_URL` 时 `/api/health` 标记 `embedding=skipped`；Netlify/Serverless 运行时即使残留 loopback `EMBED_SERVER_URL` 也默认跳过，除非显式设置 `EMBED_SERVER_LOOPBACK_ENABLED=true`；本地/自托管显式配置后才探测本地服务 |
 | Supabase timeout 降级 | 通过 | 首页数据读取使用 `AbortSignal.timeout(15000)`；Supabase 短时不可达时降级为空数据而不是挂起构建/请求 |
 | migration apply 兜底 | 通过 | `pnpm db:reviews:apply` 支持 `DATABASE_URL`/`SUPABASE_DB_URL`，优先 Supabase CLI，失败后回退 `psql`；无 DB URL 时可用 linked Supabase 项目 |
+| 生产探针抗抖动 | 通过 | `scripts/probe-production.mjs` 默认对网络错误、408/425/429/5xx 做 1 次轻量重试；commit mismatch、404、健康语义不符等真实失败不会被重试掩盖 |
 
 ## 最新证据
 
@@ -31,6 +32,7 @@
 | Lint | 通过 | `pnpm run lint` |
 | Build | 通过 | `pnpm run build` |
 | 生产探针脚本 | 通过 | `pnpm run verify:production` 验证当前生产可访问；本地模拟 `NETLIFY=true` + loopback `EMBED_SERVER_URL` 后，`pnpm run verify:production:latest -- --base-url http://localhost:3264` 已确认 `embedding=skipped` |
+| 生产探针重试测试 | 通过 | `pnpm test tests/probe-production.test.ts` 覆盖瞬时 `fetch failed` 后重试成功、旧部署 `build-info` 404 不重试的场景；`pnpm test` 全量 338 passed / 6 skipped |
 | GitHub Actions quality/build/E2E | 通过 | 最近一次 `master` push run 中 quality/build/E2E 均为 success；用 `rtk gh run list --repo xvyimu/nav-site --branch master --limit 4` 复验 |
 | Lighthouse CI | 通过 | 最近一次 `master` push 对应 Lighthouse run 为 success |
 | Netlify 分支同步 | 通过 | CI deploy job 会将 `master` 镜像到 Netlify 监听的 `main` 分支 |
@@ -62,7 +64,7 @@
    - `/api/search?q=ai&limit=5` 返回 JSON。
    - `/tool/figma` 可渲染。
    - `/sitemap.xml` 和 `/robots.txt` 可访问。
-   - 或直接运行 `pnpm run verify:production:latest -- --expect-commit <commit-sha>`。
+   - 或直接运行 `pnpm run verify:production:latest -- --expect-commit <commit-sha>`；如需调整网络抖动容忍度，可追加 `--retries <n>` 或设置 `PRODUCTION_PROBE_RETRIES`。
    - 若启用自定义域名，先确认 apex 和 `www` 都已正确解析到目标生产站点。
 5. 处理或接受黄色运行项：
    - `NEXT_PUBLIC_SENTRY_DSN` 未配置时，Sentry 健康检查保持 `skipped`。
