@@ -4,10 +4,14 @@ import { createStaticClient } from "@/lib/supabase/server";
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://yuanjia1314.ccwu.cc";
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  // 使用无 cookie 的静态客户端，避免 cookies() 触发动态渲染，使 ISR 生效
-  const client = createStaticClient();
+function hasPublicSupabaseConfig(): boolean {
+  return Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+}
 
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // 静态页面
   const staticPages: MetadataRoute.Sitemap = [
     {
@@ -29,6 +33,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.3,
     },
   ];
+
+  if (!hasPublicSupabaseConfig()) {
+    return staticPages;
+  }
+
+  // 使用无 cookie 的静态客户端，避免 cookies() 触发动态渲染，使 ISR 生效
+  const client = createStaticClient();
 
   // 程序化 SEO 页面：/tool/[slug]
   const toolSlugs = await getAllApprovedLinkSlugs(client).catch(() => []);
