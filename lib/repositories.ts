@@ -1,9 +1,29 @@
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
-import type { Category, NavLink, Tag, PublicToolReview, ReviewStats } from "@/lib/types";
+import type { Category, NavLink, Tag } from "@/lib/types";
 import { slugify } from "@/lib/slugify";
-import { checkRateLimit, cleanupOldAttempts } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
 import { cache } from "react";
+import {
+  isMissingRelationError,
+  mapLinkRow,
+  type RawLinkRow,
+} from "@/lib/repositories/shared";
+
+export { MissingDatabaseMigrationError } from "@/lib/repositories/shared";
+export {
+  checkReviewRateLimit,
+  createReview,
+  getReviewStats,
+  getToolReviews,
+  hasUserReviewed,
+  recordReviewAttempt,
+} from "@/lib/repositories/reviews";
+export {
+  addUserFavorites,
+  clearUserFavorites,
+  getUserFavorites,
+  removeUserFavorite,
+} from "@/lib/repositories/favorites";
 
 /**
  * 数据获取层 — 封装所有 Supabase 查询
@@ -26,21 +46,6 @@ function createAdminClient(): SupabaseAdminClient {
   return createServiceRoleClient();
 }
 
-export class MissingDatabaseMigrationError extends Error {
-  constructor(feature: string, options?: { cause?: unknown }) {
-    super(`${feature} database objects are missing`, options);
-    this.name = "MissingDatabaseMigrationError";
-  }
-}
-
-function isMissingRelationError(error: { code?: string; message?: string }): boolean {
-  return (
-    error.code === "PGRST205" ||
-    error.code === "42P01" ||
-    /could not find the table|relation .* does not exist/i.test(error.message ?? "")
-  );
-}
-
 function isMissingTagsJoinError(error: { code?: string; message?: string }): boolean {
   return (
     isMissingRelationError(error) ||
@@ -58,27 +63,6 @@ function resolveQueryOptions(
 ): RepositoryQueryOptions {
   if (isClientOption(input)) return { client: input };
   return input ?? {};
-}
-
-/**
- * Supabase 链接行（含分类 join 字段）的松散类型。
- */
-interface RawLinkRow {
-  nav_categories?: { name: string; slug: string } | null;
-  updated_at?: string | null;
-  created_at: string;
-  [key: string]: unknown;
-}
-
-/** 将 Supabase 返回的链接行映射为 NavLink（含分类名） */
-function mapLinkRow(l: RawLinkRow): NavLink {
-  return {
-    ...(l as unknown as NavLink),
-    category_name: l.nav_categories?.name,
-    category_slug: l.nav_categories?.slug,
-    updated_at: l.updated_at ?? l.created_at,
-    tags: (l as unknown as NavLink).tags ?? [],
-  };
 }
 
 interface RawLinkTagRow {
@@ -406,134 +390,6 @@ export async function getApprovedLinksForApi(categorySlug?: string): Promise<Nav
   }
 
   return getApprovedLinks();
-}
-
-// ── 工具评价 ──
-
-/**
- * 获取工具的评价列表（已批准）
- */
-export async function getToolReviews(linkId: string, limit = 20): Promise<PublicToolReview[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("public_tool_reviews")
-    .select("id, link_id, rating, comment, approved, created_at, updated_at")
-    .eq("link_id", linkId)
-    .order("created_at", { ascending: false })
-    .limit(limit);
-
-  if (error) {
-    logger.error("Failed to fetch tool reviews", { source: "repositories", linkId }, error);
-    return [];
-  }
-
-  return data ?? [];
-}
-
-/**
- * 获取工具的评分统计
- */
-export async function getReviewStats(linkId: string): Promise<ReviewStats | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("tool_review_stats")
-    .select("*")
-    .eq("link_id", linkId)
-    .maybeSingle();
-
-  if (error || !data) {
-    return null;
-  }
-
-  return data as ReviewStats;
-}
-
-/**
- * 检查 IP 是否已评价过某工具
- */
-export async function hasUserReviewed(linkId: string, ip: string): Promise<boolean> {
-  const supabase = createServiceRoleClient();
-  const { data, error } = await supabase
-    .from("tool_reviews")
-    .select("id")
-    .eq("link_id", linkId)
-    .eq("ip", ip)
-    .maybeSingle();
-
-  if (error) {
-    if (isMissingRelationError(error)) {
-      throw new MissingDatabaseMigrationError("reviews", { cause: error });
-    }
-    logger.warn("Failed to check existing review", {
-      source: "repositories",
-      linkId,
-      error: error.message,
-    });
-    return false;
-  }
-
-  return !!data;
-}
-
-/**
- * 创建工具评价
- */
-export async function createReview(
-  linkId: string,
-  ip: string,
-  rating: number,
-  comment: string | null
-): Promise<PublicToolReview | null> {
-  const supabase = createServiceRoleClient();
-  const { data, error } = await supabase
-    .from("tool_reviews")
-    .insert({
-      link_id: linkId,
-      ip,
-      rating,
-      comment: comment || null,
-      approved: true,
-    })
-    .select("id, link_id, rating, comment, approved, created_at, updated_at")
-    .single();
-
-  if (error) {
-    if (isMissingRelationError(error)) {
-      throw new MissingDatabaseMigrationError("reviews", { cause: error });
-    }
-    logger.error("Failed to create review", { source: "repositories", linkId }, error);
-    throw new Error("Failed to create review");
-  }
-
-  return data;
-}
-
-/**
- * 评价速率限制检查（每 IP 每 15 分钟最多 3 条评价）
- */
-export async function checkReviewRateLimit(ip: string): Promise<boolean> {
-  const supabase = createServiceRoleClient();
-  const { allowed } = await checkRateLimit(
-    "review_rate_limits",
-    ip,
-    15 * 60 * 1000,
-    3,
-    false,
-    supabase
-  );
-  return allowed;
-}
-
-/**
- * 记录评价速率限制
- */
-export async function recordReviewAttempt(ip: string, linkId: string): Promise<void> {
-  const supabase = createServiceRoleClient();
-  await cleanupOldAttempts(supabase, "review_rate_limits");
-  const { error } = await supabase.from("review_rate_limits").insert({ ip, link_id: linkId });
-  if (error) {
-    logger.warn("Review attempt record failed", { linkId, error: error.message });
-  }
 }
 
 // ── Admin: 链接管理 ──
@@ -928,81 +784,4 @@ export async function findApprovedLinkByUrl(url: string): Promise<{ id: string }
     return null;
   }
   return data ?? null;
-}
-
-// ── 用户收藏（user_favorites）─────────────────────────────────────────
-//
-// 注意：user_favorites 表启用了 RLS，策略基于 Supabase Auth JWT 的 `sub`。
-// 但本项目认证用 NextAuth（非 Supabase Auth），cookie 里没有 Supabase JWT，
-// `auth.jwt() ->> 'sub'` 恒为 null → RLS 策略会拒绝所有读写。
-// 因此收藏操作走 service_role 客户端绕过 RLS，在应用层用 session.user.id 做权限隔离。
-// 这与 admin/submit/click 的模式一致。
-
-/** 获取指定用户的收藏 link_id 列表 */
-export async function getUserFavorites(userId: string): Promise<string[]> {
-  const supabase = createServiceRoleClient();
-  const { data, error } = await supabase
-    .from("user_favorites")
-    .select("link_id")
-    .eq("user_id", userId);
-
-  if (error) {
-    logger.error("getUserFavorites failed", { source: "repositories", userId }, error);
-    return [];
-  }
-  return (data ?? []).map((r) => r.link_id as string);
-}
-
-/** 批量添加收藏（去重）*/
-export async function addUserFavorites(
-  supabase: SupabaseServerClient,
-  userId: string,
-  linkIds: string[]
-): Promise<{ added: number } | { error: string }> {
-  const rows = linkIds.map((link_id) => ({ user_id: userId, link_id }));
-  const { error } = await supabase
-    .from("user_favorites")
-    .upsert(rows, { onConflict: "user_id,link_id", ignoreDuplicates: true });
-
-  if (error) {
-    logger.error("addUserFavorites failed", { source: "repositories", userId, count: linkIds.length }, error);
-    return { error: "添加收藏失败" };
-  }
-  return { added: linkIds.length };
-}
-
-/** 删除单条收藏 */
-export async function removeUserFavorite(
-  userId: string,
-  linkId: string
-): Promise<{ ok: true } | { error: string }> {
-  const supabase = createServiceRoleClient();
-  const { error } = await supabase
-    .from("user_favorites")
-    .delete()
-    .eq("user_id", userId)
-    .eq("link_id", linkId);
-
-  if (error) {
-    logger.error("removeUserFavorite failed", { source: "repositories", userId, linkId }, error);
-    return { error: "删除收藏失败" };
-  }
-  return { ok: true };
-}
-
-/** 清空用户所有收藏 */
-export async function clearUserFavorites(
-  userId: string
-): Promise<{ ok: true; cleared: true } | { error: string }> {
-  const supabase = createServiceRoleClient();
-  const { error } = await supabase
-    .from("user_favorites")
-    .delete()
-    .eq("user_id", userId);
-
-  if (error) {
-    logger.error("clearUserFavorites failed", { source: "repositories", userId }, error);
-    return { error: "清空收藏失败" };
-  }
-  return { ok: true, cleared: true };
 }
