@@ -17,13 +17,30 @@ import type {
   SemanticFallbackReason,
 } from "@/lib/search/types";
 
+export interface SearchAdapters {
+  getSearchPool: typeof getSearchPool;
+  getEmbedding: typeof getEmbedding;
+  searchSemantic: typeof searchSemantic;
+  logger: Pick<typeof logger, "info" | "warn" | "error" | "debug">;
+  now: () => number;
+}
+
 export interface ExecuteSearchInput {
   params: SearchParams;
   requestId: string;
   startedAt?: number;
+  adapters?: SearchAdapters;
 }
 
 const MIN_SEMANTIC_QUERY_LENGTH = 3;
+
+export const defaultSearchAdapters: SearchAdapters = {
+  getSearchPool,
+  getEmbedding,
+  searchSemantic,
+  logger,
+  now: () => Date.now(),
+};
 
 function successHeaders(requestId: string): Record<string, string> {
   return {
@@ -35,17 +52,20 @@ function successHeaders(requestId: string): Record<string, string> {
 export async function executeSearch({
   params,
   requestId,
-  startedAt = Date.now(),
+  startedAt,
+  adapters = defaultSearchAdapters,
 }: ExecuteSearchInput): Promise<SearchResponseModel> {
+  const searchStartedAt = startedAt ?? adapters.now();
+
   try {
     const { q, category, limit, semantic, filters } = params;
     const { terms, appliedSynonyms } = expandQueryTerms(q);
-    const { fuse, links, allLinks } = await getSearchPool(category, filters);
+    const { fuse, links, allLinks } = await adapters.getSearchPool(category, filters);
     const facets = buildSearchFacets(allLinks, { ...filters, category });
     const suggestions = buildSearchSuggestions(q, allLinks, facets);
 
     if (!q) {
-      logger.info("Search API completed", searchLogContext(requestId, params, startedAt, {
+      adapters.logger.info("Search API completed", searchLogContext(requestId, params, searchStartedAt, {
         resultCount: 0,
         responseMode: "empty",
       }));
@@ -76,9 +96,9 @@ export async function executeSearch({
       let fallbackReason: SemanticFallbackReason = null;
 
       if (q.length >= MIN_SEMANTIC_QUERY_LENGTH) {
-        const embedding = await getEmbedding(q);
+        const embedding = await adapters.getEmbedding(q);
         if (embedding) {
-          semanticResults = await searchSemantic(embedding, limit, category, linksById);
+          semanticResults = await adapters.searchSemantic(embedding, limit, category, linksById);
           semanticResults = semanticResults.filter((result) => {
             const link = linksById.get(result.id);
             return link ? applySearchFilters([link], filters).length > 0 : false;
@@ -95,7 +115,7 @@ export async function executeSearch({
       const semanticIds = new Set(semanticResults.map((result) => result.id));
       const decoratedResults = decorateResults(results, q, terms, semanticIds, fuseIds);
 
-      logger.info("Search API completed", searchLogContext(requestId, params, startedAt, {
+      adapters.logger.info("Search API completed", searchLogContext(requestId, params, searchStartedAt, {
         resultCount: results.length,
         fuseCandidateCount: fuseResults.length,
         semanticCandidateCount: semanticResults.length,
@@ -124,7 +144,7 @@ export async function executeSearch({
     const results = fuseResults.slice(0, limit);
     const decoratedResults = decorateResults(results, q, terms, new Set(), fuseIds);
 
-    logger.info("Search API completed", searchLogContext(requestId, params, startedAt, {
+    adapters.logger.info("Search API completed", searchLogContext(requestId, params, searchStartedAt, {
       resultCount: results.length,
       fuseCandidateCount: fuseResults.length,
       responseMode: "fuse",
@@ -146,13 +166,13 @@ export async function executeSearch({
       },
     };
   } catch (e) {
-    logger.error(
+    adapters.logger.error(
       "Search API error",
       {
         source: "api-search",
         event: "search_request_failed",
         requestId,
-        durationMs: Date.now() - startedAt,
+        durationMs: adapters.now() - searchStartedAt,
       },
       e instanceof Error ? e : undefined
     );

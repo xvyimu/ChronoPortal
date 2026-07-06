@@ -1,12 +1,16 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import Fuse from "fuse.js";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { applySearchFilters, type SearchFilters } from "@/lib/search-experience";
+import { executeSearch, type SearchAdapters } from "@/lib/search/use-case";
 import type {
   SearchApiBody,
   SearchParams,
+  SearchResult,
   SearchSuccessBody,
-  SemanticRow,
 } from "@/lib/search/types";
+import type { NavLink } from "@/lib/types";
 
-const sampleLinks = [
+const sampleLinks: NavLink[] = [
   {
     id: "550e8400-e29b-41d4-a716-446655440000",
     title: "OpenAI Platform",
@@ -47,30 +51,6 @@ const sampleLinks = [
   },
 ];
 
-const getApprovedLinks = vi.fn(async () => sampleLinks);
-const rpc = vi.fn<() => Promise<{ data: SemanticRow[] | null; error: { message: string } | null }>>(
-  async () => ({ data: [], error: null })
-);
-const createServiceRoleClient = vi.fn(() => ({ rpc }));
-const loggerInfo = vi.fn();
-
-vi.mock("@/lib/repositories", () => ({
-  getApprovedLinks,
-}));
-
-vi.mock("@/lib/supabase/server", () => ({
-  createServiceRoleClient,
-}));
-
-vi.mock("@/lib/logger", () => ({
-  logger: {
-    error: vi.fn(),
-    warn: vi.fn(),
-    info: loggerInfo,
-    debug: vi.fn(),
-  },
-}));
-
 function makeParams(overrides: Partial<SearchParams> = {}): SearchParams {
   return {
     q: "",
@@ -94,30 +74,95 @@ function expectSuccessBody(body: SearchApiBody): SearchSuccessBody {
   return body;
 }
 
-async function importUseCase() {
-  return import("@/lib/search/use-case");
+function makeFuse(links: NavLink[]): Fuse<NavLink> {
+  return new Fuse(links, {
+    keys: [
+      { name: "title", weight: 2 },
+      { name: "description", weight: 1 },
+      { name: "category_name", weight: 0.8 },
+    ],
+    threshold: 0.4,
+    distance: 100,
+    minMatchCharLength: 1,
+    includeScore: true,
+  });
+}
+
+function createSearchPoolAdapter(
+  links: NavLink[] = sampleLinks
+): SearchAdapters["getSearchPool"] {
+  return vi.fn(async (category?: string, filters?: SearchFilters) => {
+    let pool = links;
+    if (category && category !== "all") {
+      pool = links.filter((link) => link.category_slug === category);
+    }
+    pool = applySearchFilters(pool, filters);
+
+    return {
+      fuse: makeFuse(pool),
+      links: pool,
+      allLinks: links,
+    };
+  });
+}
+
+function createAdapters(
+  overrides: Partial<Omit<SearchAdapters, "logger">> & {
+    logger?: Partial<SearchAdapters["logger"]>;
+  } = {}
+): SearchAdapters {
+  const { logger: loggerOverrides, ...adapterOverrides } = overrides;
+  const loggerAdapter: SearchAdapters["logger"] = {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+    ...loggerOverrides,
+  };
+
+  return {
+    getSearchPool: createSearchPoolAdapter(),
+    getEmbedding: vi.fn(async () => null),
+    searchSemantic: vi.fn(async () => []),
+    now: vi.fn(() => 10_000),
+    ...adapterOverrides,
+    logger: loggerAdapter,
+  };
+}
+
+function semanticResult(link: NavLink, similarity: number): SearchResult {
+  return {
+    id: link.id,
+    title: link.title,
+    url: link.url,
+    description: link.description,
+    icon: link.icon,
+    category_name: link.category_name,
+    category_slug: link.category_slug,
+    featured: link.featured,
+    paid: link.paid,
+    click_count: link.click_count,
+    tags: link.tags,
+    review_count: link.review_count,
+    avg_rating: link.avg_rating,
+    similarity,
+    source: "semantic",
+  };
 }
 
 describe("executeSearch", () => {
   beforeEach(() => {
-    vi.resetModules();
     vi.clearAllMocks();
-    delete process.env.EMBED_SERVER_URL;
-    delete process.env.EMBED_SERVER_LOOPBACK_ENABLED;
-    delete process.env.NETLIFY;
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
   });
 
   it("returns empty search experience without no-store for empty queries", async () => {
-    const { executeSearch } = await importUseCase();
+    const adapters = createAdapters();
 
     const result = await executeSearch({
       params: makeParams(),
       requestId: "req-empty",
-      startedAt: Date.now(),
+      startedAt: 10_000,
+      adapters,
     });
     const body = expectSuccessBody(result.body);
 
@@ -137,12 +182,13 @@ describe("executeSearch", () => {
   });
 
   it("returns decorated Fuse results with facets and suggestions", async () => {
-    const { executeSearch } = await importUseCase();
+    const adapters = createAdapters();
 
     const result = await executeSearch({
       params: makeParams({ q: "api" }),
       requestId: "req-fuse",
-      startedAt: Date.now(),
+      startedAt: 10_000,
+      adapters,
     });
     const body = expectSuccessBody(result.body);
 
@@ -158,35 +204,34 @@ describe("executeSearch", () => {
     expect(body.suggestions.length).toBeGreaterThan(0);
   });
 
-  it("skips semantic dependencies for short semantic queries", async () => {
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
-    const { executeSearch } = await importUseCase();
+  it("skips semantic adapters for short semantic queries", async () => {
+    const adapters = createAdapters();
 
     const result = await executeSearch({
       params: makeParams({ q: "go", semantic: true }),
       requestId: "req-short",
-      startedAt: Date.now(),
+      startedAt: 10_000,
+      adapters,
     });
     const body = expectSuccessBody(result.body);
 
     expect(result.status).toBe(200);
     expect(body.mode).toBe("semantic");
     expect(body.fallbackReason).toBe("short_query");
-    expect(fetchMock).not.toHaveBeenCalled();
-    expect(createServiceRoleClient).not.toHaveBeenCalled();
+    expect(adapters.getEmbedding).not.toHaveBeenCalled();
+    expect(adapters.searchSemantic).not.toHaveBeenCalled();
   });
 
-  it("falls back to Fuse when embedding is unavailable", async () => {
-    process.env.EMBED_SERVER_URL = "https://embeddings.example.com";
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
-    const { executeSearch } = await importUseCase();
+  it("falls back to Fuse when embedding adapter is unavailable", async () => {
+    const adapters = createAdapters({
+      getEmbedding: vi.fn(async () => null),
+    });
 
     const result = await executeSearch({
       params: makeParams({ q: "openai", semantic: true }),
       requestId: "req-no-embed",
-      startedAt: Date.now(),
+      startedAt: 10_000,
+      adapters,
     });
     const body = expectSuccessBody(result.body);
 
@@ -194,82 +239,37 @@ describe("executeSearch", () => {
     expect(body.mode).toBe("semantic");
     expect(body.fallbackReason).toBe("embedding_unavailable");
     expect(body.results.length).toBeGreaterThan(0);
-    expect(fetchMock).not.toHaveBeenCalled();
-    expect(createServiceRoleClient).not.toHaveBeenCalled();
-  });
-
-  it("does not call loopback embedding services from serverless runtimes", async () => {
-    process.env.EMBED_SERVER_URL = "http://127.0.0.1:8003";
-    process.env.NETLIFY = "true";
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
-    const { executeSearch } = await importUseCase();
-
-    const result = await executeSearch({
-      params: makeParams({ q: "openai", semantic: true }),
-      requestId: "req-serverless-loopback",
-      startedAt: Date.now(),
-    });
-    const body = expectSuccessBody(result.body);
-
-    expect(result.status).toBe(200);
-    expect(body.mode).toBe("semantic");
-    expect(body.fallbackReason).toBe("embedding_unavailable");
-    expect(fetchMock).not.toHaveBeenCalled();
-    expect(createServiceRoleClient).not.toHaveBeenCalled();
+    expect(adapters.getEmbedding).toHaveBeenCalledWith("openai");
+    expect(adapters.searchSemantic).not.toHaveBeenCalled();
   });
 
   it("falls back to Fuse when semantic search returns no candidates", async () => {
-    process.env.EMBED_SERVER_URL = "http://127.0.0.1:8003";
-    const fetchMock = vi.fn(async () => ({
-      ok: true,
-      json: async () => ({ embedding: Array(512).fill(0.1) }),
-    }));
-    vi.stubGlobal("fetch", fetchMock);
-    rpc.mockResolvedValueOnce({ data: [], error: null });
-    const { executeSearch } = await importUseCase();
+    const adapters = createAdapters({
+      getEmbedding: vi.fn(async () => Array(512).fill(0.1)),
+      searchSemantic: vi.fn(async () => []),
+    });
 
     const result = await executeSearch({
       params: makeParams({ q: "openai", semantic: true }),
       requestId: "req-empty-semantic",
-      startedAt: Date.now(),
+      startedAt: 10_000,
+      adapters,
     });
     const body = expectSuccessBody(result.body);
 
     expect(result.status).toBe(200);
     expect(body.mode).toBe("semantic");
     expect(body.fallbackReason).toBe("semantic_empty");
-    expect(fetchMock).toHaveBeenCalled();
-    expect(createServiceRoleClient).toHaveBeenCalled();
+    expect(adapters.searchSemantic).toHaveBeenCalled();
     expect(body.results.length).toBeGreaterThan(0);
   });
 
   it("excludes semantic candidates that fail active filters", async () => {
-    process.env.EMBED_SERVER_URL = "http://127.0.0.1:8003";
-    const fetchMock = vi.fn(async () => ({
-      ok: true,
-      json: async () => ({ embedding: Array(512).fill(0.1) }),
-    }));
-    vi.stubGlobal("fetch", fetchMock);
-    rpc.mockResolvedValueOnce({
-      data: [
-        {
-          id: "550e8400-e29b-41d4-a716-446655440099",
-          title: "Cloud VPS",
-          url: "https://vps.example.com",
-          description: "Cloud server hosting",
-          icon: null,
-          category_name: "Cloud",
-          category_slug: "cloud-vps",
-          similarity: 0.92,
-          featured: false,
-          paid: false,
-          click_count: 0,
-        },
-      ],
-      error: null,
+    const cloudLink = sampleLinks[1];
+    const adapters = createAdapters({
+      getEmbedding: vi.fn(async () => Array(512).fill(0.1)),
+      searchSemantic: vi.fn(async () => [semanticResult(cloudLink, 0.92)]),
     });
-    const { executeSearch } = await importUseCase();
 
     const result = await executeSearch({
       params: makeParams({
@@ -283,22 +283,27 @@ describe("executeSearch", () => {
         },
       }),
       requestId: "req-filtered-semantic",
-      startedAt: Date.now(),
+      startedAt: 10_000,
+      adapters,
     });
     const body = expectSuccessBody(result.body);
 
     expect(result.status).toBe(200);
     expect(body.mode).toBe("semantic");
-    expect(body.results.map((item) => item.id)).not.toContain("550e8400-e29b-41d4-a716-446655440099");
+    expect(body.results.map((item) => item.id)).not.toContain(cloudLink.id);
   });
 
   it("logs search telemetry without raw query text", async () => {
-    const { executeSearch } = await importUseCase();
+    const loggerInfo = vi.fn<SearchAdapters["logger"]["info"]>();
+    const adapters = createAdapters({
+      logger: { info: loggerInfo },
+    });
 
     await executeSearch({
       params: makeParams({ q: "openai" }),
       requestId: "req-telemetry",
-      startedAt: Date.now(),
+      startedAt: 10_000,
+      adapters,
     });
 
     expect(loggerInfo).toHaveBeenCalledWith(
@@ -312,5 +317,37 @@ describe("executeSearch", () => {
       })
     );
     expect(JSON.stringify(loggerInfo.mock.calls)).not.toContain("openai");
+  });
+
+  it("uses adapter clock and logger for error responses", async () => {
+    const loggerError = vi.fn<SearchAdapters["logger"]["error"]>();
+    const now = vi.fn<SearchAdapters["now"]>()
+      .mockReturnValueOnce(1_000)
+      .mockReturnValueOnce(1_250);
+    const adapters = createAdapters({
+      getSearchPool: vi.fn(async () => {
+        throw new Error("pool failed");
+      }),
+      logger: { error: loggerError },
+      now,
+    });
+
+    const result = await executeSearch({
+      params: makeParams({ q: "openai" }),
+      requestId: "req-error",
+      adapters,
+    });
+
+    expect(result.status).toBe(500);
+    expect(result.body).toEqual({ error: "Search failed", results: [], total: 0 });
+    expect(loggerError).toHaveBeenCalledWith(
+      "Search API error",
+      expect.objectContaining({
+        event: "search_request_failed",
+        requestId: "req-error",
+        durationMs: 250,
+      }),
+      expect.any(Error)
+    );
   });
 });
