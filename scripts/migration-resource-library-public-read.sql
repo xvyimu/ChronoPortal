@@ -69,4 +69,18 @@ $$;
 revoke all on function public.get_public_resource_rating_count(uuid) from public;
 grant execute on function public.get_public_resource_rating_count(uuid) to anon, authenticated;
 
+-- Public health check RPC for anon-key-based status probe.
+create or replace function public.resource_search_health()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select true;
+$$;
+
+revoke all on function public.resource_search_health() from public;
+grant execute on function public.resource_search_health() to anon, authenticated;
+
 commit;
