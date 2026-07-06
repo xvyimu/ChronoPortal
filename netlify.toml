@@ -1,5 +1,6 @@
 [build]
   command = "npm i -g pnpm@11.5.0 && pnpm build"
+  ignore = "node ./scripts/netlify-ignore-build.mjs"
 
 [build.environment]
   NODE_VERSION = "22"

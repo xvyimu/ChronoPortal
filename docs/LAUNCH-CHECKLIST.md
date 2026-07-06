@@ -10,7 +10,7 @@
 
 当前红色上线阻塞是 Netlify 账号额度：GitHub Actions 的 quality/build/E2E 均已通过；deploy job 在 Netlify credit preflight 阶段停止，没有再 POST 创建新的 Netlify build。该阻塞不是代码、token 权限或 CI 脚本错误；需要在 Netlify 侧恢复账号 credit/账单额度后手动运行生产部署。
 
-永久发布策略已经收敛为：`master` push 只跑 quality/build/E2E，不再自动镜像到 Netlify 生产分支，也不再自动消耗 Netlify deploy credits。生产部署只通过 GitHub Actions 的 `workflow_dispatch` 手动触发。
+永久发布策略已经收敛为：`master` push 只跑 quality/build/E2E，不再自动镜像到 Netlify 生产分支，也不再自动消耗 Netlify deploy credits。生产部署只通过 GitHub Actions 的 `workflow_dispatch` 手动触发。Netlify 侧也通过 `build.ignore` 只允许 `main` 分支继续构建，避免 branch deploy 或误配置继续消耗额度。
 
 ## 已完成的稳定性收尾
 
@@ -19,6 +19,7 @@
 | Dependabot / npm audit | 通过 | `pnpm audit --registry=https://registry.npmjs.org --audit-level moderate`：No known vulnerabilities found |
 | Netlify credit preflight | 通过 | 默认检查窗口扩展到 24 小时；额度已耗尽时阻断 deploy trigger，避免重复创建失败 build |
 | 生产部署手动门禁 | 通过 | `master` push 只验证代码；Netlify 生产部署、分支镜像和 deploy 后 link-check 仅在手动运行 `CI 检查 / 手动 Netlify 部署` 时执行 |
+| Netlify 分支构建门禁 | 通过 | `netlify.toml` 使用 `build.ignore` 调用 `scripts/netlify-ignore-build.mjs`；默认只有 `main` 分支继续构建，其他分支跳过 |
 | embedding 健康检查 | 通过 | 未配置 `EMBED_SERVER_URL` 时 `/api/health` 标记 `embedding=skipped`；Netlify/Serverless 运行时即使残留 loopback `EMBED_SERVER_URL` 也默认跳过，除非显式设置 `EMBED_SERVER_LOOPBACK_ENABLED=true`；本地/自托管显式配置后才探测本地服务 |
 | Supabase timeout 降级 | 通过 | 首页数据读取使用 `AbortSignal.timeout(15000)`；Supabase 短时不可达时降级为空数据而不是挂起构建/请求 |
 | migration apply 兜底 | 通过 | `pnpm db:reviews:apply` 支持 `DATABASE_URL`/`SUPABASE_DB_URL`，优先 Supabase CLI，失败后回退 `psql`；无 DB URL 时可用 linked Supabase 项目 |
