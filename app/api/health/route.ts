@@ -1,9 +1,21 @@
 import { NextResponse } from "next/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { describeEmbedSkipReason, resolveLoopbackEmbedEndpoint } from "@/lib/embedding-runtime";
 import { logger } from "@/lib/logger";
+import {
+  RESOURCE_LIBRARY_URL,
+  getResourceLibraryAnonKey,
+} from "@/lib/resource-library/client";
 
 const EMBED_HEALTH_TIMEOUT_MS = 1500;
+const RESOURCE_LIBRARY_HEALTH_TIMEOUT_MS = 1500;
+
+type HealthCheck = {
+  status: "ok" | "error" | "skipped";
+  latency_ms: number;
+  detail?: string;
+};
 
 function readFirstEnv(names: string[]): string | null {
   for (const name of names) {
@@ -41,13 +53,60 @@ function getEmbedHealthEndpoint() {
   });
 }
 
+async function checkResourceLibrarySearchHealth(): Promise<HealthCheck> {
+  const start = Date.now();
+  const anonKey = getResourceLibraryAnonKey();
+
+  if (!anonKey) {
+    return {
+      status: "skipped",
+      latency_ms: Date.now() - start,
+      detail: "RESOURCE_LIBRARY_ANON_KEY not configured",
+    };
+  }
+
+  try {
+    const supabase = createSupabaseClient(RESOURCE_LIBRARY_URL, anonKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const { error } = await supabase
+      .rpc("resource_search_health")
+      .abortSignal(AbortSignal.timeout(RESOURCE_LIBRARY_HEALTH_TIMEOUT_MS));
+
+    if (error) {
+      logger.warn("Resource library search health RPC unavailable", {
+        source: "api-health",
+        code: error.code,
+      });
+      return {
+        status: "error",
+        latency_ms: Date.now() - start,
+        detail: "public resource search RPC unavailable",
+      };
+    }
+
+    return {
+      status: "ok",
+      latency_ms: Date.now() - start,
+      detail: "public resource search RPC reachable",
+    };
+  } catch (e) {
+    logger.warn("Resource library search health probe failed", {
+      source: "api-health",
+      error: e instanceof Error ? e.message : String(e),
+    });
+    return {
+      status: "error",
+      latency_ms: Date.now() - start,
+      detail: "public resource search RPC probe failed",
+    };
+  }
+}
+
 export async function GET() {
   const start = Date.now();
 
-  const checks: Record<
-    string,
-    { status: "ok" | "error" | "skipped"; latency_ms: number; detail?: string }
-  > = {};
+  const checks: Record<string, HealthCheck> = {};
   let healthy = true;
 
   // 1. 数据库连通性 + 表计数
@@ -133,6 +192,8 @@ export async function GET() {
       };
     }
   }
+
+  checks.resourceLibrarySearch = await checkResourceLibrarySearchHealth();
 
   const latency = Date.now() - start;
   const statusCode = healthy ? 200 : 503;

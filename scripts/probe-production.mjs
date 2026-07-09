@@ -128,6 +128,17 @@ export function validateHealthPayload(payload, { expectEmbeddingSkipped } = {}) 
     }
   }
 
+  const resourceLibrarySearchStatus = payload?.checks?.resourceLibrarySearch?.status;
+  if (
+    resourceLibrarySearchStatus !== undefined &&
+    resourceLibrarySearchStatus !== "ok" &&
+    resourceLibrarySearchStatus !== "skipped"
+  ) {
+    failures.push(
+      `expected resource library search check ok or skipped, got ${resourceLibrarySearchStatus}`
+    );
+  }
+
   return failures;
 }
 

@@ -55,6 +55,7 @@ describe("scripts/probe-production", () => {
           database: { status: "ok" },
           env: { status: "ok" },
           embedding: { status: "skipped" },
+          resourceLibrarySearch: { status: "skipped" },
         },
       }),
       [`${baseUrl}/api/search?q=ai&limit=5`]: jsonResponse({
@@ -117,6 +118,40 @@ describe("scripts/probe-production", () => {
 
     expect(results[0]?.ok).toBe(false);
     expect(results[0]?.detail).toContain("expected embedding check skipped");
+    expect(() => assertProbePassed(results)).toThrow("Production probe failed");
+  });
+
+  it("flags resource library search health errors when the latest health payload reports them", async () => {
+    const { runProductionProbe, assertProbePassed } = await importProbeModule();
+    const baseUrl = "https://nav-site.example";
+    const fetchImpl = makeFetch({
+      [`${baseUrl}/api/health`]: jsonResponse({
+        status: "healthy",
+        checks: {
+          database: { status: "ok" },
+          env: { status: "ok" },
+          embedding: { status: "skipped" },
+          resourceLibrarySearch: { status: "error" },
+        },
+      }),
+    });
+
+    const results = await runProductionProbe({
+      config: {
+        baseUrl,
+        timeoutMs: 1000,
+        expectEmbeddingSkipped: true,
+        expectedCommit: "",
+        retries: 1,
+        retryDelayMs: 1,
+      },
+      endpoints: [{ name: "health", path: "/api/health", contentType: /application\/json/i, json: "health" }],
+      fetchImpl,
+      waitImpl: async () => {},
+    });
+
+    expect(results[0]?.ok).toBe(false);
+    expect(results[0]?.detail).toContain("expected resource library search check ok or skipped");
     expect(() => assertProbePassed(results)).toThrow("Production probe failed");
   });
 

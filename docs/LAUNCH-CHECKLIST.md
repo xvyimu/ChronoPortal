@@ -1,8 +1,10 @@
 # 发布检查清单
 
-> 最后更新：2026-07-06
+> 最后更新：2026-07-09
 > 当前 release line：`master`
 > 目标分支：`master`
+
+生产发布、故障处理、Netlify credit 和回滚步骤见 [生产运行手册](./PRODUCTION-RUNBOOK.md)。
 
 ## 当前结论
 
@@ -21,6 +23,7 @@
 | 生产部署手动门禁 | 通过 | `master` push 只验证代码；Netlify 生产部署、分支镜像和 deploy 后 link-check 仅在手动运行 `CI 检查 / 手动 Netlify 部署` 时执行 |
 | Netlify 分支构建门禁 | 通过 | `netlify.toml` 使用 `build.ignore` 调用 `scripts/netlify-ignore-build.mjs`；默认只有 `main` 分支继续构建，其他分支跳过 |
 | embedding 健康检查 | 通过 | 未配置 `EMBED_SERVER_URL` 时 `/api/health` 标记 `embedding=skipped`；Netlify/Serverless 运行时即使残留 loopback `EMBED_SERVER_URL` 也默认跳过，除非显式设置 `EMBED_SERVER_LOOPBACK_ENABLED=true`；本地/自托管显式配置后才探测本地服务 |
+| Resource Library 健康检查 | 通过 | `/api/health` 暴露 `resourceLibrarySearch`；配置公开 anon key 时调用 `resource_search_health`，缺 key 时 `skipped`，不使用 service role 做健康探针 |
 | Supabase timeout 降级 | 通过 | 首页数据读取使用 `AbortSignal.timeout(15000)`；Supabase 短时不可达时降级为空数据而不是挂起构建/请求 |
 | migration apply 兜底 | 通过 | `pnpm db:reviews:apply` 支持 `DATABASE_URL`/`SUPABASE_DB_URL`，优先 Supabase CLI，失败后回退 `psql`；无 DB URL 时可用 linked Supabase 项目 |
 | 生产探针抗抖动 | 通过 | `scripts/probe-production.mjs` 默认对网络错误、408/425/429/5xx 做 1 次轻量重试；commit mismatch、404、健康语义不符等真实失败不会被重试掩盖 |
@@ -68,7 +71,7 @@
 3. 在 GitHub Actions 手动运行 `CI 检查 / 手动 Netlify 部署`，确认 deploy job 成功，并继续跑到 `link-check`。
 4. 复验生产主站：
    - `/` 返回 200。
-   - `/api/health` 返回 200；未配置 `EMBED_SERVER_URL`，或在 Netlify/Serverless 上残留 loopback `EMBED_SERVER_URL` 时，`checks.embedding.status=skipped`。
+   - `/api/health` 返回 200；未配置 `EMBED_SERVER_URL`，或在 Netlify/Serverless 上残留 loopback `EMBED_SERVER_URL` 时，`checks.embedding.status=skipped`；`checks.resourceLibrarySearch.status` 应为 `ok` 或 `skipped`。
    - `/build-info.json` 的 `commit` 与本次发布 commit 匹配。
    - `/api/search?q=ai&limit=5` 返回 JSON。
    - `/tool/figma` 可渲染。
