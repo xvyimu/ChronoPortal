@@ -12,6 +12,7 @@ export const RESOURCE_LIBRARY_URL =
 export const DOMAIN_CATEGORY = Object.freeze({
   "dev.to": "Other",
   "www.reddit.com": "Other",
+  "news.ycombinator.com": "Other",
   "blog.csdn.net": "Other",
   "www.cnblogs.com": "Other",
   "juejin.cn": "Other",
@@ -28,6 +29,7 @@ export const DOMAIN_CATEGORY = Object.freeze({
   "nextjs.org": "Frontend",
   "developer.mozilla.org": "Frontend",
 });
+
 
 export function stripHtml(input = "") {
   return String(input)
@@ -187,6 +189,45 @@ export function fromDevtoArticle(article) {
       category: undefined,
     },
     { source: "dev.to" }
+  );
+}
+
+/**
+ * Map HN Algolia hit → pages candidate.
+ * Prefer external url; fall back to HN item page.
+ */
+export function fromHnHit(hit) {
+  if (!hit || typeof hit !== "object") return null;
+  const objectId = hit.objectID != null ? String(hit.objectID) : "";
+  const external = hit.url || hit.story_url;
+  const url =
+    (typeof external === "string" && external.trim()) ||
+    (objectId ? `https://news.ycombinator.com/item?id=${objectId}` : "");
+  const title = hit.title || hit.story_title || "";
+  if (!title || !url) return null;
+
+  const tags = ["hackernews"];
+  if (Array.isArray(hit._tags)) {
+    for (const t of hit._tags) {
+      if (typeof t === "string" && t && t !== "story" && !t.startsWith("author_")) {
+        tags.push(t);
+      }
+    }
+  }
+
+  const summary =
+    hit.story_text ||
+    hit.comment_text ||
+    (hit.author ? `HN by ${hit.author}` : "Hacker News story");
+
+  return normalizePageCandidate(
+    {
+      title,
+      url,
+      description: String(summary).slice(0, 500),
+      tag_list: tags.slice(0, 12),
+    },
+    { source: "hn" }
   );
 }
 

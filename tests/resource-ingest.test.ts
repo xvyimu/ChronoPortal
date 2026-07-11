@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   canonicalizeUrl,
   fromDevtoArticle,
+  fromHnHit,
   normalizePageCandidate,
   pageSha256,
   planIngest,
@@ -79,5 +80,32 @@ describe("resource-ingest lib", () => {
       "url_exists",
       "url_exists",
     ]);
+  });
+
+  it("maps HN hits to external or item urls", () => {
+    const external = fromHnHit({
+      objectID: "1",
+      title: "Cool Paper",
+      url: "https://example.com/paper?utm_source=hn",
+      author: "pg",
+      _tags: ["story", "author_pg"],
+    }) as PageCandidate | null;
+    expect(external).not.toBeNull();
+    if (!external) return;
+    expect(external.url).toBe("https://example.com/paper");
+    expect(external.domain).toBe("example.com");
+    expect(external.tags).toContain("hackernews");
+
+    const itemOnly = fromHnHit({
+      objectID: "42",
+      title: "Ask HN: tools?",
+      url: null,
+      author: "x",
+      _tags: ["story", "ask_hn"],
+    }) as PageCandidate | null;
+    expect(itemOnly).not.toBeNull();
+    if (!itemOnly) return;
+    expect(itemOnly.url).toBe("https://news.ycombinator.com/item?id=42");
+    expect(itemOnly.domain).toBe("news.ycombinator.com");
   });
 });

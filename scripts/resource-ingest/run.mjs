@@ -19,13 +19,16 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { fetchDevtoArticles } from "./devto.mjs";
+import { fetchHnHits } from "./hn.mjs";
 import {
   RESOURCE_LIBRARY_URL,
   fromDevtoArticle,
+  fromHnHit,
   normalizePageCandidate,
   planIngest,
   stripMeta,
 } from "./lib.mjs";
+
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(__dirname, "../..");
@@ -54,6 +57,7 @@ function parseArgs(argv) {
   const args = {
     source: "devto",
     tag: "ai",
+    query: "programming",
     limit: 20,
     page: 1,
     fixture: null,
@@ -64,6 +68,7 @@ function parseArgs(argv) {
     const a = argv[i];
     if (a === "--source") args.source = argv[++i];
     else if (a === "--tag") args.tag = argv[++i];
+    else if (a === "--query") args.query = argv[++i];
     else if (a === "--limit") args.limit = Number(argv[++i]);
     else if (a === "--page") args.page = Number(argv[++i]);
     else if (a === "--fixture") args.fixture = argv[++i];
@@ -81,10 +86,11 @@ function printHelp() {
 
   node scripts/resource-ingest/run.mjs [options]
 
-  --source devto     public API source (default)
+  --source devto|hn  public API source (default devto)
   --tag <tag>        dev.to tag (default: ai)
+  --query <q>        HN Algolia query (default: programming; hn only)
   --limit <n>        1..100 (default: 20)
-  --page <n>         API page (default: 1)
+  --page <n>         page (devto 1-based; hn 0-based after clamp)
   --fixture <path>   offline JSON array of articles / page-like objects
   --write            actually insert (requires RESOURCE_LIBRARY_SERVICE_ROLE_KEY)
   --json             machine-readable summary on stdout
@@ -113,6 +119,18 @@ async function loadCandidates(args) {
       page: args.page,
     });
     return articles.map(fromDevtoArticle);
+  }
+
+  if (args.source === "hn") {
+    // Algolia pages are 0-based; CLI --page defaults to 1 for devto — map 1→0
+    const hnPage = Math.max(0, Number(args.page) >= 1 ? Number(args.page) - 1 : Number(args.page) || 0);
+    const hits = await fetchHnHits({
+      query: args.query || args.tag || "programming",
+      perPage: args.limit,
+      page: hnPage,
+      tags: "story",
+    });
+    return hits.map(fromHnHit);
   }
 
   throw new Error(`unsupported source: ${args.source}`);
@@ -228,6 +246,7 @@ function emitSummary(args, mode, candidates, plan, dedupeSource, { inserted }) {
     mode,
     source: args.fixture ? `fixture:${args.fixture}` : args.source,
     tag: args.tag,
+    query: args.source === "hn" ? args.query : undefined,
     fetched: candidates.length,
     toInsert: plan.toInsert.length,
     skipped: plan.skipped.length,
@@ -254,7 +273,12 @@ function emitSummary(args, mode, candidates, plan, dedupeSource, { inserted }) {
   console.log("\n=== Resource Library ingest ===");
   console.log(`mode:         ${summary.mode}`);
   console.log(`source:       ${summary.source}`);
-  if (!args.fixture) console.log(`tag/limit:    ${args.tag} / ${args.limit}`);
+  if (!args.fixture && args.source === "devto") {
+    console.log(`tag/limit:    ${args.tag} / ${args.limit}`);
+  }
+  if (!args.fixture && args.source === "hn") {
+    console.log(`query/limit:  ${args.query} / ${args.limit}`);
+  }
   console.log(`fetched:      ${summary.fetched}`);
   console.log(`toInsert:     ${summary.toInsert}`);
   console.log(`skipped:      ${summary.skipped}`);
