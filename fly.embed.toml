@@ -1,0 +1,34 @@
+# fly.embed.toml — production notes for remote BGE embed
+# Health checks are unauthenticated GET /health (server allows this on purpose).
+# POST /embed* always require Bearer when EMBED_SERVER_API_KEY is set.
+
+app = "nav-site-embed"
+primary_region = "nrt"
+
+[build]
+  dockerfile = "Dockerfile.embed"
+  ignorefile = ".dockerignore.embed"
+
+[env]
+  EMBED_PORT = "8003"
+  EMBEDDING_MODEL = "BAAI/bge-small-zh-v1.5"
+
+[http_service]
+  internal_port = 8003
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "120s"
+    method = "GET"
+    path = "/health"
+
+[[vm]]
+  size = "shared-cpu-2x"
+  memory = "2048mb"
+  cpus = 2

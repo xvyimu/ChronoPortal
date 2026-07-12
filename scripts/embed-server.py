@@ -3,35 +3,55 @@
 嵌入微服务 — 为 nav-site 提供实时 embedding 生成
 
 用于新增/更新链接时自动生成 pgvector 向量，无需每次重新加载模型。
+也支持挂到 Fly/Railway/VPS 作为远程 HTTPS 服务（需配置 EMBED_SERVER_API_KEY）。
 
 端点：
   GET  /health          → {"status": "ok", "dim": 512, "model": "BAAI/bge-small-zh-v1.5"}
   POST /embed           → {"embedding": [0.0123, ...], "dim": 512}
+  POST /embed-query     → same, with BGE query instruction prefix
   POST /embed-batch     → {"embeddings": [[0.0123, ...], ...], "count": N}
+
+鉴权：
+  若设置环境变量 EMBED_SERVER_API_KEY：
+    - GET /health、/healthz 公开（平台探针）
+    - 其余路由必须 Authorization: Bearer <key>
+  未设置时全部开放（适合本机 loopback）。
 
 用法：
   python scripts/embed-server.py            # 默认 127.0.0.1:8003
   python scripts/embed-server.py --port 8003
+  EMBED_SERVER_API_KEY=secret python scripts/embed-server.py --host 0.0.0.0
 """
 
-import os, sys, time, argparse
+import os, time, argparse, secrets
 from sentence_transformers import SentenceTransformer
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-app = FastAPI(title="nav-site embed service", version="1.0.0")
+app = FastAPI(title="nav-site embed service", version="1.2.1")
 
 # ── 配置 ──
 EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "BAAI/bge-small-zh-v1.5")
 DEFAULT_PORT = int(os.environ.get("EMBED_PORT", "8003"))
 MAX_TEXT_CHARS = int(os.environ.get("EMBED_MAX_TEXT_CHARS", "2000"))
 MAX_BATCH_SIZE = int(os.environ.get("EMBED_MAX_BATCH_SIZE", "32"))
+EMBED_SERVER_API_KEY = (os.environ.get("EMBED_SERVER_API_KEY") or "").strip()
 
 # BGE query instruction prefix (language-matched to model)
-# bge-small-zh-v1.5 uses Chinese prefix for Chinese model
 BGE_QUERY_PREFIX = "为这个句子生成表示以用于检索相关文章："
 
-# ── 模型（懒加载） ──
+PUBLIC_PATHS = frozenset({"/health", "/healthz"})
+
+
+def embedding_dim(m: SentenceTransformer) -> int:
+    dim = m.get_sentence_embedding_dimension()
+    if dim is None:
+        raise RuntimeError("model embedding dimension is None")
+    return int(dim)
+
+
+# ── 模型（懒加载 + 启动预热） ──
 model: SentenceTransformer | None = None
 _model_loaded = False
 
@@ -42,13 +62,40 @@ def get_model() -> SentenceTransformer:
         print(f"loading model {EMBEDDING_MODEL}...", end=" ", flush=True)
         t0 = time.time()
         model = SentenceTransformer(EMBEDDING_MODEL, trust_remote_code=False)
-        print(f"{time.time() - t0:.1f}s (dim={model.get_embedding_dimension()})")
+        print(f"{time.time() - t0:.1f}s (dim={embedding_dim(model)})")
         _model_loaded = True
     assert model is not None
     return model
 
 
-# ── Schema ──
+def _extract_bearer(request: Request) -> str | None:
+    auth = request.headers.get("authorization") or request.headers.get("Authorization")
+    if not auth:
+        return None
+    parts = auth.split(None, 1)
+    if len(parts) != 2 or parts[0].lower() != "bearer":
+        return None
+    return parts[1].strip() or None
+
+
+def _is_public_path(path: str) -> bool:
+    normalized = path.rstrip("/") or "/"
+    return normalized in PUBLIC_PATHS
+
+
+@app.middleware("http")
+async def require_api_key(request: Request, call_next):
+    """When EMBED_SERVER_API_KEY is set, protect non-health routes."""
+    if EMBED_SERVER_API_KEY and not _is_public_path(request.url.path):
+        provided = _extract_bearer(request)
+        if provided is None or not secrets.compare_digest(provided, EMBED_SERVER_API_KEY):
+            return JSONResponse(status_code=401, content={"detail": "unauthorized"})
+    return await call_next(request)
+
+
+@app.on_event("startup")
+def preload_model() -> None:
+    get_model()
 
 
 class EmbedRequest(BaseModel):
@@ -68,13 +115,11 @@ def normalize_text(text: str) -> str:
     return text
 
 
-# ── 端点 ──
-
-
 @app.get("/health")
+@app.get("/healthz")
 def health():
     m = get_model()
-    return {"status": "ok", "dim": m.get_embedding_dimension(), "model": EMBEDDING_MODEL}
+    return {"status": "ok", "dim": embedding_dim(m), "model": EMBEDDING_MODEL}
 
 
 @app.post("/embed")
@@ -108,9 +153,6 @@ def embed_batch(req: EmbedBatchRequest):
     return {"embeddings": vecs.tolist(), "count": len(vecs), "dim": vecs.shape[1]}
 
 
-# ── 入口 ──
-
-
 def main():
     parser = argparse.ArgumentParser(description="nav-site embed microservice")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT, help=f"port (default {DEFAULT_PORT})")
@@ -118,8 +160,10 @@ def main():
     args = parser.parse_args()
 
     import uvicorn
+
     port = int(os.environ.get("EMBED_PORT", args.port))
-    print(f"[embed-server] {EMBEDDING_MODEL} on {args.host}:{port}")
+    auth_mode = "api-key (health public)" if EMBED_SERVER_API_KEY else "open"
+    print(f"[embed-server] {EMBEDDING_MODEL} on {args.host}:{port} auth={auth_mode}")
     uvicorn.run(app, host=args.host, port=port, log_level="info", reload=False)
 
 

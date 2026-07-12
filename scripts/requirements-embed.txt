@@ -1,0 +1,6 @@
+# Embed microservice only (not the Next.js app)
+sentence-transformers==3.4.1
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+pydantic==2.11.3
+# torch installed separately from CPU wheel index in Dockerfile.embed

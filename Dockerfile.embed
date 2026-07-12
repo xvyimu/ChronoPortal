@@ -1,0 +1,69 @@
+# nav-site embed microservice — BGE-small-zh-v1.5 (512-d)
+# Production: HTTPS via Fly proxy + EMBED_SERVER_API_KEY on POST routes
+# GET /health stays public for platform checks.
+#
+# Build (clear host proxy leak into build containers):
+#   docker build --network=host \
+#     --build-arg http_proxy= --build-arg https_proxy= \
+#     --build-arg HTTP_PROXY= --build-arg HTTPS_PROXY= \
+#     -f Dockerfile.embed -t nav-site-embed:local .
+FROM python:3.11-slim-bookworm
+
+# Neutralize broken host proxies (e.g. 127.0.0.1:7897 clash) for build & runtime layers
+ARG http_proxy=
+ARG https_proxy=
+ARG HTTP_PROXY=
+ARG HTTPS_PROXY=
+ARG ALL_PROXY=
+ARG all_proxy=
+ENV http_proxy= \
+    https_proxy= \
+    HTTP_PROXY= \
+    HTTPS_PROXY= \
+    ALL_PROXY= \
+    all_proxy= \
+    no_proxy=* \
+    NO_PROXY=* \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    OMP_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1 \
+    EMBED_PORT=8003 \
+    EMBEDDING_MODEL=BAAI/bge-small-zh-v1.5 \
+    HF_HOME=/models \
+    TRANSFORMERS_CACHE=/models \
+    SENTENCE_TRANSFORMERS_HOME=/models \
+    HF_HUB_DISABLE_TELEMETRY=1 \
+    HF_HUB_OFFLINE=1 \
+    TRANSFORMERS_OFFLINE=1
+
+WORKDIR /app
+
+COPY scripts/requirements-embed.txt /app/requirements-embed.txt
+
+# CPU torch first, then app deps. No apt packages required (wheels only).
+RUN pip install --upgrade pip \
+ && pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 \
+ && pip install -r /app/requirements-embed.txt
+
+COPY scripts/embed-server.py /app/embed-server.py
+
+# Bake model weights while online; runtime stays offline (HF_HUB_OFFLINE=1).
+RUN mkdir -p /models \
+ && HF_HUB_OFFLINE=0 TRANSFORMERS_OFFLINE=0 \
+    python -c "from sentence_transformers import SentenceTransformer; \
+m=SentenceTransformer('BAAI/bge-small-zh-v1.5', trust_remote_code=False); \
+assert m.get_sentence_embedding_dimension()==512, m.get_sentence_embedding_dimension(); \
+print('ok dim', m.get_sentence_embedding_dimension())"
+
+RUN useradd -m -u 10001 embed \
+ && chown -R embed:embed /app /models
+USER embed
+
+EXPOSE 8003
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8003/health', timeout=4)"
+
+CMD ["python", "embed-server.py", "--host", "0.0.0.0", "--port", "8003"]

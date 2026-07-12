@@ -1,0 +1,7 @@
+# Keep embed image small and deterministic: only what Dockerfile.embed needs.
+*
+!scripts/
+!scripts/embed-server.py
+!scripts/requirements-embed.txt
+!Dockerfile.embed
+!fly.embed.toml
