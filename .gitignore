@@ -89,3 +89,14 @@ scripts/_embed.err.txt
 scripts/_embed.out.txt
 scripts/_next.err.txt
 scripts/_next.out.txt
+.vercel-env-values.local
+.embed-native.pid
+.embed-native.out.log
+.embed-native.err.log
+.cloudflared-named.pid
+.cloudflared-named.out.log
+.cloudflared-named.err.log
+.cloudflared-embed-config.yml
+.cloudflared-login.log
+.cloudflared-login.err.log
+.embed-proxy-url.local

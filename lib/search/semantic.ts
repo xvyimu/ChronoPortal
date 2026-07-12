@@ -1,5 +1,9 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { describeEmbedSkipReason, resolveLoopbackEmbedEndpoint } from "@/lib/embedding-runtime";
+import {
+  buildEmbedRequestHeaders,
+  describeEmbedSkipReason,
+  resolveEmbedEndpoint,
+} from "@/lib/embedding-runtime";
 import { logger } from "@/lib/logger";
 import type { NavLink } from "@/lib/types";
 import type { SearchResult, SemanticRow } from "./types";
@@ -8,7 +12,7 @@ import type { SearchResult, SemanticRow } from "./types";
  * 嵌入向量 + pgvector 语义搜索
  *
  * 这里隔离了两件外部依赖：
- * 1. 本地嵌入微服务（EMBED_SERVER_URL，必须 loopback）；
+ * 1. 嵌入微服务（EMBED_SERVER_URL：loopback，或 HTTPS + EMBED_SERVER_API_KEY）；
  * 2. Supabase 的 `search_links_semantic` RPC（service_role 客户端调用）。
  *
  * 任意一处失败都返回空数组，让上层降级为纯 Fuse 排序，
@@ -17,7 +21,7 @@ import type { SearchResult, SemanticRow } from "./types";
 
 const DEFAULT_EMBED_SERVER_URL = "http://127.0.0.1:8003";
 const MIN_SEMANTIC_SIMILARITY = 0.35;
-const EMBED_REQUEST_TIMEOUT_MS = 5000;
+const EMBED_REQUEST_TIMEOUT_MS = 10000;
 const EMBED_UNAVAILABLE_TTL_MS = 30_000;
 const EMBED_WARNING_THROTTLE_MS = 60_000;
 
@@ -52,11 +56,12 @@ function clearTemporarilyUnavailable(endpoint: string): void {
 /**
  * 解析 EMBED_SERVER_URL 为 /embed-query 完整端点。
  *
- * 安全约束：必须是 http/https 且 host 为 loopback，
- * 避免被环境变量误导去打外部地址。
+ * 允许：
+ * - loopback http/https（serverless 默认禁用，除非 EMBED_SERVER_LOOPBACK_ENABLED）
+ * - 远程 HTTPS + EMBED_SERVER_API_KEY
  */
 export function getEmbedEndpoint(): string | null {
-  const { endpoint, reason } = resolveLoopbackEmbedEndpoint({
+  const { endpoint, reason } = resolveEmbedEndpoint({
     raw: process.env.EMBED_SERVER_URL,
     fallback: DEFAULT_EMBED_SERVER_URL,
     path: "/embed-query",
@@ -75,7 +80,7 @@ export function getEmbedEndpoint(): string | null {
 }
 
 /**
- * 调用本地嵌入微服务生成向量
+ * 调用嵌入微服务生成向量
  *
  * @param text - 需要向量化的文本
  * @returns 512 维归一化向量数组，失败时返回 null
@@ -88,7 +93,7 @@ export async function getEmbedding(text: string): Promise<number[] | null> {
   try {
     const res = await fetch(endpoint, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: buildEmbedRequestHeaders({ json: true }),
       body: JSON.stringify({ text }),
       signal: AbortSignal.timeout(EMBED_REQUEST_TIMEOUT_MS),
     });

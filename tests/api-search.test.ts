@@ -75,10 +75,13 @@ describe("/api/search", () => {
     vi.resetModules();
     vi.clearAllMocks();
     delete process.env.EMBED_SERVER_URL;
+    delete process.env.EMBED_SERVER_API_KEY;
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    delete process.env.EMBED_SERVER_URL;
+    delete process.env.EMBED_SERVER_API_KEY;
   });
 
   it("rejects oversized queries before loading search data", async () => {
@@ -106,7 +109,7 @@ describe("/api/search", () => {
     expect(getApprovedLinks).not.toHaveBeenCalled();
   });
 
-  it("does not send semantic queries to non-loopback embedding services", async () => {
+  it("does not send semantic queries to remote HTTPS without API key", async () => {
     process.env.EMBED_SERVER_URL = "https://embeddings.example.com";
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
@@ -121,6 +124,58 @@ describe("/api/search", () => {
     expect(body.mode).toBe("semantic");
     expect(fetchMock).not.toHaveBeenCalled();
     expect(createServiceRoleClient).not.toHaveBeenCalled();
+  });
+
+  it("sends semantic queries to remote HTTPS with Bearer API key", async () => {
+    process.env.EMBED_SERVER_URL = "https://embeddings.example.com";
+    process.env.EMBED_SERVER_API_KEY = "remote-secret";
+    const embedding = Array.from({ length: 512 }, (_, i) => (i === 0 ? 1 : 0));
+    const fetchMock = vi.fn(async () =>
+      new Response(JSON.stringify({ embedding, dim: 512 }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    rpc.mockResolvedValueOnce({
+      data: [
+        {
+          id: sampleLinks[0].id,
+          title: sampleLinks[0].title,
+          url: sampleLinks[0].url,
+          description: sampleLinks[0].description,
+          icon: null,
+          category_name: sampleLinks[0].category_name,
+          category_slug: sampleLinks[0].category_slug,
+          featured: true,
+          paid: false,
+          click_count: 10,
+          similarity: 0.9,
+        },
+      ],
+      error: null,
+    });
+
+    const { GET } = await import("@/app/api/search/route");
+    const response = await GET(
+      new NextRequest("http://localhost/api/search?q=openai&semantic=true")
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://embeddings.example.com/embed-query",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          "Content-Type": "application/json",
+          Authorization: "Bearer remote-secret",
+        }),
+        body: JSON.stringify({ text: "openai" }),
+      })
+    );
+    expect(createServiceRoleClient).toHaveBeenCalled();
+    expect(body.mode).toBe("semantic");
   });
 
   it("adds request telemetry without logging the raw query", async () => {
