@@ -4,26 +4,12 @@ import GitHub from "next-auth/providers/github";
 import { checkRateLimit, recordAttempt } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/utils";
 import { logger } from "@/lib/logger";
+import {
+  verifyAdminPassword,
+  describeAdminPasswordSource,
+} from "@/lib/admin-password";
 
-/**
- * 共享密码验证函数 — 供 Credentials provider 调用
- *
- * 使用 timingSafeEqual 防止时序攻击。
- * @returns true 如果密码匹配
- */
-export async function verifyAdminPassword(password: string): Promise<boolean> {
-  const adminPassword = process.env.ADMIN_PASSWORD;
-  if (!adminPassword) return false;
-
-  const encoder = new TextEncoder();
-  const a = encoder.encode(password);
-  const b = encoder.encode(adminPassword);
-
-  if (a.length !== b.length) return false;
-
-  const { timingSafeEqual } = await import("crypto");
-  return timingSafeEqual(a, b);
-}
+export { verifyAdminPassword } from "@/lib/admin-password";
 
 // 登录速率限制参数：每 IP 每 15 分钟最多 5 次尝试
 const LOGIN_MAX_ATTEMPTS = 5;
@@ -115,4 +101,5 @@ logger.debug("NextAuth configured with rate-limited Credentials authorize", {
   source: "auth",
   maxAttempts: LOGIN_MAX_ATTEMPTS,
   windowMs: LOGIN_WINDOW_MS,
+  passwordSource: describeAdminPasswordSource(),
 });

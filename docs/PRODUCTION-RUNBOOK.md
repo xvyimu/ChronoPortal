@@ -2,8 +2,9 @@
 
 > 最后更新：2026-07-12  
 > 适用项目：nav-site  
-> **当前生产入口：`https://nav-site-kappa.vercel.app`**（Vercel Hobby）  
-> 历史 Netlify：`https://nav-site.netlify.app` — credits 用尽，已迁 Vercel；勿空触发 Netlify deploy
+> **当前生产入口：`https://nav-site-kappa.vercel.app`**（Vercel Hobby · **唯一生产轨**）  
+> 历史 Netlify：`https://nav-site.netlify.app` — credits 用尽；`netlify.toml` ignore **默认跳过全部构建**。  
+> 紧急 Netlify 构建：设 `NETLIFY_FORCE_BUILD=1` 或 `NETLIFY_ALLOWED_BUILD_BRANCHES`
 
 ## 目标
 
@@ -51,7 +52,22 @@ powershell -NoProfile -File D:/nav-site/scripts/uninstall-embed-autostart.ps1
 Worker 重部署：`scripts/deploy-embed-proxy-worker.ps1`  
 
 **脆弱点：** 本机关机或 tunnel 断 → embedding 降级 FTS。改 Vercel `EMBED_SERVER_*` 后必须 redeploy。  
-**勿**把 `EMBED_SERVER_URL` 指回失效 `*.trycloudflare.com` quick tunnel。
+**勿**把 `EMBED_SERVER_URL` 指回失效 `*.trycloudflare.com` quick tunnel。  
+**云端路径：** 生产「云 embed」= Worker + Named Tunnel + 本机 BGE（Fly.io 绑卡拒绝；Docker 路径已清理）。见 `docs/embed-fly-deploy.md`。
+
+### 管理员密码（scrypt）
+
+```powershell
+# 生成哈希（勿把明文写进仓库）
+pnpm hash:admin-password
+# 或：node scripts/hash-admin-password.mjs "your-password"
+
+# Vercel Production env：
+#   ADMIN_PASSWORD_HASH=scrypt$16384$8$1$...
+# 配置 HASH 后删除 ADMIN_PASSWORD 明文，然后 redeploy
+```
+
+过渡期仅设 `ADMIN_PASSWORD` 仍可用（timingSafeEqual）；有 HASH 时只认哈希。
 
 ### 生产探针与系统代理
 

@@ -66,6 +66,16 @@ GET  https://nav-site-kappa.vercel.app/api/resource-search-status → vector:tru
 POST https://nav-site-kappa.vercel.app/api/resource-search  {"query":"...","mode":"vector"|"hybrid"}
 ```
 
+## Sprint C 结论（云 embed · 2026-07-12）
+
+「云端 embedding」在本项目的**可交付形态**不是 Fly/独立 GPU SaaS（绑卡拒绝），而是：
+
+1. **HTTPS 公网入口**（workers.dev）+ **API Key**
+2. **Named Tunnel** 把入口接到任意在线 origin（当前为本机 18003）
+3. **登录自启**降低本机冷启动空窗
+
+若日后需要真正 24/7 无本机依赖：把 origin 换成任意常驻 Linux/VPS 上的同一 `embed-server.py`（或 Docker `Dockerfile.embed`），**不必改 Vercel 代码**——只改 Tunnel 目标或 `EMBED_SERVER_URL`。
+
 ## 已完成
 
 - [x] ADR-005 远程 HTTPS + Bearer
@@ -74,11 +84,12 @@ POST https://nav-site-kappa.vercel.app/api/resource-search  {"query":"...","mode
 - [x] Cloudflare Named Tunnel + DNS `embed.aijiaqi.ccwu.cc`
 - [x] Worker 反代 `nav-site-embed-proxy`（绕 Bot Fight）
 - [x] Vercel `EMBED_SERVER_URL` → workers.dev + redeploy
-- [x] 生产 embedding=ok / vector 检索可用（2026-07-12 deploy `dpl_4YdkTxZE…`）
+- [x] 生产 embedding=ok / vector 检索可用（2026-07-12）
 - [x] 启停脚本：`start|stop-embed-native.ps1`、`start|stop-embed-tunnel.ps1`
 - [x] `ensure-embed-stack` + 登录计划任务自启
 - [x] 客户端 UA：`nav-site-embed-client/1.0`（`lib/embedding-runtime.ts`）
 - [x] 资源库 B6 hybrid RRF（`mode=hybrid`）
+- [x] Sprint C：文档固化「云路径」= Worker+Tunnel；Fly 仍为可选备胎
 
 ## 路径对照（历史）
 

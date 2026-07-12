@@ -1,6 +1,19 @@
-const DEFAULT_ALLOWED_BRANCHES = "main";
+/**
+ * Netlify ignore 脚本 — 生产单轨为 Vercel 后，默认跳过所有 Netlify 构建。
+ *
+ * Netlify ignore 约定：exit 0 = 跳过构建；exit 1 = 继续构建。
+ *
+ * 放行条件（任一）：
+ * - NETLIFY_FORCE_BUILD=1|true|yes|on
+ * - NETLIFY_ALLOWED_BUILD_BRANCHES 显式包含当前分支（且未设 FORCE 时仍可放行）
+ *
+ * 默认：无 FORCE 且未配置允许分支 → 跳过（省 credit、避免双轨漂移）。
+ * 若配置了 NETLIFY_ALLOWED_BUILD_BRANCHES，则仅这些分支继续构建。
+ */
 
-export function parseAllowedBranches(value = DEFAULT_ALLOWED_BRANCHES) {
+const TRUE_VALUES = new Set(["1", "true", "yes", "on"]);
+
+export function parseAllowedBranches(value = "") {
   return value
     .split(",")
     .map((branch) => branch.trim())
@@ -11,21 +24,40 @@ export function detectBranch(env = process.env) {
   return env.BRANCH || env.HEAD || env.NETLIFY_BRANCH || "";
 }
 
-export function shouldIgnoreBuild(env = process.env) {
-  const branch = detectBranch(env);
-  const allowedBranches = parseAllowedBranches(env.NETLIFY_ALLOWED_BUILD_BRANCHES);
+function isTruthy(value) {
+  return TRUE_VALUES.has(String(value ?? "").toLowerCase());
+}
 
-  if (!branch) {
+export function shouldIgnoreBuild(env = process.env) {
+  if (isTruthy(env.NETLIFY_FORCE_BUILD)) {
     return {
       ignore: false,
-      reason: "branch is unknown; continuing build to avoid skipping a production deploy",
+      reason: "NETLIFY_FORCE_BUILD is set; continuing Netlify build",
+    };
+  }
+
+  const allowedBranches = parseAllowedBranches(env.NETLIFY_ALLOWED_BUILD_BRANCHES);
+  if (allowedBranches.length === 0) {
+    return {
+      ignore: true,
+      reason:
+        "production track is Vercel; Netlify builds skipped by default (set NETLIFY_FORCE_BUILD=1 or NETLIFY_ALLOWED_BUILD_BRANCHES to override)",
+    };
+  }
+
+  const branch = detectBranch(env);
+  if (!branch) {
+    return {
+      ignore: true,
+      reason:
+        "branch is unknown and Netlify is not primary; skipping to protect credits",
     };
   }
 
   if (allowedBranches.includes(branch)) {
     return {
       ignore: false,
-      reason: `branch ${branch} is allowed`,
+      reason: `branch ${branch} is allowlisted for Netlify`,
     };
   }
 

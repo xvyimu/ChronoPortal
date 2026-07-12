@@ -1,3 +1,6 @@
+# 生产单轨：Vercel（nav-site-kappa.vercel.app）。
+# Netlify 配置仅作历史镜像 / 紧急回退；默认 ignore 跳过全部构建以省 credit。
+# 强制构建：在 Netlify UI 设 NETLIFY_FORCE_BUILD=1，或设 NETLIFY_ALLOWED_BUILD_BRANCHES。
 [build]
   command = "npm i -g pnpm@11.5.0 && pnpm build"
   ignore = "node ./scripts/netlify-ignore-build.mjs"

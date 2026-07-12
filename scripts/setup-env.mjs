@@ -48,7 +48,8 @@ async function main() {
   const required = [
     { key: "NEXT_PUBLIC_SUPABASE_ANON_KEY", label: "生产库 Supabase anon key" },
     { key: "NEXT_PUBLIC_SUPABASE_ANON_KEY_DEV", label: "开发库 Supabase anon key" },
-    { key: "ADMIN_PASSWORD", label: "管理面板密码" },
+    { key: "ADMIN_PASSWORD_HASH", label: "管理面板密码 scrypt 哈希（pnpm hash:admin-password）" },
+    { key: "ADMIN_PASSWORD", label: "管理面板明文密码（过渡用，有 HASH 可留空）" },
     { key: "NEXT_PUBLIC_SITE_URL", label: "站点 URL" },
   ];
 

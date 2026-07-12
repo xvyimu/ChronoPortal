@@ -42,14 +42,14 @@ Authorization: Bearer <key>   # 与上相同策略
 
 维数与模型必须与入库向量一致（512 + 同一 BGE）。
 
-## 生产配置（Netlify）
+## 生产配置（Vercel · 当前）
 
 ```text
-EMBED_SERVER_URL=https://<your-embed-host>
+EMBED_SERVER_URL=https://nav-site-embed-proxy.xiej4352.workers.dev
 EMBED_SERVER_API_KEY=<long-random-secret>
 ```
 
-不要设置 `EMBED_SERVER_LOOPBACK_ENABLED`。不要用远程 HTTP。
+历史 Netlify 同构变量；生产单轨已迁 Vercel。不要设置 `EMBED_SERVER_LOOPBACK_ENABLED`。不要用远程 HTTP。
 
 ## 拒绝的替代
 

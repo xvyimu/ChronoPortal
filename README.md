@@ -15,7 +15,7 @@
 | 动画 | Motion (Framer Motion) | — |
 | 监控 | Sentry (client/server/edge) | — |
 | 测试 | Vitest (单元) + Playwright (E2E) | — |
-| 部署 | Netlify | — |
+| 部署 | **Vercel**（生产单轨） | Hobby |
 
 ## 快速开始
 
@@ -25,7 +25,7 @@ pnpm install
 
 # 配置环境变量
 cp .env.local.example .env.local
-# 编辑 .env.local 填入 Supabase URL/KEY、AUTH_SECRET、ADMIN_PASSWORD 等
+# 编辑 .env.local 填入 Supabase URL/KEY、AUTH_SECRET、ADMIN_PASSWORD_HASH 等
 
 # 开发模式（端口 3264，webpack 模式）
 pnpm dev
@@ -47,10 +47,12 @@ pnpm start
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key | 是 |
 | `NEXT_PUBLIC_SITE_URL` | 站点 URL（用于 SEO） | 是 |
 | `AUTH_SECRET` | Auth.js 加密密钥 | 是 |
-| `ADMIN_PASSWORD` | 管理员密码 | 是 |
+| `ADMIN_PASSWORD_HASH` | 管理员密码 scrypt 哈希（推荐） | 是* |
+| `ADMIN_PASSWORD` | 管理员明文密码（仅当未设 HASH 时过渡用） | 否* |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key（服务端绕过 RLS） | 是 |
 | `SUPABASE_SERVICE_ROLE_KEY_PROD` | 生产库 service role key（优先于 `SUPABASE_SERVICE_ROLE_KEY`） | 否 |
-| `EMBED_SERVER_URL` | 本地 embedding 服务地址（默认 `http://127.0.0.1:8003`） | 否 |
+| `EMBED_SERVER_URL` | embedding 服务 URL（本地 `http://127.0.0.1:18003`；生产 HTTPS Worker） | 否 |
+| `EMBED_SERVER_API_KEY` | 远程 embedding Bearer（生产必填） | 否 |
 | `RESOURCE_LIBRARY_API_KEY` | Resource Library Edge Function API key（仅服务端使用） | 否 |
 | `RESOURCE_LIBRARY_ANON_KEY` | Resource Library anon key（公开读路径优先使用） | 否 |
 | `RESOURCE_LIBRARY_PUBLIC_PAGES_SOURCE` | Resource Library 公开页面 view/table（默认 `public_pages`） | 否 |

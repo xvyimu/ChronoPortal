@@ -8,6 +8,7 @@
     "build": "node scripts/write-build-info.mjs && next build --webpack",
     "start": "next start",
     "setup": "node scripts/setup-env.mjs",
+    "hash:admin-password": "node scripts/hash-admin-password.mjs",
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -39,6 +39,10 @@ yarn-error.log*
 .env*
 !.env.example
 !.env.local.example
+.admin-password-hash.local
+.embed-api-key.local
+.embed-autostart.log
+!.env.local.example
 
 # netlify (local state + build artifacts)
 .netlify
