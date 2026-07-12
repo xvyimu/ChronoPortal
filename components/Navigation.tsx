@@ -6,7 +6,6 @@ import { type Category, type NavLink } from "@/lib/types";
 import type { PrecomputedNavData } from "@/lib/nav-derived-data";
 import { HomeHero } from "./HomeHero";
 import { Sidebar } from "./Sidebar";
-import { ToolQuickView } from "./ToolQuickView";
 import { useLinksFilter } from "./useLinksFilter";
 import { AtlasWorkspace } from "./navigation/AtlasWorkspace";
 
@@ -14,6 +13,12 @@ const MobileNav = dynamic(() => import("./MobileNav").then((m) => m.MobileNav), 
   ssr: false,
   loading: () => null,
 });
+
+// 预览弹层含 Radix Dialog，仅首次打开时再拉入
+const ToolQuickView = dynamic(
+  () => import("./ToolQuickView").then((m) => m.ToolQuickView),
+  { ssr: false, loading: () => null },
+);
 
 export function Navigation({
   categories,

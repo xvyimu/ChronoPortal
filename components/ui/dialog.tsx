@@ -4,6 +4,7 @@ import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 const Dialog = DialogPrimitive.Root;
 const DialogTrigger = DialogPrimitive.Trigger;
@@ -35,6 +36,7 @@ const DialogContent = React.forwardRef<
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
+      // Radix Root 默认 modal，但 jsdom/部分版本不把 aria-modal 写到 DOM；显式保留以稳 a11y 与测试
       aria-modal="true"
       className={cn(
         "fixed left-1/2 top-1/2 z-[70] grid w-[calc(100%-1.5rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-3xl border border-[var(--paper-line)] bg-[var(--paper-surface)] p-5 text-[var(--paper-ink)] shadow-[0_30px_90px_rgba(61,74,90,0.24)] duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
@@ -44,12 +46,17 @@ const DialogContent = React.forwardRef<
     >
       {children}
       {showCloseButton && (
-        <DialogPrimitive.Close
-          className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--paper-line)] bg-[var(--paper-surface-soft)] text-[var(--paper-muted)] transition hover:bg-[var(--paper-accent-soft)] hover:text-[var(--paper-accent)] focus:outline-none focus:ring-2 focus:ring-ring"
-          aria-label="关闭"
-        >
-          <X className="h-4 w-4" />
-          <span className="sr-only">关闭</span>
+        <DialogPrimitive.Close asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-lg"
+            className="absolute right-4 top-4"
+            aria-label="关闭"
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">关闭</span>
+          </Button>
         </DialogPrimitive.Close>
       )}
     </DialogPrimitive.Content>

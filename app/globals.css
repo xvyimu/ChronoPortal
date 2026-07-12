@@ -188,7 +188,7 @@ body {
 
   --destructive: oklch(0.58 0.22 22);
   --border: var(--paper-line);
-  --input: oklch(0.93 0.005 260 / 10%);
+  --input: var(--paper-line);
   --ring: var(--paper-accent);
 
   --sidebar: oklch(0.13 0.01 260);
@@ -417,17 +417,6 @@ body {
 .dark .sidebar-link.active {
   background: oklch(0.25 0.03 250 / 0.35);
   color: oklch(0.95 0.01 260);
-}
-
-.sidebar-badge {
-  @apply inline-flex items-center justify-center rounded-full text-[11px] font-medium min-w-[20px] h-5 px-1.5;
-  background: color-mix(in srgb, var(--paper-accent) 10%, white);
-  color: var(--paper-muted);
-}
-
-.dark .sidebar-badge {
-  background: oklch(0.25 0.03 250 / 0.3);
-  color: oklch(0.7 0.15 250);
 }
 
 /* ===== Container queries 响应式卡片 ===== */

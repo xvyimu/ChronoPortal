@@ -158,7 +158,7 @@ export function ToolQuickView({ link, onClose }: ToolQuickViewProps) {
           </Button>
           <Button
             type="button"
-            variant="paper"
+            variant="outline"
             size="lg"
             className="flex-1"
             onClick={() => toggleFavorite(link.id)}

@@ -11,16 +11,14 @@ const buttonVariants = cva(
         default: "bg-primary text-primary-foreground hover:bg-primary/90",
         destructive: "bg-destructive text-white hover:bg-destructive/90",
         outline:
-          "border border-[var(--paper-line)] bg-[var(--paper-surface)] text-[var(--paper-ink)] hover:border-[var(--paper-accent)] hover:bg-[var(--paper-accent-soft)] hover:text-[var(--paper-accent)]",
+          "border border-border bg-card text-foreground hover:border-primary hover:bg-accent hover:text-primary",
         secondary:
-          "bg-[var(--paper-surface-soft)] text-[var(--paper-ink)] hover:bg-[var(--paper-accent-soft)] hover:text-[var(--paper-accent)]",
+          "bg-secondary text-secondary-foreground hover:bg-accent hover:text-primary",
         ghost:
-          "text-[var(--paper-muted)] hover:bg-[var(--paper-accent-soft)] hover:text-[var(--paper-accent)]",
+          "text-muted-foreground hover:bg-accent hover:text-primary",
         link: "text-primary underline-offset-4 hover:underline",
-        paper:
-          "border border-[var(--paper-line)] bg-[var(--paper-surface-soft)] text-[var(--paper-ink)] hover:border-[var(--paper-accent)] hover:text-[var(--paper-accent)]",
         accent:
-          "bg-[var(--paper-accent)] text-[var(--paper-surface)] hover:bg-[#4f739e]",
+          "bg-primary text-primary-foreground hover:bg-primary/90",
       },
       size: {
         default: "h-9 px-4 py-2",
@@ -58,4 +56,4 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 );
 Button.displayName = "Button";
 
-export { Button, buttonVariants };
+export { Button };

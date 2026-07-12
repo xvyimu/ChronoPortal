@@ -64,7 +64,7 @@ export function Sidebar({
 
   const handleSelect = (key: string) => {
     onSelect(key);
-    if (typeof window !== "undefined" && window.innerWidth < 768) onClose();
+    if (window.innerWidth < 768) onClose();
   };
 
   const renderTab = (tab: SidebarTabNode, isChild = false): ReactNode => {
@@ -102,7 +102,7 @@ export function Sidebar({
               {tab.label}
             </span>
             {tab.count > 0 && (
-              <Badge variant="soft" className="sidebar-badge min-w-[20px] border-0 px-1.5">
+              <Badge variant="soft" className="min-w-[20px] justify-center border-0 px-1.5">
                 {tab.count}
               </Badge>
             )}
