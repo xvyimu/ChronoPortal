@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { getEmbedding } from "@/lib/search/semantic";
+import { mergeResourceHybrid } from "@/lib/resource-search-merge";
 import type { ResourceItem } from "@/lib/types";
 
 const SEARCH_API =
@@ -13,8 +14,6 @@ const RESOURCE_SEARCH_API_KEY =
 const SEARCH_TIMEOUT_MS = 8000;
 const EXPECTED_EMBED_DIM = 512;
 const SEARCH_CACHE_CONTROL = "no-store";
-/** RRF constant (Cormack et al.) — same as nav link hybrid merge */
-const RRF_K = 60;
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -97,47 +96,6 @@ function isValidEmbedding(value: number[] | null): value is number[] {
     value.length === EXPECTED_EMBED_DIM &&
     value.every((n) => typeof n === "number" && Number.isFinite(n))
   );
-}
-
-/**
- * Lightweight RRF merge for resource library vector + FTS lists.
- * Exported for unit tests.
- */
-export function mergeResourceHybrid(
-  vector: ResourceItem[],
-  fts: ResourceItem[],
-  limit: number
-): ResourceItem[] {
-  if (vector.length === 0 && fts.length === 0) return [];
-  if (vector.length === 0) return fts.slice(0, limit);
-  if (fts.length === 0) return vector.slice(0, limit);
-
-  const scores = new Map<string, { item: ResourceItem; score: number }>();
-
-  const addRank = (results: ResourceItem[]) => {
-    for (let rank = 0; rank < results.length; rank += 1) {
-      const item = results[rank];
-      const rrf = 1 / (RRF_K + rank + 1);
-      const existing = scores.get(item.id);
-      if (existing) {
-        existing.score += rrf;
-        // keep the stronger source rank for display
-        if (item.rank > existing.item.rank) {
-          existing.item = { ...item, rank: existing.score };
-        }
-      } else {
-        scores.set(item.id, { item, score: rrf });
-      }
-    }
-  };
-
-  addRank(vector);
-  addRank(fts);
-
-  return Array.from(scores.values())
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit)
-    .map(({ item, score }) => ({ ...item, rank: score }));
 }
 
 async function upstreamSearch(body: Record<string, unknown>): Promise<{
