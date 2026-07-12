@@ -1,10 +1,19 @@
 "use client";
 
-import { useRef } from "react";
 import { ExternalLink, Globe, Heart, Sparkles, Star, Tags, X } from "lucide-react";
 import { useFavoritesContext } from "@/components/FavoritesProvider";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { extractDomain, isSafeUrl } from "@/lib/utils";
-import { useDialogFocus } from "@/lib/use-dialog-focus";
 import { trackClick } from "@/lib/track-click";
 import type { NavLink } from "@/lib/types";
 
@@ -14,17 +23,7 @@ interface ToolQuickViewProps {
 }
 
 export function ToolQuickView({ link, onClose }: ToolQuickViewProps) {
-  const closeRef = useRef<HTMLButtonElement>(null);
-  const dialogRef = useRef<HTMLDivElement>(null);
   const { isFavorite, toggleFavorite } = useFavoritesContext();
-
-  // 焦点陷阱 + Escape 关闭 + 焦点恢复（抽到 lib/use-dialog-focus.ts）
-  useDialogFocus({
-    open: link !== null,
-    onClose,
-    dialogRef,
-    closeRef,
-  });
 
   if (!link) return null;
 
@@ -34,7 +33,6 @@ export function ToolQuickView({ link, onClose }: ToolQuickViewProps) {
   const rating = typeof link.avg_rating === "number" ? link.avg_rating : null;
   const tags = link.tags ?? [];
 
-  /** 显示满 5 颗星，filled 为实际分数近似 */
   const stars = rating !== null
     ? Array.from({ length: 5 }, (_, i) => {
         const threshold = i + 0.5;
@@ -49,40 +47,45 @@ export function ToolQuickView({ link, onClose }: ToolQuickViewProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[70]" role="dialog" aria-modal="true" aria-labelledby="tool-quick-view-title" aria-describedby="tool-quick-view-desc">
-      <button
-        type="button"
-        className="absolute inset-0 h-full w-full cursor-default bg-black/58 backdrop-blur-sm"
-        aria-label="关闭工具预览"
-        onClick={onClose}
-      />
-      <aside ref={dialogRef} id="tool-quick-view-desc" className="nav-quick-view absolute inset-x-3 bottom-3 max-h-[86svh] overflow-y-auto rounded-3xl border border-[var(--paper-line)] bg-[var(--paper-surface)]/96 p-4 text-[var(--paper-ink)] shadow-[0_30px_90px_rgba(61,74,90,0.24)] backdrop-blur-2xl md:inset-y-4 md:left-auto md:right-4 md:w-[430px] md:p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="mb-2 flex items-center gap-2 text-xs font-mono uppercase text-[var(--paper-muted)]">
-              <Globe className="h-3.5 w-3.5" aria-hidden="true" />
-              {domain || "external tool"}
-            </p>
-            <h2 id="tool-quick-view-title" className="text-2xl font-semibold leading-tight text-[var(--paper-ink)]">
-              {link.title}
-            </h2>
+    <Dialog open onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent
+        showCloseButton={false}
+        className="nav-quick-view fixed inset-x-3 bottom-3 top-auto left-auto right-auto max-h-[86svh] w-auto max-w-none translate-x-0 translate-y-0 gap-0 overflow-y-auto rounded-3xl border border-[var(--paper-line)] bg-[var(--paper-surface)]/96 p-4 text-[var(--paper-ink)] shadow-[0_30px_90px_rgba(61,74,90,0.24)] sm:max-w-none md:inset-y-4 md:bottom-auto md:left-auto md:right-4 md:top-4 md:w-[430px] md:translate-x-0 md:translate-y-0 md:p-5"
+        aria-describedby="tool-quick-view-desc"
+      >
+        <DialogHeader className="space-y-0 text-left">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="mb-2 flex items-center gap-2 text-xs font-mono uppercase text-[var(--paper-muted)]">
+                <Globe className="h-3.5 w-3.5" aria-hidden="true" />
+                {domain || "external tool"}
+              </p>
+              <DialogTitle id="tool-quick-view-title" className="text-2xl font-semibold leading-tight text-[var(--paper-ink)]">
+                {link.title}
+              </DialogTitle>
+            </div>
+            <DialogClose asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon-lg"
+                className="shrink-0 rounded-full"
+                aria-label="关闭工具预览"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogClose>
           </div>
-          <button
-            ref={closeRef}
-            type="button"
-            onClick={onClose}
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--paper-line)] bg-[var(--paper-surface-soft)] text-[var(--paper-muted)] transition hover:bg-[var(--paper-accent-soft)] hover:text-[var(--paper-accent)]"
-            aria-label="关闭工具预览"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        {link.description && (
-          <p className="mt-5 text-sm leading-6 text-[var(--paper-muted)]">
-            {link.description}
-          </p>
-        )}
+          {link.description ? (
+            <DialogDescription id="tool-quick-view-desc" className="mt-5 text-sm leading-6 text-[var(--paper-muted)]">
+              {link.description}
+            </DialogDescription>
+          ) : (
+            <DialogDescription id="tool-quick-view-desc" className="sr-only">
+              工具快速预览
+            </DialogDescription>
+          )}
+        </DialogHeader>
 
         <div className="mt-5 grid grid-cols-3 gap-3">
           <Fact label="分类" value={link.category_name || "未分类"} />
@@ -114,9 +117,9 @@ export function ToolQuickView({ link, onClose }: ToolQuickViewProps) {
             {link.searchMeta.highlights.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {link.searchMeta.highlights.slice(0, 4).map((highlight) => (
-                  <span key={`${highlight.field}:${highlight.value}`} className="rounded-full bg-[var(--paper-surface)] px-2 py-1 text-xs text-[var(--paper-accent)]">
+                  <Badge key={`${highlight.field}:${highlight.value}`} variant="accent" className="px-2 py-1 text-xs">
                     {highlight.label}
-                  </span>
+                  </Badge>
                 ))}
               </div>
             )}
@@ -131,37 +134,42 @@ export function ToolQuickView({ link, onClose }: ToolQuickViewProps) {
             </h3>
             <ul className="flex flex-wrap gap-2" role="list">
               {tags.slice(0, 10).map((tag) => (
-                <li key={tag.id} className="rounded-full border border-[var(--paper-line)] bg-[var(--paper-surface-soft)] px-2.5 py-1 text-xs text-[var(--paper-muted)]">
-                  {tag.name}
+                <li key={tag.id}>
+                  <Badge variant="soft" className="px-2.5 py-1 text-xs">
+                    {tag.name}
+                  </Badge>
                 </li>
               ))}
             </ul>
           </div>
         )}
 
-        <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-          <a
-            href={safeUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={handleOpen}
-            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-[var(--paper-accent)] text-sm font-semibold text-[var(--paper-surface)] transition hover:bg-[#4f739e]"
-          >
-            打开网站
-            <ExternalLink className="h-4 w-4" aria-hidden="true" />
-          </a>
-          <button
+        <DialogFooter className="mt-6 flex-col gap-2 sm:flex-row sm:justify-stretch">
+          <Button asChild variant="accent" size="lg" className="flex-1">
+            <a
+              href={safeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={handleOpen}
+            >
+              打开网站
+              <ExternalLink className="h-4 w-4" aria-hidden="true" />
+            </a>
+          </Button>
+          <Button
             type="button"
+            variant="paper"
+            size="lg"
+            className="flex-1"
             onClick={() => toggleFavorite(link.id)}
-            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-[var(--paper-line)] bg-[var(--paper-surface-soft)] text-sm font-semibold text-[var(--paper-ink)] transition hover:border-[var(--paper-accent)] hover:text-[var(--paper-accent)]"
             aria-pressed={favorite}
           >
             <Heart className={`h-4 w-4 ${favorite ? "fill-[var(--paper-accent)] text-[var(--paper-accent)]" : ""}`} aria-hidden="true" />
             {favorite ? "已收藏" : "收藏"}
-          </button>
-        </div>
-      </aside>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

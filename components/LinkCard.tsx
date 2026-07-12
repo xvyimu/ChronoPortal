@@ -5,6 +5,13 @@ import NextImage from "next/image";
 import { Eye, Globe, Heart, Sparkles } from "lucide-react";
 import { useFavoritesContext } from "@/components/FavoritesProvider";
 import { InteractiveSurface } from "@/components/ui/interactive-surface";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { highlightSearchTerm } from "@/lib/highlight";
 import { getLinkType, relativeTime, type NavLink } from "@/lib/types";
 import { cn, extractDomain, isSafeUrl } from "@/lib/utils";
@@ -91,9 +98,9 @@ function LinkCardComponent({
                   {highlightSearchTerm(link.title, searchQuery)}
                 </span>
                 {link.featured && (
-                  <span className="inline-flex shrink-0 items-center rounded-full bg-[var(--paper-accent-soft)] px-1.5 py-[1px] text-[10px] font-medium text-[var(--paper-accent)]">
+                  <Badge variant="accent" className="shrink-0 px-1.5 py-[1px]">
                     荐
-                  </span>
+                  </Badge>
                 )}
                 {type === "official" && (
                   <span className={cn("inline-flex shrink-0 items-center text-[10px] font-medium", badgeStyle)}>
@@ -114,35 +121,49 @@ function LinkCardComponent({
                 <div className="flex min-w-0 items-center gap-1.5 text-[10px] text-[var(--paper-muted)]">
                   <Sparkles className="size-3 shrink-0 text-[var(--paper-accent)]" aria-hidden="true" />
                   <span className="truncate">{searchMeta.explanation.reason}</span>
-                  <span className="shrink-0 rounded bg-[var(--paper-accent-soft)] px-1 py-[1px] text-[9px] text-[var(--paper-accent)]">
+                  <Badge variant="accent" className="shrink-0 px-1 py-[1px] text-[9px]">
                     {searchMeta.explanation.label}
-                  </span>
+                  </Badge>
                 </div>
               )}
             </div>
 
-            <button
-              type="button"
-              onClick={handleFavoriteClick}
-              className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-[var(--paper-faint)] transition-colors hover:bg-[var(--paper-accent-soft)] hover:text-[var(--paper-accent)]"
-              aria-label={fav ? "取消收藏" : "添加收藏"}
-              aria-pressed={fav}
-            >
-              <Heart className={cn("size-3.5 transition-all", fav && "fill-[var(--paper-accent)] text-[var(--paper-accent)]")} />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={handleFavoriteClick}
+                  className="shrink-0 text-[var(--paper-faint)]"
+                  aria-label={fav ? "取消收藏" : "添加收藏"}
+                  aria-pressed={fav}
+                >
+                  <Heart className={cn("size-3.5 transition-all", fav && "fill-[var(--paper-accent)] text-[var(--paper-accent)]")} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{fav ? "取消收藏" : "添加收藏"}</TooltipContent>
+            </Tooltip>
             {onPreview && (
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  onPreview(link);
-                }}
-                className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-[var(--paper-faint)] transition-colors hover:bg-[var(--paper-accent-soft)] hover:text-[var(--paper-accent)]"
-                aria-label={`预览 ${link.title}`}
-              >
-                <Eye className="size-3.5" aria-hidden="true" />
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      onPreview(link);
+                    }}
+                    className="shrink-0 text-[var(--paper-faint)]"
+                    aria-label={`预览 ${link.title}`}
+                  >
+                    <Eye className="size-3.5" aria-hidden="true" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>快速预览</TooltipContent>
+              </Tooltip>
             )}
           </div>
         </InteractiveSurface>

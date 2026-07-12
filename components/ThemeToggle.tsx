@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function ThemeToggle({ variant = "default" }: { variant?: "default" | "cinematic" }) {
   const { theme, setTheme } = useTheme();
@@ -13,30 +15,26 @@ export function ThemeToggle({ variant = "default" }: { variant?: "default" | "ci
 
   if (!mounted) {
     return (
-      <div
-        className={`h-8 w-8 animate-pulse ${
-          isCinematic ? "rounded-full bg-[var(--paper-surface-soft)]" : "rounded-md bg-muted/30"
-        }`}
+      <Skeleton
+        className={`h-8 w-8 ${isCinematic ? "rounded-full bg-[var(--paper-surface-soft)]" : "rounded-md"}`}
       />
     );
   }
 
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size="icon"
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
       className={
         isCinematic
-          ? "inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--paper-muted)] transition-colors hover:bg-[var(--paper-accent-soft)] hover:text-[var(--paper-accent)]"
-          : "inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground/50 transition-colors hover:bg-muted hover:text-foreground"
+          ? "text-[var(--paper-muted)]"
+          : "text-muted-foreground/50 hover:bg-muted hover:text-foreground"
       }
       aria-label="切换主题"
     >
-      {theme === "dark" ? (
-        <Sun className="h-4 w-4" />
-      ) : (
-        <Moon className="h-4 w-4" />
-      )}
-    </button>
+      {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+    </Button>
   );
 }

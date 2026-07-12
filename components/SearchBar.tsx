@@ -3,6 +3,8 @@
 import { useEffect, type KeyboardEvent } from "react";
 import { Loader2, Search, Sparkles, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 interface SearchBarProps {
   value: string;
@@ -50,7 +52,7 @@ export function SearchBar({
         )}
         aria-hidden="true"
       />
-      <input
+      <Input
         ref={inputRef}
         type="text"
         placeholder={placeholder || "搜索站点、分类或描述..."}
@@ -58,10 +60,9 @@ export function SearchBar({
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={onKeyDown}
         className={cn(
-          "w-full border outline-none transition-all",
           isHero
-            ? "h-14 rounded-full border-[var(--paper-line)] bg-[var(--paper-surface)] py-3 pl-14 pr-28 text-base text-[var(--paper-ink)] shadow-[0_18px_45px_rgba(61,74,90,0.10)] placeholder:text-[var(--paper-faint)] backdrop-blur-xl focus:border-[var(--paper-accent)] focus:ring-[3px] focus:ring-[rgba(95,132,178,0.18)]"
-            : "rounded-[24px] border-input bg-background/80 py-2.5 pl-10 pr-24 text-sm text-foreground/80 placeholder:text-muted-foreground/40 backdrop-blur-sm focus:border-primary/60 focus:ring-[3px] focus:ring-primary/20"
+            ? "h-14 rounded-full border-[var(--paper-line)] bg-[var(--paper-surface)] py-3 pl-14 pr-28 text-base text-[var(--paper-ink)] shadow-[0_18px_45px_rgba(61,74,90,0.10)] placeholder:text-[var(--paper-faint)] backdrop-blur-xl focus-visible:border-[var(--paper-accent)] focus-visible:ring-[3px] focus-visible:ring-[rgba(95,132,178,0.18)]"
+            : "h-auto rounded-[24px] border-input bg-background/80 py-2.5 pl-10 pr-24 text-sm text-foreground/80 placeholder:text-muted-foreground/40 backdrop-blur-sm focus-visible:border-primary/60 focus-visible:ring-[3px] focus-visible:ring-primary/20"
         )}
         aria-label="搜索导航站点"
         autoComplete="off"
@@ -69,11 +70,12 @@ export function SearchBar({
       />
       <div className={cn("absolute top-1/2 flex -translate-y-1/2 items-center gap-2", isHero ? "right-4" : "right-3")}>
         {onSemanticChange && (
-          <button
+          <Button
             type="button"
+            variant={semantic ? "secondary" : "outline"}
+            size="icon-sm"
             onClick={() => onSemanticChange(!semantic)}
             className={cn(
-              "inline-flex size-7 items-center justify-center rounded-full border transition-colors",
               isHero
                 ? semantic
                   ? "border-[var(--paper-accent)] bg-[var(--paper-accent-soft)] text-[var(--paper-accent)]"
@@ -87,7 +89,7 @@ export function SearchBar({
             title={semantic ? "关闭语义搜索" : "开启语义搜索"}
           >
             <Sparkles className="size-3.5" aria-hidden="true" />
-          </button>
+          </Button>
         )}
         {loading ? (
           <Loader2
@@ -95,20 +97,21 @@ export function SearchBar({
             aria-hidden="true"
           />
         ) : value ? (
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon-sm"
             onClick={() => {
               onChange("");
               inputRef.current?.focus();
             }}
             className={cn(
-              "transition-colors",
               isHero ? "text-[var(--paper-faint)] hover:text-[var(--paper-accent)]" : "text-muted-foreground/30 hover:text-muted-foreground/60"
             )}
             aria-label="清除搜索"
           >
             <X className="size-4" />
-          </button>
+          </Button>
         ) : (
           <kbd
             className={cn(

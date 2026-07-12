@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { CategorySection } from "./CategorySection";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import type { NavLink } from "@/lib/types";
 
 vi.mock("@/components/FavoritesProvider", () => ({
@@ -28,20 +29,22 @@ function makeLink(overrides: Partial<NavLink> & { id: string; title: string }): 
 describe("CategorySection", () => {
   it("renders search results while a specific category facet is active", () => {
     render(
-      <CategorySection
-        section={{
-          key: "search-results",
-          label: "搜索结果 (1)",
-          accent: "",
-          links: [makeLink({ id: "l1", title: "Cloud VPS", category_slug: "cloud-vps" })],
-        }}
-        sectionOffset={0}
-        activeCategory="cloud-vps"
-        focusedIndex={-1}
-        onFocusChange={vi.fn()}
-        onKeyDown={vi.fn()}
-        searchQuery="server"
-      />,
+      <TooltipProvider>
+        <CategorySection
+          section={{
+            key: "search-results",
+            label: "搜索结果 (1)",
+            accent: "",
+            links: [makeLink({ id: "l1", title: "Cloud VPS", category_slug: "cloud-vps" })],
+          }}
+          sectionOffset={0}
+          activeCategory="cloud-vps"
+          focusedIndex={-1}
+          onFocusChange={vi.fn()}
+          onKeyDown={vi.fn()}
+          searchQuery="server"
+        />
+      </TooltipProvider>,
     );
 
     expect(screen.getByText("搜索结果 (1)")).toBeTruthy();

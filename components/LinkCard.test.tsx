@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { LinkCard } from "./LinkCard";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import type { NavLink } from "@/lib/types";
 
 vi.mock("@/components/FavoritesProvider", () => ({
@@ -27,12 +28,16 @@ function makeLink(overrides: Partial<NavLink> = {}): NavLink {
   };
 }
 
+function renderWithProviders(ui: React.ReactElement) {
+  return render(<TooltipProvider>{ui}</TooltipProvider>);
+}
+
 describe("LinkCard", () => {
   it("calls preview callback from the preview button", () => {
     const link = makeLink();
     const onPreview = vi.fn();
 
-    render(<LinkCard link={link} onPreview={onPreview} />);
+    renderWithProviders(<LinkCard link={link} onPreview={onPreview} />);
 
     fireEvent.click(screen.getByRole("button", { name: "预览 Figma" }));
 

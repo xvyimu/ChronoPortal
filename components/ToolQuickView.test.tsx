@@ -96,9 +96,7 @@ describe("ToolQuickView", () => {
     const onClose = vi.fn();
     render(<ToolQuickView link={makeLink()} onClose={onClose} />);
 
-    // 有两个 aria-label="关闭工具预览" 的按钮（背板 + 实际关闭按钮），取第二个（实际关闭按钮）
-    const closeBtns = screen.getAllByLabelText("关闭工具预览");
-    fireEvent.click(closeBtns[1]);
+    fireEvent.click(screen.getByLabelText("关闭工具预览"));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 

@@ -8,6 +8,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useFavoritesContext } from "@/components/FavoritesProvider";
 import { useShell } from "@/components/Shell";
 import { useLogout } from "@/hooks/useLogout";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 export function Header() {
   const { toggleSidebar } = useShell();
@@ -26,13 +28,16 @@ export function Header() {
     <header className="fixed inset-x-0 top-0 z-50 bg-[var(--paper-bg)]/82 px-3 pt-3 backdrop-blur-sm md:px-6">
       <div className="mx-auto grid h-12 max-w-[1480px] grid-cols-[1fr_auto_1fr] items-center rounded-2xl border border-[var(--paper-line)] bg-[var(--paper-surface)]/82 px-3 text-[var(--paper-ink)] shadow-[0_8px_28px_rgba(61,74,90,0.06)] backdrop-blur-md md:h-14 md:px-5">
         <div className="flex items-center gap-1.5">
-          <button
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
             onClick={toggleSidebar}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--paper-muted)] transition hover:bg-[var(--paper-accent-soft)] hover:text-[var(--paper-accent)] md:hidden"
+            className="md:hidden"
             aria-label="打开导航菜单"
           >
             <Menu className="h-[18px] w-[18px]" />
-          </button>
+          </Button>
           <DesktopNavLink href="/favorites" icon={<Heart className="h-3.5 w-3.5" />} label="收藏" badge={count} />
           <DesktopNavLink href="/api-docs" icon={<Code2 className="h-3.5 w-3.5" />} label="API" />
           <DesktopNavLink href="/submit" icon={<Plus className="h-3.5 w-3.5" />} label="提交" />
@@ -51,25 +56,31 @@ export function Header() {
           )}
 
           {mounted && !isAuthenticated && (
-            <button
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => signIn("github", { callbackUrl: "/" })}
-              className="hidden h-8 items-center gap-1.5 rounded-full px-3 text-xs font-mono uppercase text-[var(--paper-muted)] transition hover:bg-[var(--paper-accent-soft)] hover:text-[var(--paper-accent)] sm:inline-flex"
+              className="hidden font-mono uppercase sm:inline-flex"
               aria-label="使用 GitHub 登录"
             >
               <LogIn className="h-3.5 w-3.5" />
               登录
-            </button>
+            </Button>
           )}
           {mounted && isAuthenticated && (
-            <button
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
               onClick={logout}
               disabled={loggingOut}
-              className="hidden h-8 items-center gap-1.5 rounded-full px-3 text-xs font-mono uppercase text-[var(--paper-muted)] transition hover:bg-[var(--paper-accent-soft)] hover:text-[var(--paper-accent)] disabled:opacity-50 sm:inline-flex"
+              className="hidden font-mono uppercase sm:inline-flex"
               aria-label="退出登录"
             >
               <LogOut className="h-3.5 w-3.5" />
               {loggingOut ? "退出中..." : "退出"}
-            </button>
+            </Button>
           )}
           <ThemeToggle variant="cinematic" />
         </nav>
@@ -90,17 +101,21 @@ function DesktopNavLink({
   badge?: number;
 }) {
   return (
-    <Link
-      href={href}
-      className="hidden h-8 items-center gap-1.5 rounded-full px-3 text-xs font-mono uppercase text-[var(--paper-muted)] transition hover:bg-[var(--paper-accent-soft)] hover:text-[var(--paper-accent)] md:inline-flex"
+    <Button
+      asChild
+      variant="ghost"
+      size="sm"
+      className="hidden font-mono uppercase md:inline-flex"
     >
-      {icon}
-      {label}
-      {!!badge && badge > 0 && (
-        <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--paper-accent-soft)] px-1 text-[10px] text-[var(--paper-accent)]">
-          {badge}
-        </span>
-      )}
-    </Link>
+      <Link href={href}>
+        {icon}
+        {label}
+        {!!badge && badge > 0 && (
+          <Badge variant="accent" className="h-4 min-w-4 px-1 text-[10px]">
+            {badge}
+          </Badge>
+        )}
+      </Link>
+    </Button>
   );
 }

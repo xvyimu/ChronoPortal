@@ -1,12 +1,20 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ChevronDown, ChevronRight, Compass, X } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { ChevronDown, ChevronRight, Compass } from "lucide-react";
 import { getCategoryIcon } from "@/lib/category-icons";
 import type { Tag } from "@/lib/types";
 import type { SidebarTabNode } from "@/lib/nav-derived-data";
 import { useShell } from "./Shell";
 import { TagFilter } from "./TagFilter";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 
 interface SidebarProps {
   tabs: SidebarTabNode[];
@@ -28,37 +36,7 @@ export function Sidebar({
   onClearTags,
 }: SidebarProps) {
   const { sidebarOpen: open, closeSidebar: onClose } = useShell();
-  const sidebarRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    const handle = (e: globalThis.KeyboardEvent) => {
-      if (e.key === "Escape" && open) onClose();
-    };
-    document.addEventListener("keydown", handle);
-    return () => document.removeEventListener("keydown", handle);
-  }, [open, onClose]);
-
-  useEffect(() => {
-    const handle = (e: MouseEvent) => {
-      if (open && sidebarRef.current && !sidebarRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-    document.addEventListener("mousedown", handle);
-    return () => document.removeEventListener("mousedown", handle);
-  }, [open, onClose]);
-
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [open]);
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
@@ -86,7 +64,7 @@ export function Sidebar({
 
   const handleSelect = (key: string) => {
     onSelect(key);
-    if (window.innerWidth < 768) onClose();
+    if (typeof window !== "undefined" && window.innerWidth < 768) onClose();
   };
 
   const renderTab = (tab: SidebarTabNode, isChild = false): ReactNode => {
@@ -99,15 +77,17 @@ export function Sidebar({
       <div key={tab.key}>
         <div className={`flex items-center ${isChild ? "ml-5" : ""}`}>
           {hasChildren ? (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-sm"
               onClick={() => toggleExpand(tab.key)}
-              className="flex h-7 w-5 shrink-0 items-center justify-center text-[var(--paper-faint)] transition-colors hover:text-[var(--paper-accent)]"
+              className="h-7 w-5 shrink-0 rounded-md text-[var(--paper-faint)]"
               aria-label={isExpanded ? "收起子分类" : "展开子分类"}
               aria-expanded={isExpanded}
             >
               {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-            </button>
+            </Button>
           ) : (
             <span className="w-5 shrink-0" aria-hidden="true" />
           )}
@@ -121,7 +101,11 @@ export function Sidebar({
               <Icon className={`h-4 w-4 shrink-0 transition-colors ${isActive ? "text-[var(--paper-accent)]" : "text-[var(--paper-faint)]"}`} />
               {tab.label}
             </span>
-            {tab.count > 0 && <span className="sidebar-badge">{tab.count}</span>}
+            {tab.count > 0 && (
+              <Badge variant="soft" className="sidebar-badge min-w-[20px] border-0 px-1.5">
+                {tab.count}
+              </Badge>
+            )}
           </button>
         </div>
         {hasChildren && isExpanded && (
@@ -133,7 +117,7 @@ export function Sidebar({
     );
   };
 
-  const links: ReactNode = (
+  const navLinks: ReactNode = (
     <nav className="flex flex-col gap-1 px-3 py-2" aria-label="导航分类">
       {tabs.map((tab) => renderTab(tab))}
       {onToggleTag && onClearTags && (
@@ -149,40 +133,20 @@ export function Sidebar({
 
   return (
     <>
-      {open && (
-        <div
-          className="fixed inset-0 z-40 bg-black/45 backdrop-blur-sm md:hidden animate-fade-in"
-          aria-hidden="true"
-        />
-      )}
-
-      {open && (
-        <aside
-          ref={sidebarRef}
-          className="fixed left-0 top-0 z-50 h-full w-72 border-r border-[var(--paper-line)] bg-[var(--paper-bg)] text-[var(--paper-ink)] animate-slide-in md:hidden"
-          role="dialog"
-          aria-modal="true"
-          aria-label="导航分类"
-        >
-          <div className="flex h-16 items-center justify-between border-b border-[var(--paper-line)] px-4">
-            <span className="nav-display flex items-center gap-2 text-sm font-medium text-[var(--paper-ink)]">
+      <Sheet open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+        <SheetContent side="left" className="w-72 p-0 md:hidden" showClose>
+          <SheetHeader className="flex h-16 flex-row items-center justify-between space-y-0 border-b border-[var(--paper-line)] px-4">
+            <SheetTitle className="nav-display flex items-center gap-2 text-sm font-medium text-[var(--paper-ink)]">
               <Compass className="h-5 w-5 text-[var(--paper-accent)]" />
               导航图谱
-            </span>
-            <button
-              onClick={onClose}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--paper-muted)] transition-colors hover:bg-[var(--paper-accent-soft)] hover:text-[var(--paper-accent)]"
-              aria-label="关闭侧边栏"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          {links}
-        </aside>
-      )}
+            </SheetTitle>
+          </SheetHeader>
+          {navLinks}
+        </SheetContent>
+      </Sheet>
 
       <aside className="sticky top-20 hidden h-[calc(100vh-5rem)] w-64 shrink-0 overflow-y-auto border-r border-[var(--paper-line)] bg-[var(--paper-bg)]/88 py-4 text-[var(--paper-ink)] backdrop-blur-xl md:block">
-        {links}
+        {navLinks}
       </aside>
     </>
   );
