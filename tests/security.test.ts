@@ -1,7 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { isSafeUrl, withTimeout, extractDomain, getClientIp, escapeJsonForHtml } from "@/lib/utils";
+import {
+  isSafeUrl,
+  withTimeout,
+  extractDomain,
+  getClientIp,
+  isBlockedOutboundHost,
+  escapeJsonForHtml,
+} from "@/lib/utils";
 import { requireAdmin, unauthorized } from "@/lib/with-admin";
 import {
   urlSchema, titleSchema, slugSchema,
@@ -916,6 +923,16 @@ describe("getClientIp — 客户端 IP 提取", () => {
     expect(getClientIp(req)).toBe("10.0.0.1");
   });
 
+  it("其次使用 x-real-ip（优先于 x-forwarded-for）", () => {
+    const req = new Request("http://localhost", {
+      headers: {
+        "x-real-ip": "198.51.100.9",
+        "x-forwarded-for": "203.0.113.1, 198.51.100.1",
+      },
+    });
+    expect(getClientIp(req)).toBe("198.51.100.9");
+  });
+
   it("回退到 x-forwarded-for", () => {
     const req = new Request("http://localhost", {
       headers: { "x-forwarded-for": "203.0.113.1, 198.51.100.1" },
@@ -926,6 +943,22 @@ describe("getClientIp — 客户端 IP 提取", () => {
   it("无 IP 头时返回 unknown", () => {
     const req = new Request("http://localhost");
     expect(getClientIp(req)).toBe("unknown");
+  });
+});
+
+describe("isBlockedOutboundHost — 出站 host 黑名单", () => {
+  it("阻止 localhost / 私网 / 元数据", () => {
+    expect(isBlockedOutboundHost("localhost")).toBe(true);
+    expect(isBlockedOutboundHost("127.0.0.1")).toBe(true);
+    expect(isBlockedOutboundHost("10.0.0.1")).toBe(true);
+    expect(isBlockedOutboundHost("192.168.1.1")).toBe(true);
+    expect(isBlockedOutboundHost("169.254.169.254")).toBe(true);
+    expect(isBlockedOutboundHost("metadata.google.internal")).toBe(true);
+  });
+
+  it("放行公网域名", () => {
+    expect(isBlockedOutboundHost("example.com")).toBe(false);
+    expect(isBlockedOutboundHost("cdn.openai.com")).toBe(false);
   });
 });
 

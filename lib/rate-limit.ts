@@ -27,6 +27,7 @@ const memoryBuckets = new Map<string, MemoryBucket>();
  *
  * 当数据库不可用时，使用内存计数器作为后备。
  * 对敏感操作采用 fail-close 策略。
+ * 也可直接用于无 DB 表的高 QPS 公开 API（search / favicon）。
  */
 function checkMemoryRateLimit(
   key: string,
@@ -49,6 +50,22 @@ function checkMemoryRateLimit(
   return true;
 }
 
+/**
+ * 进程内速率限制（无 DB）
+ *
+ * Serverless 多实例下不跨节点共享，但能挡住单实例刷量与误用。
+ */
+export function checkInMemoryRateLimit(
+  bucketKey: string,
+  windowMs: number,
+  maxAttempts: number
+): { allowed: boolean } {
+  cleanupMemoryBuckets(windowMs);
+  return {
+    allowed: checkMemoryRateLimit(bucketKey, windowMs, maxAttempts),
+  };
+}
+
 /** 定期清理过期的内存桶（避免内存泄漏） */
 function cleanupMemoryBuckets(windowMs: number): void {
   const now = Date.now();
@@ -60,12 +77,18 @@ function cleanupMemoryBuckets(windowMs: number): void {
 }
 
 /**
- * 清理指定表中超过 24h 的过期记录（惰性清理）
+ * 清理指定表中超过 24h 的过期记录（惰性 / 抽样）
+ *
+ * 热路径每次 DELETE 会放大写负载；默认约 2% 请求触发清理。
+ * 测试可设 RATE_LIMIT_CLEANUP_ALWAYS=1 强制每次清理。
  */
 export async function cleanupOldAttempts(
   supabase: SupabaseClient,
   table: string
 ): Promise<void> {
+  const always = process.env.RATE_LIMIT_CLEANUP_ALWAYS === "1";
+  if (!always && Math.random() > 0.02) return;
+
   const cutoff = new Date(Date.now() - ONE_DAY_MS).toISOString();
   const { error } = await supabase.from(table).delete().lt("created_at", cutoff);
   if (error) {
@@ -99,7 +122,7 @@ export async function checkRateLimit(
 
   const { count, error } = await supabase
     .from(table)
-    .select("*", { count: "exact", head: true })
+    .select("id", { count: "exact", head: true })
     .eq("ip", ip)
     .gte("created_at", since);
 
@@ -162,7 +185,7 @@ export async function checkClickRateLimit(
 
   const { count, error } = await supabase
     .from("click_rate_limits")
-    .select("*", { count: "exact", head: true })
+    .select("id", { count: "exact", head: true })
     .eq("ip", ip)
     .eq("url", url)
     .gte("created_at", since);

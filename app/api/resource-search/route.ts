@@ -3,6 +3,8 @@ import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { getEmbedding } from "@/lib/search/semantic";
 import { mergeResourceHybrid } from "@/lib/resource-search-merge";
+import { checkInMemoryRateLimit } from "@/lib/rate-limit";
+import { getClientIp } from "@/lib/utils";
 import type { ResourceItem } from "@/lib/types";
 
 const SEARCH_API =
@@ -14,6 +16,8 @@ const RESOURCE_SEARCH_API_KEY =
 const SEARCH_TIMEOUT_MS = 8000;
 const EXPECTED_EMBED_DIM = 512;
 const SEARCH_CACHE_CONTROL = "no-store";
+const RESOURCE_SEARCH_WINDOW_MS = 60_000;
+const RESOURCE_SEARCH_MAX_PER_MIN = 30;
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -123,6 +127,16 @@ async function upstreamSearch(body: Record<string, unknown>): Promise<{
 export async function POST(request: Request) {
   if (!RESOURCE_SEARCH_API_KEY) {
     return json({ error: "资源搜索服务未配置" }, 503);
+  }
+
+  const ip = getClientIp(request);
+  const { allowed } = checkInMemoryRateLimit(
+    `resource-search:${ip}`,
+    RESOURCE_SEARCH_WINDOW_MS,
+    RESOURCE_SEARCH_MAX_PER_MIN
+  );
+  if (!allowed) {
+    return json({ error: "搜索过于频繁，请稍后再试" }, 429);
   }
 
   let body: unknown;

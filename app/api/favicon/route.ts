@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createRequire } from "node:module";
 import { faviconDomainSchema } from "@/lib/schemas";
+import { checkInMemoryRateLimit } from "@/lib/rate-limit";
+import { getClientIp, isBlockedOutboundHost } from "@/lib/utils";
 
 /**
  * Favicon 代理 API
@@ -26,6 +28,9 @@ const FAVICON_PROXY = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
 let proxyDispatcher: unknown;
 let proxyInitialized = false;
 
+const FAVICON_WINDOW_MS = 60_000;
+const FAVICON_MAX_PER_MIN = 120;
+
 export const runtime = "nodejs";
 
 /** 懒加载代理 dispatcher（仅当配置了 HTTPS_PROXY 时启用） */
@@ -47,6 +52,19 @@ async function getProxyDispatcher(): Promise<{ dispatcher?: unknown }> {
 }
 
 export async function GET(request: NextRequest) {
+  const ip = getClientIp(request);
+  const { allowed } = checkInMemoryRateLimit(
+    `favicon:${ip}`,
+    FAVICON_WINDOW_MS,
+    FAVICON_MAX_PER_MIN
+  );
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "请求过于频繁" },
+      { status: 429, headers: { "Retry-After": "60" } }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const domain = searchParams.get("domain");
 
@@ -59,6 +77,10 @@ export async function GET(request: NextRequest) {
   if (!domainCheck.success) {
     const firstError = domainCheck.error.flatten().formErrors[0] || "Invalid domain";
     return NextResponse.json({ error: firstError }, { status: 400 });
+  }
+
+  if (isBlockedOutboundHost(domainCheck.data)) {
+    return NextResponse.json({ error: "Domain not allowed" }, { status: 400 });
   }
 
   const dispatcherOption = await getProxyDispatcher();
@@ -111,5 +133,11 @@ export async function GET(request: NextRequest) {
   }
 
   // 所有源都失败 — 返回 404，客户端显示 Globe 图标
-  return new NextResponse(null, { status: 404 });
+  return new NextResponse(null, {
+    status: 404,
+    headers: {
+      // 短负缓存，减轻失败重试风暴
+      "Cache-Control": "public, max-age=600, s-maxage=600",
+    },
+  });
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
+import { checkOrigin } from "@/lib/csrf";
 import { logger } from "@/lib/logger";
 
 /**
@@ -35,43 +36,6 @@ export async function requireAdmin(): Promise<{ authorized: boolean; userId?: st
 /** 401 响应（与 middleware 一致的格式） */
 export function unauthorized() {
   return NextResponse.json({ error: "未授权" }, { status: 401 });
-}
-
-// ── CSRF 原语 ────────────────────────────────────────────────────────
-
-/**
- * 写操作 Origin header 校验（防 CSRF）
- *
- * 浏览器对跨域 POST/PUT/DELETE 请求会发送 Origin header；
- * 同源请求的 Origin 末尾匹配 Host（如 https://example.com → example.com）。
- * 缺少 Origin 时不阻断（兼容部分非浏览器客户端 + 服务端内部调用），
- * 但当 Origin 存在且不匹配 Host 时拒绝。
- *
- * 参考：https://owasp.org/www-community/attacks/csrf
- */
-function checkOrigin(request: Request): NextResponse | null {
-  const origin = request.headers.get("origin");
-  if (!origin) return null; // 非浏览器请求，放行（依赖 cookie SameSite=strict 兜底）
-
-  const host = request.headers.get("host");
-  if (!host) return null;
-
-  // origin 形如 https://example.com 或 http://localhost:3264
-  // host 形如 example.com 或 localhost:3264
-  // 同源 → origin 末尾 === host
-  try {
-    const originUrl = new URL(origin);
-    if (originUrl.host === host) return null;
-  } catch {
-    // Origin 解析失败，拒绝（异常请求）
-  }
-
-  logger.warn("Admin write blocked by CSRF check", {
-    source: "with-admin",
-    origin,
-    host,
-  });
-  return NextResponse.json({ error: "跨站请求被拒绝" }, { status: 403 });
 }
 
 // ── 路由包装器 ────────────────────────────────────────────────────────
@@ -116,7 +80,7 @@ export function withAdminWrite<T extends z.ZodType>(
     const { authorized } = await requireAdmin();
     if (!authorized) return unauthorized();
 
-    const csrfError = checkOrigin(request);
+    const csrfError = checkOrigin(request, "with-admin");
     if (csrfError) return csrfError;
 
     let body: unknown;
@@ -156,7 +120,7 @@ export function withAdminDelete(
     const { authorized } = await requireAdmin();
     if (!authorized) return unauthorized();
 
-    const csrfError = checkOrigin(request);
+    const csrfError = checkOrigin(request, "with-admin");
     if (csrfError) return csrfError;
 
     const routeParams = await ctx.params;

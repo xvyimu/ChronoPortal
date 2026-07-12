@@ -52,7 +52,7 @@ export function ResourcesClient() {
     const requestId = ++requestSeq.current;
     setLoading(true);
     try {
-      const res = await fetch("/api/resource-browse?limit=500");
+      const res = await fetch("/api/resource-browse?limit=80");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const items = (data as { results: ResourceItem[] }).results ?? [];

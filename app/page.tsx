@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { connection } from "next/server";
 import { type NavLink, type Category } from "@/lib/types";
 import { Navigation } from "@/components/Navigation";
 import { NavSkeleton } from "@/components/NavSkeleton";
@@ -17,7 +16,7 @@ import {
   type PrecomputedNavData,
 } from "@/lib/nav-derived-data";
 
-// ISR: 每 60 秒重新生成页面
+// ISR: 每 60 秒重新生成（不再 await connection()，避免强制动态渲染）
 export const revalidate = 60;
 
 // 数据获取超时（秒）：Supabase 不可达时降级返回空数据而非挂起
@@ -56,8 +55,6 @@ export default async function Home({
 }: {
   searchParams: Promise<{ cat?: string }>;
 }) {
-  await connection();
-
   const categoriesSignal = AbortSignal.timeout(FETCH_TIMEOUT);
   const linksSignal = AbortSignal.timeout(FETCH_TIMEOUT);
 

@@ -19,6 +19,17 @@ describe("favicon API", () => {
     expect(await response.json()).toEqual({ error: "Missing domain parameter" });
   });
 
+  it("rejects private / blocked hosts without fetching", async () => {
+    const { GET } = await getHandler();
+    const response = await GET(
+      new NextRequest("http://localhost/api/favicon?domain=127.0.0.1")
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "Domain not allowed" });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("returns the first valid image response", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       new Response("x".repeat(128), {

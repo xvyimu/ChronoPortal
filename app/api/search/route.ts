@@ -3,9 +3,15 @@ import { logger } from "@/lib/logger";
 import { searchQuerySchema } from "@/lib/schemas";
 import { getRequestId, parseSearchParams } from "@/lib/search/params";
 import { executeSearch } from "@/lib/search/use-case";
+import { checkInMemoryRateLimit } from "@/lib/rate-limit";
+import { getClientIp } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+const SEARCH_WINDOW_MS = 60_000;
+const SEARCH_MAX_PER_MIN = 60;
+const SEMANTIC_MAX_PER_MIN = 20;
 
 /**
  * 服务端搜索 API
@@ -16,7 +22,7 @@ export const runtime = "nodejs";
  *   GET /api/search?q=react&category=dev-tools
  *   GET /api/search?q=react&semantic=true
  *
- * 路由层只做：请求 ID → 参数校验 → 用例调度 → NextResponse。
+ * 路由层只做：限流 → 请求 ID → 参数校验 → 用例调度 → NextResponse。
  * 搜索编排逻辑在 lib/search/use-case.ts。
  */
 export async function GET(request: NextRequest) {
@@ -24,6 +30,27 @@ export async function GET(request: NextRequest) {
   const startedAt = Date.now();
 
   try {
+    const ip = getClientIp(request);
+    const semantic = request.nextUrl.searchParams.get("semantic") === "true";
+    const max = semantic ? SEMANTIC_MAX_PER_MIN : SEARCH_MAX_PER_MIN;
+    const { allowed } = checkInMemoryRateLimit(
+      `search:${semantic ? "sem" : "fuse"}:${ip}`,
+      SEARCH_WINDOW_MS,
+      max
+    );
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "搜索过于频繁，请稍后再试", results: [], total: 0 },
+        {
+          status: 429,
+          headers: {
+            "x-request-id": requestId,
+            "Retry-After": "60",
+          },
+        }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
 
     // Zod 查询参数校验（searchParams.get 返回 null，需转为 undefined 以适配 optional）

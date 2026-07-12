@@ -89,6 +89,7 @@ export const getApprovedLinks = cache(getApprovedLinksImpl);
 
 /**
  * 根据 slug 获取已批准的链接（用于 /tool/[slug] 页面）。
+ * 仅按 DB slug 列查询，不做全表 title→slugify 扫描。
  */
 async function getApprovedLinkBySlugImpl(slug: string): Promise<NavLink | null> {
   const supabase = await createClient();
@@ -100,24 +101,13 @@ async function getApprovedLinkBySlugImpl(slug: string): Promise<NavLink | null> 
     .eq("slug", slug)
     .maybeSingle();
 
-  if (!slugErr && bySlug) {
-    return mapLinkRow(bySlug);
-  }
-
-  const { data, error } = await supabase
-    .from("nav_links")
-    .select("*, nav_categories(name, slug)")
-    .eq("approved", true);
-
-  if (error) {
-    logger.error("Failed to fetch link by slug", { source: "repositories", slug }, error);
+  if (slugErr) {
+    logger.error("Failed to fetch link by slug", { source: "repositories", slug }, slugErr);
     return null;
   }
 
-  const link = (data ?? []).find((l) => slugify(l.title) === slug);
-  if (!link) return null;
-
-  return mapLinkRow(link);
+  if (!bySlug) return null;
+  return mapLinkRow(bySlug);
 }
 
 export const getApprovedLinkBySlug = cache(getApprovedLinkBySlugImpl);

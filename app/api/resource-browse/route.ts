@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 
 const browseSchema = z.object({
   category: z.string().trim().min(1).max(80).optional(),
-  limit: z.coerce.number().int().min(1).max(500).default(500),
+  limit: z.coerce.number().int().min(1).max(200).default(80),
 });
 
 export async function GET(request: Request) {

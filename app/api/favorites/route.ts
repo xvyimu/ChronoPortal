@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { getClientIp } from "@/lib/utils";
+import { checkOrigin } from "@/lib/csrf";
 import { linkIdsSchema } from "@/lib/schemas";
 import { checkRateLimit, recordAttempt } from "@/lib/rate-limit";
 import {
@@ -60,6 +61,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "未登录" }, { status: 401 });
     }
 
+    const csrfError = checkOrigin(request, "api-favorites");
+    if (csrfError) return csrfError;
+
     const ip = getClientIp(request);
 
     // IP 速率限制（防御凭证滥用）
@@ -106,6 +110,9 @@ export async function DELETE(request: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: "未登录" }, { status: 401 });
     }
+
+    const csrfError = checkOrigin(request, "api-favorites");
+    if (csrfError) return csrfError;
 
     const ip = getClientIp(request);
 

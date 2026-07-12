@@ -62,14 +62,67 @@ export function extractDomain(url: string): string {
 
 /**
  * 获取客户端 IP 地址
- * 优先使用 Netlify 的 x-nf-client-connection-ip，其次 x-forwarded-for
+ *
+ * 顺序（平台约定）：
+ * 1. Netlify `x-nf-client-connection-ip`（平台覆写，可信）
+ * 2. `x-real-ip`（部分边缘 / 反代）
+ * 3. `x-forwarded-for` 最左客户端（Vercel 等会覆写整条链）
+ *
+ * 生产主路径为 Vercel 时依赖 2/3；保留 1 以兼容 Netlify 历史部署。
  */
 export function getClientIp(request: Request): string {
-  return (
-    request.headers.get("x-nf-client-connection-ip") ||
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    "unknown"
-  );
+  const nf = request.headers.get("x-nf-client-connection-ip")?.trim();
+  if (nf) return nf;
+
+  const realIp = request.headers.get("x-real-ip")?.trim();
+  if (realIp) return realIp;
+
+  const xff = request.headers.get("x-forwarded-for");
+  if (xff) {
+    const first = xff.split(",")[0]?.trim();
+    if (first) return first;
+  }
+
+  return "unknown";
+}
+
+/**
+ * Favicon / 出站代理：是否应拒绝该 host（SSRF / 内网）
+ */
+export function isBlockedOutboundHost(domain: string): boolean {
+  const host = domain.trim().toLowerCase().replace(/\.$/, "");
+  if (!host) return true;
+
+  if (
+    host === "localhost" ||
+    host.endsWith(".localhost") ||
+    host.endsWith(".local") ||
+    host.endsWith(".internal") ||
+    host.endsWith(".intranet") ||
+    host === "metadata" ||
+    host.endsWith(".metadata")
+  ) {
+    return true;
+  }
+
+  // 裸 IPv6 一律拒绝（favicon 无需）
+  if (host.includes(":")) return true;
+
+  // IPv4 私网 / 环回 / 链路本地 / 本网
+  const ipv4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+  if (ipv4) {
+    const [a, b] = [Number(ipv4[1]), Number(ipv4[2])];
+    if ([a, b, Number(ipv4[3]), Number(ipv4[4])].some((n) => n > 255)) return true;
+    if (a === 0 || a === 10 || a === 127) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT
+    if (a >= 224) return true; // multicast / reserved
+    return false;
+  }
+
+  return false;
 }
 
 /**
@@ -77,12 +130,15 @@ export function getClientIp(request: Request): string {
  *
  * 在 dangerouslySetInnerHTML 中使用 JSON.stringify 结果时，
  * 必须转义 </script> 标签，防止攻击者注入恶意脚本。
+ *
+ * 注意：替换目标必须是字面量 "\\u003c" 这类六字符序列，
+ * 而不是 Unicode 转义后的真实字符（否则等于 no-op）。
  */
 export function escapeJsonForHtml(json: string): string {
   return json
-    .replace(/</g, "\u003c")
-    .replace(/>/g, "\u003e")
-    .replace(/&/g, "\u0026")
-    .replace(new RegExp(String.fromCharCode(0x2028), "g"), "\u2028")
-    .replace(new RegExp(String.fromCharCode(0x2029), "g"), "\u2029");
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
+    .replace(new RegExp(String.fromCharCode(0x2028), "g"), "\\u2028")
+    .replace(new RegExp(String.fromCharCode(0x2029), "g"), "\\u2029");
 }
