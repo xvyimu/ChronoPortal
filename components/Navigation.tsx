@@ -2,16 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { PackageOpen, Search, Waves } from "lucide-react";
 import { type Category, type NavLink } from "@/lib/types";
 import type { PrecomputedNavData } from "@/lib/nav-derived-data";
-import { CategorySection } from "./CategorySection";
-import { DualTrackSection } from "./DualTrackSection";
 import { HomeHero } from "./HomeHero";
-import { SearchExperiencePanel } from "./SearchExperiencePanel";
 import { Sidebar } from "./Sidebar";
 import { ToolQuickView } from "./ToolQuickView";
 import { useLinksFilter } from "./useLinksFilter";
+import { AtlasWorkspace } from "./navigation/AtlasWorkspace";
 
 const MobileNav = dynamic(() => import("./MobileNav").then((m) => m.MobileNav), {
   ssr: false,
@@ -61,7 +58,6 @@ export function Navigation({
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [activeCategory, activeTags, minRatingFilter, popularityFilter]);
 
-  const sectionOffset = featured.length + latest.length + popular.length;
   const topHeroTabs = tabTree
     .filter((tab) => tab.key !== "all" && tab.count > 0)
     .sort((a, b) => b.count - a.count)
@@ -88,7 +84,7 @@ export function Navigation({
 
       <div
         id="atlas"
-        className="flex border-t border-[var(--paper-line)] bg-[linear-gradient(180deg,#f8f6f2_0%,#f4f0e8_46%,#f8f6f2_100%)]"
+        className="flex border-t border-[var(--paper-line)] bg-[linear-gradient(180deg,#f8f6f2_0%,#f4f0e8_46%,#f8f6f2_100%)] dark:bg-[linear-gradient(180deg,var(--paper-bg)_0%,color-mix(in_srgb,var(--paper-bg)_92%,black)_46%,var(--paper-bg)_100%)]"
       >
         <Sidebar
           tabs={tabTree}
@@ -101,139 +97,40 @@ export function Navigation({
         />
 
         <div className="min-w-0 flex-1">
-          <div className="mx-auto max-w-[1520px] space-y-6 px-4 py-6 md:px-8 md:py-8">
-            <SearchExperiencePanel
-              query={rawSearch.trim()}
-              loading={searchLoading}
-              suggestions={searchSuggestions}
-              facets={searchFacets}
-              results={flatResults.map((item) => item.link)}
-              activeTags={activeTags}
-              activeCategory={activeCategory}
-              onSuggestion={(value) => {
-                setRawSearch(value);
-                inputRef.current?.focus();
-              }}
-              onCategoryChange={setActiveCategory}
-              onToggleTag={toggleTag}
-              minRating={minRatingFilter}
-              onMinRatingChange={setMinRatingFilter}
-              popularity={popularityFilter}
-              onPopularityChange={setPopularityFilter}
-              onClearFilters={() => {
-                clearSearchExperienceFilters();
-                setActiveCategory("all");
-              }}
-            />
-
-            <div ref={announceRef} role="status" aria-live="polite" aria-atomic="true" className="sr-only" />
-
-            {activeCategory !== "all" && (
-              <nav
-                className="flex animate-slide-down items-center gap-1.5 text-xs font-mono uppercase text-[var(--paper-muted)]"
-                aria-label="Breadcrumb"
-              >
-                <span>Atlas</span>
-                <span aria-hidden="true">/</span>
-                <span className="text-[var(--paper-ink)]">{currentLabel}</span>
-              </nav>
-            )}
-
-            <div ref={resultsRef} className="space-y-7">
-              <DualTrackSection
-                featured={featured}
-                latest={latest}
-                popular={popular}
-                featuredOffset={0}
-                focusedIndex={focusedIndex}
-                onFocusChange={setFocusedIndex}
-                onKeyDown={handleResultKeyDown}
-                searchQuery={q}
-                onPreview={openPreview}
-              />
-
-              {showLinks && linkSections.map((section) => (
-                <CategorySection
-                  key={section.key}
-                  section={section}
-                  sectionOffset={sectionOffset}
-                  activeCategory={activeCategory}
-                  focusedIndex={focusedIndex}
-                  onFocusChange={setFocusedIndex}
-                  onKeyDown={handleResultKeyDown}
-                  searchQuery={q}
-                  onPreview={openPreview}
-                />
-              ))}
-
-              {q && flatResults.length === 0 && zeroResultRecommendations.length > 0 && (
-                <CategorySection
-                  section={{
-                    key: "zero-result-recommendations",
-                    links: zeroResultRecommendations,
-                    label: "推荐工具",
-                    accent: "",
-                  }}
-                  sectionOffset={0}
-                  activeCategory="zero-result-recommendations"
-                  focusedIndex={-1}
-                  onFocusChange={() => {}}
-                  onKeyDown={() => {}}
-                  searchQuery={q}
-                  onPreview={openPreview}
-                />
-              )}
-            </div>
-
-            {mounted && flatResults.length === 0 && q && zeroResultRecommendations.length === 0 && (
-              <div className="nav-empty-state animate-fade-in-up">
-                <Search className="h-8 w-8" aria-hidden="true" />
-                <p className="text-sm">{`没有找到与 "${q}" 匹配的内容`}</p>
-                <button
-                  type="button"
-                  aria-label="清除筛选"
-                  onClick={() => {
-                    setRawSearch("");
-                    setSearch("");
-                    setActiveCategory("all");
-                    clearSearchExperienceFilters();
-                    inputRef.current?.focus();
-                  }}
-                  className="text-xs underline underline-offset-2 transition-colors hover:text-[var(--paper-accent)]"
-                >
-                  清除筛选
-                </button>
-              </div>
-            )}
-
-            {mounted && flatResults.length === 0 && !q && (
-              <div className="nav-empty-state animate-fade-in-up">
-                {activeCategory !== "all" ? (
-                  <PackageOpen className="h-8 w-8" aria-hidden="true" />
-                ) : (
-                  <Waves className="h-8 w-8" aria-hidden="true" />
-                )}
-                <p className="text-sm">
-                  {activeCategory !== "all" ? "这个分类还没有收录任何站点" : "暂时没有已收录的站点"}
-                </p>
-                {activeCategory !== "all" && (
-                  <button
-                    type="button"
-                    aria-label="清除筛选"
-                    onClick={() => {
-                      setRawSearch("");
-                      setSearch("");
-                      setActiveCategory("all");
-                      inputRef.current?.focus();
-                    }}
-                    className="text-xs underline underline-offset-2 transition-colors hover:text-[var(--paper-accent)]"
-                  >
-                    清除筛选
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+          <AtlasWorkspace
+            rawSearch={rawSearch}
+            setRawSearch={setRawSearch}
+            setSearch={setSearch}
+            searchLoading={searchLoading}
+            searchSuggestions={searchSuggestions}
+            searchFacets={searchFacets}
+            flatResults={flatResults}
+            activeTags={activeTags}
+            activeCategory={activeCategory}
+            setActiveCategory={setActiveCategory}
+            toggleTag={toggleTag}
+            minRatingFilter={minRatingFilter}
+            setMinRatingFilter={setMinRatingFilter}
+            popularityFilter={popularityFilter}
+            setPopularityFilter={setPopularityFilter}
+            clearSearchExperienceFilters={clearSearchExperienceFilters}
+            currentLabel={currentLabel}
+            featured={featured}
+            latest={latest}
+            popular={popular}
+            linkSections={linkSections}
+            showLinks={showLinks}
+            focusedIndex={focusedIndex}
+            setFocusedIndex={setFocusedIndex}
+            handleResultKeyDown={handleResultKeyDown}
+            q={q}
+            openPreview={openPreview}
+            zeroResultRecommendations={zeroResultRecommendations}
+            mounted={mounted}
+            inputRef={inputRef}
+            resultsRef={resultsRef}
+            announceRef={announceRef}
+          />
 
           <MobileNav tabs={tabKeys} activeCategory={activeCategory} onSelect={setActiveCategory} />
           <div className="h-24 md:hidden" />
