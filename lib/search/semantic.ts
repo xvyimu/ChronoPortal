@@ -1,10 +1,6 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import {
-  buildEmbedRequestHeaders,
-  describeEmbedSkipReason,
-  resolveEmbedEndpoint,
-} from "@/lib/embedding-runtime";
 import { logger } from "@/lib/logger";
+import { generateEmbedding, resolveEmbedProvider } from "./embed-provider";
 import type { NavLink } from "@/lib/types";
 import type { SearchResult, SemanticRow } from "./types";
 
@@ -12,18 +8,19 @@ import type { SearchResult, SemanticRow } from "./types";
  * 嵌入向量 + pgvector 语义搜索
  *
  * 这里隔离了两件外部依赖：
- * 1. 嵌入微服务（EMBED_SERVER_URL：loopback，或 HTTPS + EMBED_SERVER_API_KEY）；
- * 2. Supabase 的 `search_links_semantic` RPC（service_role 客户端调用）。
+ * 1. 嵌入后端（EMBED_PROVIDER：cloudflare Workers AI 1024-d 常开 / embed-server 512-d 本机）；
+ * 2. Supabase 的语义 RPC（service_role 客户端调用；名称由 EMBED_SEMANTIC_RPC 决定）。
  *
  * 任意一处失败都返回空数组，让上层降级为纯 Fuse 排序，
  * 不会把 5xx 抛到路由层。
  */
 
-const DEFAULT_EMBED_SERVER_URL = "http://127.0.0.1:8003";
 const MIN_SEMANTIC_SIMILARITY = 0.35;
-const EMBED_REQUEST_TIMEOUT_MS = 10000;
 const EMBED_UNAVAILABLE_TTL_MS = 30_000;
 const EMBED_WARNING_THROTTLE_MS = 60_000;
+
+/** 默认 512-d embed-server RPC；切到 Cloudflare 1024-d 时设 EMBED_SEMANTIC_RPC=search_links_semantic_v2 */
+const DEFAULT_SEMANTIC_RPC = "search_links_semantic";
 
 let unavailableEndpoint: string | null = null;
 let unavailableUntil = 0;
@@ -53,77 +50,47 @@ function clearTemporarilyUnavailable(endpoint: string): void {
   unavailableUntil = 0;
 }
 
-/**
- * 解析 EMBED_SERVER_URL 为 /embed-query 完整端点。
- *
- * 允许：
- * - loopback http/https（serverless 默认禁用，除非 EMBED_SERVER_LOOPBACK_ENABLED）
- * - 远程 HTTPS + EMBED_SERVER_API_KEY
- */
-export function getEmbedEndpoint(): string | null {
-  const { endpoint, reason } = resolveEmbedEndpoint({
-    raw: process.env.EMBED_SERVER_URL,
-    fallback: DEFAULT_EMBED_SERVER_URL,
-    path: "/embed-query",
-  });
-
-  if (endpoint !== null) return endpoint;
-
-  if (reason !== "missing") {
-    warnThrottled(`embed-config:${reason}`, "Ignoring EMBED_SERVER_URL", {
-      source: "api-search",
-      reason: describeEmbedSkipReason(reason),
-    });
-  }
-
-  return null;
+function getSemanticRpcName(): string {
+  return process.env.EMBED_SEMANTIC_RPC?.trim() || DEFAULT_SEMANTIC_RPC;
 }
 
 /**
- * 调用嵌入微服务生成向量
+ * 生成查询向量（nav 语义搜索）。
  *
- * @param text - 需要向量化的文本
- * @returns 512 维归一化向量数组，失败时返回 null
+ * 后端由 EMBED_PROVIDER 决定：
+ * - cloudflare → Workers AI @cf/baai/bge-m3（1024-d，常开无本机依赖）
+ * - embed-server（默认）→ 本机 / Worker 反代 512-d BGE
+ *
+ * 保留 30s「临时不可用」缓存以避免打爆下游；provider 失败即返回 null。
+ *
+ * @returns 归一化向量数组（维度取决于 provider），失败时返回 null
  */
 export async function getEmbedding(text: string): Promise<number[] | null> {
-  const endpoint = getEmbedEndpoint();
-  if (!endpoint) return null;
-  if (isTemporarilyUnavailable(endpoint)) return null;
+  const provider = resolveEmbedProvider();
 
   try {
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: buildEmbedRequestHeaders({ json: true }),
-      body: JSON.stringify({ text }),
-      signal: AbortSignal.timeout(EMBED_REQUEST_TIMEOUT_MS),
-    });
+    const { vector, endpoint } = await generateEmbedding(text);
 
-    if (!res.ok) {
-      markTemporarilyUnavailable(endpoint);
-      warnThrottled(`embed-server:${endpoint}:http`, "Embed server error", {
-        status: res.status,
-        source: "api-search",
-        retryAfterMs: EMBED_UNAVAILABLE_TTL_MS,
-      });
+    if (endpoint && isTemporarilyUnavailable(endpoint)) return null;
+
+    if (!vector || vector.length === 0) {
+      if (endpoint) {
+        markTemporarilyUnavailable(endpoint);
+        warnThrottled(`embed:${endpoint}:payload`, "Embed backend returned no vector", {
+          source: "api-search",
+          provider,
+          retryAfterMs: EMBED_UNAVAILABLE_TTL_MS,
+        });
+      }
       return null;
     }
 
-    const data = await res.json();
-    if (!Array.isArray(data.embedding) || data.embedding.length === 0) {
-      markTemporarilyUnavailable(endpoint);
-      warnThrottled(`embed-server:${endpoint}:payload`, "Embed server returned invalid payload", {
-        source: "api-search",
-        retryAfterMs: EMBED_UNAVAILABLE_TTL_MS,
-      });
-      return null;
-    }
-
-    clearTemporarilyUnavailable(endpoint);
-    return data.embedding as number[];
+    if (endpoint) clearTemporarilyUnavailable(endpoint);
+    return vector;
   } catch (e) {
-    markTemporarilyUnavailable(endpoint);
-    warnThrottled(`embed-server:${endpoint}:request`, "Embed server request failed", {
+    warnThrottled(`embed:${provider}:request`, "Embed backend request failed", {
       source: "api-search",
+      provider,
       error: e instanceof Error ? e.message : String(e),
       retryAfterMs: EMBED_UNAVAILABLE_TTL_MS,
     });
