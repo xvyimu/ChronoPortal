@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import { useMemo, useState, type KeyboardEvent } from "react";
 import { type NavLink } from "@/lib/types";
 import { LinkCard } from "./LinkCard";
 import { Button } from "@/components/ui/button";
@@ -35,18 +35,40 @@ export function ResultGrid({
   initialVisible = DEFAULT_INITIAL,
   pageSize = DEFAULT_PAGE,
 }: ResultGridProps) {
-  const [visibleCount, setVisibleCount] = useState(initialVisible);
-
-  // 列表身份变化时重置窗口（分类/搜索切换）
   const listKey = useMemo(
-    () => `${baseIndex}:${links.length}:${links[0]?.id ?? ""}:${links[links.length - 1]?.id ?? ""}`,
+    () =>
+      `${baseIndex}:${links.length}:${links[0]?.id ?? ""}:${links[links.length - 1]?.id ?? ""}`,
     [baseIndex, links]
   );
 
-  useEffect(() => {
-    setVisibleCount(initialVisible);
-  }, [listKey, initialVisible]);
+  // listKey 变化时 remount 内层，重置 visibleCount，避免 effect setState
+  return (
+    <ResultGridInner
+      key={listKey}
+      links={links}
+      baseIndex={baseIndex}
+      focusedIndex={focusedIndex}
+      onFocusChange={onFocusChange}
+      onKeyDown={onKeyDown}
+      searchQuery={searchQuery}
+      onPreview={onPreview}
+      initialVisible={initialVisible}
+      pageSize={pageSize}
+    />
+  );
+}
 
+function ResultGridInner({
+  links,
+  baseIndex,
+  focusedIndex,
+  onKeyDown,
+  searchQuery = "",
+  onPreview,
+  initialVisible = DEFAULT_INITIAL,
+  pageSize = DEFAULT_PAGE,
+}: ResultGridProps) {
+  const [visibleCount, setVisibleCount] = useState(initialVisible);
   const visible = links.slice(0, visibleCount);
   const hasMore = visibleCount < links.length;
 
@@ -69,7 +91,6 @@ export function ResultGrid({
               onKeyDown={(e) => onKeyDown(e, idx)}
               tabIndex={isFocused ? 0 : -1}
               className="outline-none rounded-xl transition-all duration-150"
-              // 不用 hover 写全局 focusedIndex，避免数百卡重渲染
             >
               <LinkCard
                 link={link}

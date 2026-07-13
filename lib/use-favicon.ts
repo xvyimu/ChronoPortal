@@ -90,6 +90,8 @@ export function useFavicon(domain: string | null): string | null {
 
   useEffect(() => {
     if (!domain) {
+      // 同步 cache 读路径：domain 清空时重置展示
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFaviconUrl(null);
       return;
     }
