@@ -129,6 +129,7 @@ describe("tool detail slugs", () => {
         title: "Related Tool Renamed",
         slug: "related-tool",
         url: "https://related.example.com",
+        icon: "🖊️",
       },
     ]);
 
@@ -144,5 +145,6 @@ describe("tool detail slugs", () => {
 
     expect(html).toContain('href="/tool/related-tool"');
     expect(html).not.toContain("/tool/related-tool-renamed");
+    expect(html).not.toContain("🖊️");
   });
 });

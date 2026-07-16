@@ -5,7 +5,7 @@ import NotFound from "@/app/not-found";
 import { getApprovedLinkBySlug, getRelatedLinks, getCategories } from "@/lib/repositories";
 import { slugify } from "@/lib/slugify";
 import { relativeTime } from "@/lib/types";
-import { escapeJsonForHtml, withTimeout } from "@/lib/utils";
+import { escapeJsonForHtml, isSafeUrl, withTimeout } from "@/lib/utils";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ReviewSection } from "@/components/ReviewSection";
 import { logger } from "@/lib/logger";
@@ -148,7 +148,7 @@ export default async function ToolDetailPage({ params }: PageProps) {
       {/* 工具信息卡片 */}
       <div className="mb-8 rounded-xl border border-border bg-card/50 p-6">
         <div className="flex items-start gap-4">
-          {data.icon && (
+          {data.icon && isSafeUrl(data.icon) && (
             <Image
               src={data.icon}
               alt={data.title}
@@ -218,7 +218,7 @@ export default async function ToolDetailPage({ params }: PageProps) {
                   className="group rounded-lg border border-border p-4 transition-colors hover:border-primary/50 hover:bg-muted/30"
                 >
                   <div className="flex items-center gap-3">
-                    {tool.icon && (
+                    {tool.icon && isSafeUrl(tool.icon) && (
                       <Image
                         src={tool.icon}
                         alt={tool.title}
