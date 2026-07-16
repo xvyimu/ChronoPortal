@@ -44,7 +44,9 @@ export const defaultSearchAdapters: SearchAdapters = {
 
 function successHeaders(requestId: string): Record<string, string> {
   return {
-    "Cache-Control": "no-store",
+    "Cache-Control": "no-store, no-cache, must-revalidate",
+    "CDN-Cache-Control": "no-store",
+    "Vercel-CDN-Cache-Control": "no-store",
     "x-request-id": requestId,
   };
 }

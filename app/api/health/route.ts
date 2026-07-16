@@ -281,6 +281,8 @@ export async function GET() {
       status: statusCode,
       headers: {
         "Cache-Control": "no-store, no-cache, must-revalidate",
+        "CDN-Cache-Control": "no-store",
+        "Vercel-CDN-Cache-Control": "no-store",
       },
     }
   );
