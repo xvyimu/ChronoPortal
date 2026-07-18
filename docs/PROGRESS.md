@@ -1,26 +1,28 @@
 # 综合导航站 — 项目进度文档
 
-> 最后更新：2026-07-18 · 版本 v17.0（发布收口注记）
+> 最后更新：2026-07-18 · 版本 v18.0（全日收口）
 > 项目路径：`d:\nav-site` · 开发端口：3264
-> **当前生产 HEAD**：`46981a1a` · 主域 `https://yuanjia1314.ccwu.cc`
+> **生产运行时 HEAD**：`ee5a047b` · **仓库 HEAD**：`50db5afc` · 主域 `https://yuanjia1314.ccwu.cc`
 
-## 〇、2026-07-18 发布收口（权威入口）
+## 〇、2026-07-18 全日收口（权威入口）
 
-本轮已完成候选冻结 → 生产迁库 → 主域部署探针 → 前台 UX/favicon hotfix。  
 **单次事实源**：[`docs/release-manifest-2026-07-18.md`](./release-manifest-2026-07-18.md)  
-**主计划收口**：[`docs/optimization-and-release-plan-2026-07-18.md`](./optimization-and-release-plan-2026-07-18.md) §13  
-**前台性能**：[`docs/frontend-perf-optimization-2026-07-18.md`](./frontend-perf-optimization-2026-07-18.md)
+**主计划**：[`docs/optimization-and-release-plan-2026-07-18.md`](./optimization-and-release-plan-2026-07-18.md) §13  
+**前台性能**：[`docs/frontend-perf-optimization-2026-07-18.md`](./frontend-perf-optimization-2026-07-18.md)  
+**Preview / 值守 / Embed**：`docs/preview-env-setup.md` · `docs/oncall-and-alerts.md` · `docs/embed-fly-deploy.md`
 
 | 项 | 状态 |
 |---|---|
-| Admin 模块化 interface + 迁库 | ✅ 生产已应用 |
-| 主域 commit 探针 | ✅ 匹配 `46981a1a` |
-| 侧栏滚动 / 首屏预算 | ✅ 已上线 |
-| Favicon 代理恢复 + monogram | ✅ 已上线（首页 0 破图抽检） |
-| Preview 功能探针 | ⚠️ Deployment Protection，不阻断主域 |
-| Embedding 常开 | ⚠️ 仍本机 BGE 路径 |
+| Admin interface + 生产迁库 | ✅ |
+| 主域探针 expect `ee5a047b` | ✅ PASS |
+| 侧栏滚动 / 首屏预算 / favicon monogram | ✅ |
+| icon 库内回填 512/512 + isPreferredIcon | ✅ |
+| T1–T10 backlog | ✅（T5 云路径待绑卡；本机 embed ✅） |
+| Preview nav-dev env + SSO 关闭 + 探针 | ✅ |
+| 值守默认 / 可观测基线 | ✅ |
+| Fly/VPS 24×7 embed | ⏳ 账单硬阻塞 |
 
-下文 Phase 1–26 为历史进度（至 2026-07-04），数量与平台口径可能漂移；**以 release manifest 与 README 为准**。
+下文 Phase 1–26 为历史进度（至 2026-07-04），数量与平台口径可能漂移；**以 release manifest 为准**。
 
 ---
 

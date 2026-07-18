@@ -320,21 +320,24 @@ rtk pnpm run verify:launch-readiness -- --skip-network
 
 | 门禁 | 结果 |
 |---|---|
-| 候选 SHA 冻结并 push | ✅ `origin/master` = `46981a1a` |
-| 生产迁库（候选集合） | ✅ supabase-nav-prod 按序幂等应用 |
-| 主域部署 + build-info | ✅ `dpl_3KnaaDy7kR3yQ9hcx1Dq2gCkGWaq` · commit 匹配 |
-| 主域 `verify:production` | ✅ PASS |
-| 前台 UX hotfix | ✅ 侧栏滚动 / 挂载预算 / favicon 代理+monogram |
-| Preview 功能探针 | ⚠️ 未完成（Deployment Protection；不阻断主域 Go） |
-| Embedding 常开 | ⚠️ 仍依赖本机 BGE；health 默认可 degraded |
+| 候选 SHA 冻结并 push | ✅ 生产运行时 `ee5a047b`；仓库 `50db5afc` |
+| 生产迁库（候选集合） | ✅ supabase-nav-prod |
+| 主域部署 + build-info | ✅ `dpl_A9WHnXU…` · commit `ee5a047b` |
+| 主域 `verify:production` | ✅ PASS（终检） |
+| Preview 功能探针 | ✅ SSO 关 + nav-dev env + embedding ok |
+| 前台 UX + T1–T10 | ✅ icon 回填/E2E/LH/OpenAPI 等 |
+| Embedding 常开 | ✅ 本机 tunnel+自启；⏳ Fly 待绑卡 |
+| 值守 | ✅ `docs/oncall-and-alerts.md` |
 
-**完成定义对照（§12）：** 1–5 已满足主域口径；6 由本轮文档同步完成。  
-**后续不阻断项：** icon 库内回填、Preview 完整环境、embedding 上云、RUM 仪表盘 — 见 release manifest §9。
+**完成定义对照（§12）：** 主域口径满足 Released/Go；运维增强已落地。  
+**权威单次记录：** `docs/release-manifest-2026-07-18.md`。
 
 ## 参考文档
 
 - [Release Manifest 2026-07-18](./release-manifest-2026-07-18.md)
 - [前台交互与性能优化清单](./frontend-perf-optimization-2026-07-18.md)
+- [Preview 环境](./preview-env-setup.md)
+- [值守与告警](./oncall-and-alerts.md)
 - [Chrome 抽检证据](./perf/chrome-review-2026-07-18/README.md)
 - [管理后台前后端 interface ADR](./adr-009-admin-frontend-backend-interface.md)
 - [管理后台优化收尾报告](./admin-optimization-closeout-2026-07-17.md)

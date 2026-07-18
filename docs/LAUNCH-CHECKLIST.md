@@ -3,7 +3,8 @@
 > 最后更新：2026-07-18
 > 发布分支：`master`
 > 生产入口：`https://yuanjia1314.ccwu.cc`（Vercel 主轨）
-> 当前生产 HEAD：`46981a1a`（见 [release-manifest-2026-07-18](./release-manifest-2026-07-18.md)）
+> 当前生产运行时 HEAD：`ee5a047b`（见 [release-manifest-2026-07-18](./release-manifest-2026-07-18.md)）
+> 仓库 HEAD 可含 ops-only 提交，不以 docs SHA 为 build-info 期望
 
 详细操作、故障处理和回滚见[生产运行手册](./PRODUCTION-RUNBOOK.md)。
 
