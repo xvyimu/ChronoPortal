@@ -109,9 +109,16 @@ GET https://yuanjia1314.ccwu.cc/api/health → checks.embedding=ok
 |---|---|
 | embed-server + native 启停脚本 | ✅ |
 | Named Tunnel + Worker 反代 | ✅ |
-| ensure / autostart | ✅ |
+| ensure / autostart | ✅（2026-07-18 已装 `nav-site-embed-stack`） |
 | 生产 env `EMBED_SERVER_URL` | ✅（指向 Worker） |
+| 本机 origin 健康 | ✅ `127.0.0.1:18003` + tunnel/worker health ok（开机后） |
 | 真正无本机 origin | ⏳ 待 VPS |
+
+一键：
+
+```powershell
+powershell -NoProfile -File D:\nav-site\scripts\bootstrap-embed-always-on.ps1
+```
 
 ### 明确不在本轮自动执行
 

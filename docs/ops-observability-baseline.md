@@ -31,14 +31,16 @@
 3. 抽查 `/admin` 登录与一条链接读写  
 4. 抽查首页图标：破图应为 0  
 
-## 4. 待填空（负责人）
+## 4. 值守人与告警（已填默认）
+
+详见 **[oncall-and-alerts.md](./oncall-and-alerts.md)**。
 
 | 项 | 值 |
 |---|---|
-| 值守人 | _TBD_ |
-| Sentry 项目 URL | _TBD_ |
-| 告警通道（邮件/IM） | _TBD_ |
-| GA Measurement ID 是否启用 | 见 `NEXT_PUBLIC_GA_MEASUREMENT_ID` |
+| 值守人 | 仓库 owner（yuanjia / aijiai520） |
+| 告警 | Sentry 邮件 + Vercel Deployment Failed 通知 |
+| GA | `NEXT_PUBLIC_GA_MEASUREMENT_ID`（若已配置） |
+| Embed 本机自启 | 计划任务 `nav-site-embed-stack` |
 
 ## 5. 非目标
 
