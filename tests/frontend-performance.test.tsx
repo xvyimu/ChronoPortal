@@ -265,6 +265,52 @@ describe("frontend performance and lifecycle regressions", () => {
     expect(allocateSectionMountBudget([2, 2], 8, 1)).toEqual([2, 2]);
   });
 
+  it("shares the first-screen budget with dual-track sections before categories", async () => {
+    const { allocateSectionMountBudget } = await import(
+      "@/components/navigation/mount-budget"
+    );
+    const dual = allocateSectionMountBudget([6, 6, 6], 24, 0);
+    expect(dual).toEqual([6, 6, 6]);
+    const used = dual.reduce((sum, n) => sum + n, 0);
+    const categories = allocateSectionMountBudget([10, 10], 24, used);
+    expect(categories).toEqual([6, 0]);
+  });
+
+  it("resets the progressive window when the link list identity changes without remounting the outer grid", async () => {
+    const { ResultGrid } = await import("@/components/ResultGrid");
+    const onFocusChange = vi.fn();
+    const view = render(
+      <ResultGrid
+        links={[link("one"), link("two"), link("three"), link("four")]}
+        baseIndex={0}
+        focusedIndex={-1}
+        onFocusChange={onFocusChange}
+        onKeyDown={vi.fn()}
+        initialVisible={2}
+        pageSize={2}
+      />
+    );
+
+    expect(view.queryAllByTestId("link-card")).toHaveLength(2);
+    fireEvent.click(view.getByRole("button", { name: /加载更多/ }));
+    expect(view.queryAllByTestId("link-card")).toHaveLength(4);
+
+    view.rerender(
+      <ResultGrid
+        links={[link("a"), link("b"), link("c")]}
+        baseIndex={0}
+        focusedIndex={-1}
+        onFocusChange={onFocusChange}
+        onKeyDown={vi.fn()}
+        initialVisible={2}
+        pageSize={2}
+      />
+    );
+
+    expect(view.queryAllByTestId("link-card")).toHaveLength(2);
+    expect(view.getByText("Link a")).toBeTruthy();
+  });
+
   it("disconnects the Pangu observer and clears performance entries on unmount", async () => {
     const disconnect = vi.fn();
     const observe = vi.fn();

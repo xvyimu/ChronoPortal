@@ -13,6 +13,12 @@ interface DualTrackSectionProps {
   onKeyDown: (e: KeyboardEvent<HTMLElement>, index: number) => void;
   searchQuery?: string;
   onPreview?: (link: NavLink) => void;
+  /** 与分类区共享的首屏挂载配额（featured/latest/popular 依次消耗） */
+  initialVisibleByTrack?: {
+    featured: number;
+    latest: number;
+    popular: number;
+  };
 }
 
 export function DualTrackSection({
@@ -25,11 +31,12 @@ export function DualTrackSection({
   onKeyDown,
   searchQuery = "",
   onPreview,
+  initialVisibleByTrack,
 }: DualTrackSectionProps) {
   return (
     <>
       {featured.length > 0 && (
-        <section className="animate-fade-in-up">
+        <section>
           <h2 className="atlas-section-label text-[var(--paper-accent)]">推荐</h2>
           <ResultGrid
             links={featured}
@@ -39,12 +46,13 @@ export function DualTrackSection({
             onKeyDown={onKeyDown}
             searchQuery={searchQuery}
             onPreview={onPreview}
+            initialVisible={initialVisibleByTrack?.featured}
           />
         </section>
       )}
 
       {latest.length > 0 && (
-        <section className="animate-fade-in-up">
+        <section>
           <h2 className="atlas-section-label text-[var(--paper-muted)]">最新添加</h2>
           <ResultGrid
             links={latest}
@@ -54,12 +62,13 @@ export function DualTrackSection({
             onKeyDown={onKeyDown}
             searchQuery={searchQuery}
             onPreview={onPreview}
+            initialVisible={initialVisibleByTrack?.latest}
           />
         </section>
       )}
 
       {popular.length > 0 && (
-        <section className="animate-fade-in-up">
+        <section>
           <h2 className="atlas-section-label text-[var(--paper-muted)]">
             <Flame className="h-3.5 w-3.5 text-[#b58157]" />
             热门访问
@@ -72,6 +81,7 @@ export function DualTrackSection({
             onKeyDown={onKeyDown}
             searchQuery={searchQuery}
             onPreview={onPreview}
+            initialVisible={initialVisibleByTrack?.popular}
           />
         </section>
       )}

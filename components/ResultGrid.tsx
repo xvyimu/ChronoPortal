@@ -23,55 +23,39 @@ interface ResultGridProps {
 const DEFAULT_INITIAL = 24;
 const DEFAULT_PAGE = 24;
 
+/** 用首尾 id + 长度标识列表身份，避免整表 remount。 */
+function linksIdentity(links: NavLink[]): string {
+  if (links.length === 0) return "0";
+  return `${links.length}:${links[0]?.id ?? ""}:${links[links.length - 1]?.id ?? ""}`;
+}
+
 /**
  * 可键盘导航的链接卡片网格 + 渐进挂载（降低首屏 DOM/favicon 扇出）。
+ * 分类切换时保留组件实例，仅在列表身份变化时重置 visibleCount。
  */
 export function ResultGrid({
   links,
   baseIndex,
   focusedIndex,
-  onFocusChange,
   onKeyDown,
   searchQuery = "",
   onPreview,
   initialVisible = DEFAULT_INITIAL,
   pageSize = DEFAULT_PAGE,
 }: ResultGridProps) {
-  const listKey = useMemo(
-    () =>
-      `${baseIndex}:${links.length}:${links[0]?.id ?? ""}:${links[links.length - 1]?.id ?? ""}`,
-    [baseIndex, links]
-  );
-
-  // listKey 变化时 remount 内层，重置 visibleCount，避免 effect setState
-  return (
-    <ResultGridInner
-      key={listKey}
-      links={links}
-      baseIndex={baseIndex}
-      focusedIndex={focusedIndex}
-      onFocusChange={onFocusChange}
-      onKeyDown={onKeyDown}
-      searchQuery={searchQuery}
-      onPreview={onPreview}
-      initialVisible={initialVisible}
-      pageSize={pageSize}
-    />
-  );
-}
-
-function ResultGridInner({
-  links,
-  baseIndex,
-  focusedIndex,
-  onKeyDown,
-  searchQuery = "",
-  onPreview,
-  initialVisible = DEFAULT_INITIAL,
-  pageSize = DEFAULT_PAGE,
-}: ResultGridProps) {
+  // onFocusChange 由键盘导航上层持有；网格本身只消费 focusedIndex
+  const identity = useMemo(() => linksIdentity(links), [links]);
   const [visibleCount, setVisibleCount] = useState(initialVisible);
   const rootRef = useRef<HTMLDivElement>(null);
+  const prevIdentityRef = useRef(identity);
+
+  // 列表身份变化时重置窗口，不 remount 整树
+  useEffect(() => {
+    if (prevIdentityRef.current === identity) return;
+    prevIdentityRef.current = identity;
+    setVisibleCount(initialVisible);
+  }, [identity, initialVisible]);
+
   const focusedLocalIndex = focusedIndex - baseIndex;
   const focusRequiredCount =
     focusedLocalIndex >= 0 && focusedLocalIndex < links.length
@@ -110,7 +94,7 @@ function ResultGridInner({
     );
     observer.observe(root);
     return () => observer.disconnect();
-  }, [links.length, pageSize, visibleCount]);
+  }, [links.length, pageSize, visibleCount, identity]);
 
   return (
     <div ref={rootRef} className="space-y-3">

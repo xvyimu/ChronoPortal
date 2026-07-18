@@ -37,7 +37,7 @@ export function CategorySection({
   if (!isSearchSection && activeCategory !== "all" && activeCategory !== section.key) return null;
 
   return (
-    <section className="animate-fade-in-up">
+    <section>
       {(activeCategory === "all" || isSearchSection) && (
         <h2 className={`atlas-section-label ${section.accent || "text-[var(--paper-ink)]"}`}>
           {section.label}

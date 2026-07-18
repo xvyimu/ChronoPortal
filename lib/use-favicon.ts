@@ -118,7 +118,6 @@ export function useFavicon(
     }
 
     if (!domain) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFaviconUrl(null);
       return;
     }

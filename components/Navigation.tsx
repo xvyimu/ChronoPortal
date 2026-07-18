@@ -115,7 +115,7 @@ export function Navigation({
 
       <div
         id="atlas"
-        className="flex border-t border-[var(--paper-line)] bg-[linear-gradient(180deg,#f8f6f2_0%,#f4f0e8_46%,#f8f6f2_100%)] dark:bg-[linear-gradient(180deg,var(--paper-bg)_0%,color-mix(in_srgb,var(--paper-bg)_92%,black)_46%,var(--paper-bg)_100%)]"
+        className="flex scroll-mt-[4.5rem] border-t border-[var(--paper-line)] bg-[linear-gradient(180deg,#f8f6f2_0%,#f4f0e8_46%,#f8f6f2_100%)] dark:bg-[linear-gradient(180deg,var(--paper-bg)_0%,color-mix(in_srgb,var(--paper-bg)_92%,black)_46%,var(--paper-bg)_100%)]"
       >
         <Sidebar
           tabs={tabTree}

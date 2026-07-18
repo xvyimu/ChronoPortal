@@ -105,14 +105,26 @@ export function AtlasWorkspace({
     [flatResults],
   );
 
+  // DualTrack 与分类区共享首屏挂载预算，避免「全部」页三轨各 24 + 分类 24 爆挂载
+  const dualTrackInitial = useMemo(() => {
+    const lengths = [featured.length, latest.length, popular.length];
+    const allocated = allocateSectionMountBudget(lengths, INITIAL_LINK_CARD_BUDGET, 0);
+    return {
+      featured: allocated[0] ?? 0,
+      latest: allocated[1] ?? 0,
+      popular: allocated[2] ?? 0,
+      used: (allocated[0] ?? 0) + (allocated[1] ?? 0) + (allocated[2] ?? 0),
+    };
+  }, [featured.length, latest.length, popular.length]);
+
   const sectionInitialCounts = useMemo(() => {
     const counts = allocateSectionMountBudget(
       linkSections.map((section) => section.links.length),
       INITIAL_LINK_CARD_BUDGET,
-      featured.length + latest.length + popular.length
+      dualTrackInitial.used
     );
     return new Map(linkSections.map((section, index) => [section.key, counts[index] ?? 0]));
-  }, [featured.length, latest.length, popular.length, linkSections]);
+  }, [dualTrackInitial.used, linkSections]);
 
   const clearBase = () => {
     setRawSearch("");
@@ -176,6 +188,7 @@ export function AtlasWorkspace({
             onKeyDown={handleResultKeyDown}
             searchQuery={q}
             onPreview={openPreview}
+            initialVisibleByTrack={dualTrackInitial}
           />
 
           {showLinks && linkSections.map((section) => (

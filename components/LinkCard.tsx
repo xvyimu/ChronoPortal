@@ -19,7 +19,6 @@ import { trackClick } from "@/lib/track-click";
 
 function LinkCardComponent({
   link,
-  index = 0,
   searchQuery = "",
   onPreview,
 }: {
@@ -50,10 +49,8 @@ function LinkCardComponent({
         : "text-[#6f8c74]";
 
   return (
-    <div
-      className="animate-fade-in-up"
-      style={{ animationDelay: `${(index % 20) * 0.02}s` }}
-    >
+    // 不做卡片级入场动画，避免分类切换时整表 fade 闪烁与额外 layout
+    <div>
       {/* 外层 article：主链与按钮为兄弟，避免 <a> 嵌套交互控件 */}
       <article className="group relative">
         <InteractiveSurface
