@@ -105,15 +105,17 @@ export function AtlasWorkspace({
     [flatResults],
   );
 
-  // DualTrack 与分类区共享首屏挂载预算，避免「全部」页三轨各 24 + 分类 24 爆挂载
+  // DualTrack 用独立小配额，避免「推荐」吃光 24 后分类区全部 initialVisible=0
+  //（表现为标题 +「加载更多」却零卡片）。分类区单独使用完整首屏预算。
   const dualTrackInitial = useMemo(() => {
-    const lengths = [featured.length, latest.length, popular.length];
-    const allocated = allocateSectionMountBudget(lengths, INITIAL_LINK_CARD_BUDGET, 0);
+    const perTrack = 8;
+    const featuredN = Math.min(featured.length, perTrack);
+    const latestN = Math.min(latest.length, perTrack);
+    const popularN = Math.min(popular.length, perTrack);
     return {
-      featured: allocated[0] ?? 0,
-      latest: allocated[1] ?? 0,
-      popular: allocated[2] ?? 0,
-      used: (allocated[0] ?? 0) + (allocated[1] ?? 0) + (allocated[2] ?? 0),
+      featured: featuredN,
+      latest: latestN,
+      popular: popularN,
     };
   }, [featured.length, latest.length, popular.length]);
 
@@ -121,10 +123,10 @@ export function AtlasWorkspace({
     const counts = allocateSectionMountBudget(
       linkSections.map((section) => section.links.length),
       INITIAL_LINK_CARD_BUDGET,
-      dualTrackInitial.used
+      0
     );
     return new Map(linkSections.map((section, index) => [section.key, counts[index] ?? 0]));
-  }, [dualTrackInitial.used, linkSections]);
+  }, [linkSections]);
 
   const clearBase = () => {
     setRawSearch("");

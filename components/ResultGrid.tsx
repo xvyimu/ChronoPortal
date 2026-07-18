@@ -63,7 +63,9 @@ export function ResultGrid({
       : 0;
   const effectiveVisibleCount = Math.max(visibleCount, focusRequiredCount);
   const visible = links.slice(0, effectiveVisibleCount);
-  const hasMore = effectiveVisibleCount < links.length;
+  // initialVisible=0 表示等 IntersectionObserver 首挂；此时不要展示空的「加载更多」
+  const awaitingFirstMount = initialVisible === 0 && visibleCount === 0 && links.length > 0;
+  const hasMore = !awaitingFirstMount && effectiveVisibleCount < links.length;
 
   // 可见切片就绪后预热域名 favicon（跳过已有安全 icon 的链接）
   useEffect(() => {

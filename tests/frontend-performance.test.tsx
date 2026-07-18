@@ -269,11 +269,40 @@ describe("frontend performance and lifecycle regressions", () => {
     const { allocateSectionMountBudget } = await import(
       "@/components/navigation/mount-budget"
     );
-    const dual = allocateSectionMountBudget([6, 6, 6], 24, 0);
-    expect(dual).toEqual([6, 6, 6]);
-    const used = dual.reduce((sum, n) => sum + n, 0);
-    const categories = allocateSectionMountBudget([10, 10], 24, used);
-    expect(categories).toEqual([6, 0]);
+    // DualTrack 现改为独立 per-track 配额；分类区仍用完整 24 预算
+    const categories = allocateSectionMountBudget([10, 10, 10], 24, 0);
+    expect(categories).toEqual([10, 10, 4]);
+  });
+
+  it("hides load-more while a zero-initial grid awaits first intersection mount", async () => {
+    class IntersectionObserverMock {
+      observe = vi.fn();
+      disconnect = vi.fn();
+      unobserve = vi.fn();
+      takeRecords = vi.fn(() => []);
+      root = null;
+      rootMargin = "0px";
+      thresholds = [0];
+      constructor(_cb: IntersectionObserverCallback) {
+        void _cb;
+      }
+    }
+    vi.stubGlobal("IntersectionObserver", IntersectionObserverMock);
+    const { ResultGrid } = await import("@/components/ResultGrid");
+    const view = render(
+      <ResultGrid
+        links={[link("one"), link("two"), link("three")]}
+        baseIndex={0}
+        focusedIndex={-1}
+        onFocusChange={() => {}}
+        onKeyDown={() => {}}
+        initialVisible={0}
+        pageSize={2}
+      />
+    );
+
+    expect(view.queryAllByTestId("link-card")).toHaveLength(0);
+    expect(view.queryByRole("button", { name: /加载更多/ })).toBeNull();
   });
 
   it("resets the progressive window when the link list identity changes without remounting the outer grid", async () => {
