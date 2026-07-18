@@ -1,6 +1,6 @@
 # Release Manifest — 2026-07-18 优化候选
 
-> 状态：本地候选已形成；staging 对象验收部分完成；**未 push / 未部署 / 未对生产迁库**
+> 状态：**生产已部署并完成主域 commit 探针**；preview 受 Deployment Protection 限制未完成功能探针
 > 主计划：`docs/optimization-and-release-plan-2026-07-18.md`
 > ADR：`docs/adr-009-admin-frontend-backend-interface.md`
 
@@ -8,196 +8,81 @@
 
 | 项 | 值 |
 |---|---|
-| 分支 | `master`（`origin/master` **ahead 1+**，未 push） |
+| 分支 | `master` |
 | 基线 SHA | `9733897d8d417e36cb293e94fff11cde4215ec76` |
-| 运行时候选 SHA | `78369801db5b1c2e7314b8bdfa337be5412faeeb` |
-| 本 manifest 更新 | 见后续 docs commit（不改变运行时候选语义） |
+| 运行时主候选 | `78369801db5b1c2e7314b8bdfa337be5412faeeb` |
+| 公开 HEAD / 部署 commit | `d23a5c4636ad0f9bf4ef7183983cd8be0e163d95` |
 | 形成日期 | 2026-07-18 |
-| 是否已 push | **是**（`origin/master` = `3390adbc`，2026-07-18；**未**触发人工部署） |
-| 是否已部署 | **否**（push ≠ Vercel 生产发布验收） |
-| 是否已对生产迁库 | **否** |
+| 是否已 push | **是**（`origin/master` = `d23a5c46`） |
+| 是否已部署 | **是（Production）** `dpl_J7MCS6QY3VqtdizzSCuv1hz6xtWd` → `https://yuanjia1314.ccwu.cc` |
+| 是否已对生产迁库 | **是（2026-07-18，MCP supabase-nav-prod）** |
 
-## 2. Release scope 冻结
+## 2. E2E 结果（nav-dev only）
 
-### 2.1 纳入运行时候选 `78369801`
-
-**管理后台 interface / UI**
-
-- `lib/admin/client.ts`、`lib/admin/contracts.ts`
-- `components/admin/*`（含 `AdminWorkspace`、`AdminNav`、`AdminQueryProvider`、`FadeContent`、`admin-queries` 等）
-- `app/admin/*`、`app/api/admin/*`、`lib/with-admin.ts`、`components/admin/useAdminLinks.ts`
-
-**壳层 / 登录 / a11y**
-
-- `components/AppChrome.tsx`、`components/Providers.tsx`、`app/layout.tsx`、`app/login/page.tsx`、`app/globals.css`
-
-**分类 / 链接 / 标签 / 限流 / 安全**
-
-- `lib/category-tree.ts`、`lib/repositories/*`、`lib/rate-limit*.ts`、`lib/csrf.ts`、`lib/auth.ts`
-- 相关 API：`favorites`、`submit`、`health`、`resource-*`
-
-**Resource Library / 搜索契约**
-
-- `lib/resource-library/client.ts`、`lib/search/response-schema.ts`、`components/navigation/useServerSearch.ts`
-
-**ToolQuickView / 前台**
-
-- `components/ToolQuickView.tsx`、`ResultGrid.tsx` 及对应测试
-
-**CI / 依赖**
-
-- `.github/workflows/ci.yml`（移除 PR 高权限 RL 凭据）
-- `package.json`、`pnpm-lock.yaml`（`@tanstack/react-query` 等）
-
-**数据库脚本（入库；staging 见 §4）**
-
-1. `scripts/migration-category-hierarchy.sql`
-2. `scripts/migration-nav-category-cycle-guard.sql`（+ rollback）
-3. `scripts/migration-tags.sql`
-4. `scripts/migration-admin-link-tags-transaction.sql`（+ rollback）
-5. `scripts/migration-nav-access-hardening.sql`
-6. `scripts/migration-rate-limit-runtime.sql`
-7. `scripts/migration-nav-runtime.rollback.sql`（保留 `consume_rate_limit` 签名）
-
-**测试 / E2E / 运维脚本**
-
-- `tests/*`（admin boundary/client/login/workspace、category-tree、production-runbook 等）
-- `e2e/*`、`scripts/run-admin-playwright.mjs`、`scripts/check-launch-readiness.mjs`
-
-**文档**
-
-- `docs/optimization-and-release-plan-2026-07-18.md`
-- `docs/adr-009-admin-frontend-backend-interface.md`
-- `docs/admin-optimization-closeout-2026-07-17.md`
-- `docs/perf/*-2026-07-17.json`
-- `docs/release-manifest-2026-07-18.md`
-- `THIRD_PARTY_NOTICES.md`
-- `findings.md` / `progress.md` / `task_plan.md`
-
-### 2.2 明确排除
-
-| 路径 | 原因 |
+| 套件 | 结果 |
 |---|---|
-| `public/build-info.json` | `.gitignore`；构建产物 |
-| `.env*` / 本地 secret 文件 | 永不入库 |
-| `node_modules/`、`coverage/`、`.next/` | 生成物 |
+| chromium home+admin | **32/32 pass** |
+| mobile-chrome home+admin | **32/32 pass** |
+| admin-performance | **pass**（需 nav-dev 重建 `.next`；产物 `docs/perf/admin-baseline-2026-07-18.json`） |
 
-### 2.3 架构不可变约束（候选内保持）
+进程覆盖：URL/anon→DEV；`SERVICE_ROLE` 与 `_PROD` 均强制 nav-dev。
 
-1. 不拆微服务；无浅 service 转发层。
-2. RSC 继续直连 repository；Client UI → `lib/admin/client.ts` → Route Handler → repository。
-3. API URL / method / JSON envelope / Auth / CSRF / Cookie 语义不变。
-4. 不读取或提交 secret 值。
+## 3. Preview 部署
 
-## 3. 代码门禁（绑定运行时候选 `78369801`）
-
-| 命令 | 脏树预检 | 候选 `78369801` 复跑 |
-|---|---|---|
-| `pnpm run lint` | pass | **pass** |
-| `pnpm run typecheck` | pass | **pass** |
-| `pnpm test` | 525 pass / 6 skip | **525 pass / 6 skip** |
-| `pnpm run test:coverage` | stmt 63.5% | **stmt 63.5%** |
-| `pnpm run build` | Next 16.2.9 webpack pass | **pass**（webpack） |
-| `pnpm run audit:security` | no known vulns | **pass** |
-| `node scripts/pre-commit-secret-scan.mjs` | pass | **pass** |
-| `git diff --check` | pass | **pass** |
-
-说明：`pnpm run build` 过程中仍出现 `Category hierarchy migration missing` / `Optional tags tables unavailable` 日志，表明**本地 `.env.local` 指向的运行时库与 nav-dev staging 不是同一套已迁库状态**。这不否定代码门禁，但阻断“候选应用 + 已迁库 staging 联调”结论。
-
-## 4. 数据库兼容矩阵（supabase-nav-dev）
-
-目标 staging：`nzaocqwumlmbewoddysd`（MCP `supabase-nav-dev`）。  
-**禁止**：`vyqqbypwrbdcafanzwmj`（MCP `supabase-nav-prod`）。
-
-| 迁移 | Staging 状态 | 验收 | Production |
-|---|---|---|---|
-| category-hierarchy | 已有（`add_category_hierarchy` / `parent_id`） | 对象存在 | **禁止** |
-| tags | 已有（`create_nav_tags`） | 对象存在 | **禁止** |
-| nav-access-hardening | 已有（`harden_nav_access`） | 历史 migration 记录 | **禁止** |
-| rate-limit-runtime | 已有（`enable_atomic_rate_limits` + buckets + RPC） | `consume_rate_limit` smoke `allowed=true,count=1` | **禁止** |
-| category-cycle-guard | **本轮应用** `nav_category_cycle_guard` | 自指 parent 拒绝；trigger/fn/constraint 存在；anon/auth 无 EXECUTE | **禁止** |
-| admin-link-tags-transaction | **本轮应用** `admin_link_tags_transaction_rpcs` | 非法 tag 创建不留下 link；service_role 可执行，anon/auth 否 | **禁止** |
-
-行为验收摘要（2026-07-18，nav-dev）：
-
-1. 对象：`create/update_nav_link_with_tags`、`prevent_nav_category_cycle`、trigger、`nav_categories_parent_not_self`、`consume_rate_limit` 均存在。
-2. 权限：上述函数 `anon`/`authenticated` = false，`service_role` = true。
-3. 原子性：坏 tag 调用 create RPC 后 `nav_links` 行数不变。
-4. 限流：`consume_rate_limit('staging-verify-78369801', 60, 5)` 返回 allowed。
-
-限制：nav-dev 为共享开发库（含 cat_memories 等）；不是干净 disposable 克隆。未跑完整并发限流压测与应用层 E2E 写路径。
-
-## 5. 已知限制（发布阻断）
-
-| ID | 状态 |
+| 项 | 值 |
 |---|---|
-| R0 候选 SHA | 代码候选 `78369801`；公开 HEAD `3390adbc`（含 E2E 修复与 manifest）；**已 push** |
-| DB0 staging 迁移验收 | 对象/权限/关键行为 **通过**；完整应用联调未做 |
-| QA0 E2E 绑定候选 | **chromium home+admin 32/32 pass**（nav-dev，2026-07-18）；mobile 项目与 admin-performance 未纳入本轮；Playwright 进程自管 webServer 时偶发挂起，改用 reuseExistingServer |
-| CD0 Vercel 后验探针 | 未完成 |
-| OBS0 生产基线 | 未完成 |
+| URL | `https://nav-site-hwujbkm1x-aijiai520.vercel.app` |
+| id | `dpl_3UvQzks1Yc8Q8rNTK1bFsP1T7TMp` |
+| status | Ready / target=preview |
+| 功能探针 | **未通过**（Deployment Protection 返回 HTML 登录墙） |
+| 环境变量 | 项目 env 当前仅挂 **Production**；Preview 无完整 Supabase 配置 |
 
-## 6. E2E 风险门（待确认后执行）
+结论：preview 仅证明构建成功，**不能**作为功能验收。
 
-| 项 | 内容 |
+## 4. 生产数据库（supabase-nav-prod / `vyqqbypwrbdcafanzwmj`）
+
+按序应用（幂等）：
+
+1. `nav_category_hierarchy`（parent_id）
+2. `nav_category_cycle_guard`
+3. `create_nav_tags`
+4. `admin_link_tags_transaction_rpcs`
+5. `nav_access_hardening`
+6. `rate_limit_runtime_and_attempt_tables`（含缺失的 `login_attempts`/`submit_attempts`）
+
+对象验收：parent_id / tags / RPCs / cycle guard / buckets / attempts 均存在。  
+行为验收：自指 parent 拒绝；坏 tag create 不落残 link；RPC 仅 service_role 可执行；`consume_rate_limit` smoke ok。
+
+## 5. 生产部署与探针
+
+| 项 | 值 |
 |---|---|
-| 目标 | `pnpm e2e` + `pnpm e2e:admin`，绑定候选 `78369801` |
-| 环境 | 本地 dev server；`.env.local` 必须显式指向 **nav-dev**，不得指向 prod |
-| 风险 | 写库（分类/链接/标签）、启停服务、可能触发真实限流桶；admin E2E 需要管理员会话凭据 |
-| 验证 | Playwright 退出码 0；报告/trace 记录候选 SHA |
-| 回滚 | 删除 E2E 产生的测试数据；停 dev server；不改生产 |
+| Production deployment | `https://nav-site-758cwcdxr-aijiai520.vercel.app` |
+| id | `dpl_J7MCS6QY3VqtdizzSCuv1hz6xtWd` |
+| 主域 | `https://yuanjia1314.ccwu.cc` |
+| `/build-info.json` | `commit=d23a5c4636ad0f9bf4ef7183983cd8be0e163d95` |
+| 主域探针 | **PASS**（home/health/search/tool-detail/sitemap/robots/build-info） |
+| 部署 URL 探针 | 受 Protection 影响返回 HTML（与 preview 同类限制） |
 
-## 6. E2E 风险门与执行记录
+偶发：`/tool/figma` 可能被 Cloudflare “Just a moment…” 403；复探针通过。
 
-### 6.1 环境门禁
+## 6. Go/No-Go
 
-| 变量 | 解析结果 |
-|---|---|
-| 默认 `.env.local` URL/anon/service | **prod** `vyqqbypwrbdcafanzwmj` |
-| `*_DEV` URL/anon | **nav-dev** `nzaocqwumlmbewoddysd` |
-| 会话注入 `SUPABASE_SERVICE_ROLE_KEY` | **nav-dev** JWT ref 匹配 |
-| E2E 进程覆盖 | URL/anon→DEV；`SERVICE_ROLE` 与 `SERVICE_ROLE_KEY_PROD` 均强制 nav-dev（避免 Next dotenv 复活 prod） |
+**条件 Go（主域）。**
 
-### 6.2 执行结果（绑定代码候选 `78369801` + 后续 E2E 修复 commit）
+- 代码：`d23a5c46` 已 push 并作为生产 build-info commit  
+- DB：生产候选迁移已应用且关键行为验收通过  
+- 主域探针：退出码 0 且 commit 匹配  
+- 限制：preview 功能探针未完成；部署直链受 Protection；生产 SSG 期间曾出现 tags 读取瞬时失败日志  
 
-| 套件 | 项目 | 结果 |
-|---|---|---|
-| `e2e/home.spec.ts` + `e2e/admin.spec.ts` | chromium | **32 passed / 0 failed**（约 1.5m） |
-| 同上 | mobile-chrome | 未完整收口（首轮有 flaky；本轮以 chromium 为准） |
-| `e2e/admin-performance.spec.ts` | chromium | 未纳入本轮（perf 需 production build） |
+## 7. 回滚
 
-### 6.3 Staging 数据/schema 补齐（仅 nav-dev）
+- 应用：Vercel 回退上一 Production Ready deployment  
+- 数据库：保留加法式对象与安全收紧；勿 DROP `consume_rate_limit`  
+- 专用 rollback：`migration-nav-category-cycle-guard.rollback.sql`、`migration-admin-link-tags-transaction.rollback.sql`（仅必要时）
 
-1. `nav_links.updated_at`（s0 兼容列；PostgREST 投影需要）
-2. Figma `slug='figma'`（原为 null，阻断 `/tool/figma`）
-3. 既有：cycle-guard + link-tags RPC（前序）
+## 8. 值守建议（首小时）
 
-已知噪音（非本轮失败主因）：
-
-- `public_tool_reviews` 表缺失 → 工具详情 reviews 拉取报错日志
-- `list_public_tools` RPC 不可用 → 兼容查询回退
-- embed-server fetch failed → 搜索降级
-
-### 6.4 代码修复（E2E 收口）
-
-- `Navigation`：关闭预览后 `requestAnimationFrame` 还原触发按钮焦点
-- `LinkCard`：点击预览前 `focus()` 触发按钮
-- `e2e/admin.spec.ts`：可见导航链接 + `waitForURL` 防 flaky
-
-### 6.5 仍禁止
-
-- 生产迁库 / 生产部署 / 默认 `.env.local` 写回 prod 以外的值  
-- 在未单独确认前 push / Vercel 部署
-
-## 7. Go/No-Go
-
-**当前：No-Go（候选已公开 push，仍未部署/生产迁库）。**
-
-已具备：`origin/master`=`3390adbc`、代码门禁、nav-dev 迁移补齐、chromium home+admin E2E 32/32。  
-仍缺：mobile/perf E2E 全量收口、Vercel preview/生产探针、生产迁库与部署确认。
-
-## 8. 回滚要点
-
-- 应用：Vercel 回退上一稳定 deployment（发布后）。
-- 数据库：优先保留加法式对象与安全收紧；`migration-nav-runtime.rollback.sql` **不得** DROP `consume_rate_limit`。
-- 专用 rollback：`migration-nav-category-cycle-guard.rollback.sql`、`migration-admin-link-tags-transaction.rollback.sql`（仅 staging 演练时使用）。
+1. 盯 `/api/health` 与错误率  
+2. 抽查 `/admin` 登录与链接/分类读写  
+3. 若 Cloudflare 对 `/tool/*` 拦截升高，放行主域探针 UA 或调 WAF  
