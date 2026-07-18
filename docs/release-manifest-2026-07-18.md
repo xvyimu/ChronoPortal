@@ -13,8 +13,8 @@
 | 运行时候选 SHA | `78369801db5b1c2e7314b8bdfa337be5412faeeb` |
 | 本 manifest 更新 | 见后续 docs commit（不改变运行时候选语义） |
 | 形成日期 | 2026-07-18 |
-| 是否已 push | **否** |
-| 是否已部署 | **否** |
+| 是否已 push | **是**（`origin/master` = `3390adbc`，2026-07-18；**未**触发人工部署） |
+| 是否已部署 | **否**（push ≠ Vercel 生产发布验收） |
 | 是否已对生产迁库 | **否** |
 
 ## 2. Release scope 冻结
@@ -131,7 +131,7 @@
 
 | ID | 状态 |
 |---|---|
-| R0 候选 SHA | 本地 `78369801` 已形成；**未 push** |
+| R0 候选 SHA | 代码候选 `78369801`；公开 HEAD `3390adbc`（含 E2E 修复与 manifest）；**已 push** |
 | DB0 staging 迁移验收 | 对象/权限/关键行为 **通过**；完整应用联调未做 |
 | QA0 E2E 绑定候选 | **chromium home+admin 32/32 pass**（nav-dev，2026-07-18）；mobile 项目与 admin-performance 未纳入本轮；Playwright 进程自管 webServer 时偶发挂起，改用 reuseExistingServer |
 | CD0 Vercel 后验探针 | 未完成 |
@@ -191,10 +191,10 @@
 
 ## 7. Go/No-Go
 
-**当前：No-Go（E2E chromium 已绿，仍未 push/部署/生产迁库）。**
+**当前：No-Go（候选已公开 push，仍未部署/生产迁库）。**
 
-已具备：本地候选 `78369801`、代码门禁、nav-dev 迁移补齐、chromium home+admin E2E 32/32。  
-仍缺：push、mobile/perf E2E 全量收口、Vercel 探针、生产迁库与部署确认。
+已具备：`origin/master`=`3390adbc`、代码门禁、nav-dev 迁移补齐、chromium home+admin E2E 32/32。  
+仍缺：mobile/perf E2E 全量收口、Vercel preview/生产探针、生产迁库与部署确认。
 
 ## 8. 回滚要点
 
