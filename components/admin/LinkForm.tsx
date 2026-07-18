@@ -136,13 +136,13 @@ export function LinkForm({ categories, editingLink, onSave, onCancel }: LinkForm
             </select>
           </Field>
 
-          <Field label="图标标识" htmlFor="link-icon">
+          <Field label="图标 URL" htmlFor="link-icon">
             <input
               id="link-icon"
               value={form.icon}
               onChange={(event) => setForm((current) => ({ ...current, icon: event.target.value }))}
               className="field-input"
-              placeholder="可选"
+              placeholder="https://… 或 /api/favicon?domain=example.com&v=2"
               disabled={saving}
             />
           </Field>

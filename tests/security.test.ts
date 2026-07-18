@@ -8,6 +8,7 @@ import {
   getClientIp,
   isBlockedOutboundHost,
   escapeJsonForHtml,
+  isPreferredIcon,
 } from "@/lib/utils";
 import { requireAdmin, unauthorized } from "@/lib/with-admin";
 import { checkOrigin } from "@/lib/csrf";
@@ -237,6 +238,22 @@ describe("isSafeUrl", () => {
 
   it("rejects javascript: with URL-encoded chars", () => {
     expect(isSafeUrl("javascript:%0aalert(1)")).toBe(false);
+  });
+});
+
+describe("isPreferredIcon", () => {
+  it("accepts https icon URLs", () => {
+    expect(isPreferredIcon("https://cdn.example.com/a.png")).toBe(true);
+  });
+
+  it("accepts same-origin favicon proxy paths", () => {
+    expect(isPreferredIcon("/api/favicon?domain=example.com&v=2")).toBe(true);
+  });
+
+  it("rejects emoji and empty values", () => {
+    expect(isPreferredIcon("🔗")).toBe(false);
+    expect(isPreferredIcon("")).toBe(false);
+    expect(isPreferredIcon(null)).toBe(false);
   });
 });
 

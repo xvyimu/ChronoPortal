@@ -50,6 +50,18 @@ export function isSafeUrl(url: string): boolean {
 }
 
 /**
+ * 链接卡片是否应优先使用业务库 icon（跳过域名代理预热）。
+ * 允许 http(s) 外链，以及同源 `/api/favicon?...` 相对路径。
+ */
+export function isPreferredIcon(icon: string | null | undefined): boolean {
+  if (typeof icon !== "string") return false;
+  const value = icon.trim();
+  if (!value) return false;
+  if (isSafeUrl(value)) return true;
+  return value.startsWith("/api/favicon?");
+}
+
+/**
  * 从 URL 中提取域名（去除 www. 前缀）
  */
 export function extractDomain(url: string): string {

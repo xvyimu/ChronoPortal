@@ -1,7 +1,8 @@
 # API 参考
 
 > 生产入口：`https://yuanjia1314.ccwu.cc`  
-> 最后更新：2026-07-16
+> 最后更新：2026-07-18  
+> OpenAPI 骨架：`docs/openapi.json`（`pnpm run docs:openapi` 再生成）
 
 ## 公开 API（无需认证）
 

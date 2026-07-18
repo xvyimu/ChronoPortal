@@ -43,11 +43,12 @@ const securityHeaders = [
         "https://www.google-analytics.com",
       ].join(" "),
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob: https://www.google.com https://www.google-analytics.com",
+      "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
+      // 生产 favicon/CDN 与 Sentry/GA；不放宽 script 的 unsafe-inline（Next/GA 仍需，T9 完整收紧另立项）
       "connect-src 'self' https://*.supabase.co https://*.ingest.us.sentry.io https://www.google-analytics.com https://region1.google-analytics.com",
       "object-src 'none'",
       "upgrade-insecure-requests",

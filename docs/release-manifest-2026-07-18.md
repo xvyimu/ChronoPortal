@@ -116,10 +116,21 @@
 3. 抽查首页图标：破图应为 0；极少数 monogram 属预期（上游无有效图）  
 4. 若 Cloudflare 对 `/tool/*` 拦截升高，放行主域探针 UA 或调 WAF  
 
-## 9. 已知后续（不阻断本轮 Released）
+## 9. Backlog 落地（2026-07-18 第二波）
 
-1. `nav_links.icon` 数据回填（覆盖率目标 >90%）  
-2. E2E：分类切换 `scrollY` 断言  
-3. Preview 环境完整 Supabase 配置 + 功能探针  
-4. Embedding 常开迁 VPS / 云 GPU（见 `docs/embed-fly-deploy.md`）  
-5. 生产 RUM / Sentry 基线仪表盘固化  
+| ID | 项 | 结果 |
+|---|---|---|
+| T1 | icon 库内回填 | **完成** nav-dev 58/58 + **prod 512/512** → `/api/favicon?domain=…&v=2`；脚本 `pnpm run icons:backfill` |
+| T2 | E2E scrollY | **完成** `e2e/home.spec.ts` 桌面断言 |
+| T3 | 生产性能抽检 | **完成** Lighthouse@12.8.2 desktop：Perf **0.97** / A11y 0.96 / BP 0.74 / SEO 0.92；LCP≈889ms FCP≈662ms；摘要 `docs/perf/lighthouse-2026-07-18-production.summary.json` |
+| T4 | Preview env | **文档** `docs/preview-env-setup.md`（改 Vercel env 需 Dashboard） |
+| T5 | embed 上云 | **清单** `docs/embed-fly-deploy.md` T5 节（待 VPS） |
+| T6 | RUM/Sentry | **基线文档** `docs/ops-observability-baseline.md` |
+| T7 | 虚拟列表 | **不引入**；触发条件见 `docs/backlog-architecture-2026-07-18.md` |
+| T8 | OpenAPI | **完成** `pnpm run docs:openapi` → `docs/openapi.json` |
+| T9 | CSP | **小步** `img-src` 放宽 https: 以匹配外链 icon；unsafe-inline 完整收紧另立项 |
+| T10 | 搜索解耦 | **保持** Fuse 60s 缓存；触发条件见架构债文档 |
+
+配套代码：`isPreferredIcon`（认同源 `/api/favicon`）、`iconSchema` max 2000、admin 表单文案。
+
+**注意：** 生产 DB 已回填；需部署含 `isPreferredIcon` 的前端后，卡片才会跳过域名二次解析直接用库内 icon。

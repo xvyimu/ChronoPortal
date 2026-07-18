@@ -33,6 +33,10 @@
     "verify:production": "node scripts/probe-production.mjs",
     "verify:production:latest": "node scripts/probe-production.mjs --expect-embedding-skipped",
     "verify:launch-readiness": "node scripts/check-launch-readiness.mjs",
+    "icons:backfill": "node scripts/backfill-link-icons.mjs",
+    "icons:backfill:write": "node scripts/backfill-link-icons.mjs --write",
+    "probe:lighthouse": "node scripts/probe-lighthouse-production.mjs",
+    "docs:openapi": "node scripts/generate-openapi.mjs",
     "typecheck": "tsc --noEmit --incremental false"
   },
   "dependencies": {

@@ -82,6 +82,43 @@ test.describe("首页", () => {
 		}
 	});
 
+	test("结果区可见时切换分类不强制滚回顶部", async ({ page, isMobile }) => {
+		// 桌面侧栏行为；移动底栏交互不同，跳过
+		test.skip(!!isMobile, "scroll retention targets desktop sidebar");
+
+		await page.goto("/", { waitUntil: "domcontentloaded" });
+		await expect(page.locator("#atlas")).toBeVisible({ timeout: 15000 });
+
+		// 滚到结果区中部，模拟用户已离开页顶
+		await page.evaluate(() => {
+			const atlas = document.getElementById("atlas");
+			if (atlas) {
+				const top = atlas.getBoundingClientRect().top + window.scrollY - 80;
+				window.scrollTo(0, Math.max(top, 400));
+			} else {
+				window.scrollTo(0, 600);
+			}
+		});
+		await page.waitForTimeout(200);
+		const before = await page.evaluate(() => window.scrollY);
+		expect(before).toBeGreaterThan(200);
+
+		const categoryNav = page.locator('nav[aria-label="导航分类"]');
+		await expect(categoryNav).toBeVisible({ timeout: 15000 });
+		const tabs = categoryNav.locator('[role="tab"]');
+		const tabCount = await tabs.count();
+		expect(tabCount).toBeGreaterThan(1);
+
+		// 点第二个分类（通常非「全部」）
+		await tabs.nth(1).click();
+		await page.waitForTimeout(500);
+
+		const after = await page.evaluate(() => window.scrollY);
+		// 允许 smooth 小幅修正，但不该回到页顶
+		expect(after).toBeGreaterThan(150);
+		expect(Math.abs(after - before)).toBeLessThan(before * 0.85 + 120);
+	});
+
 	test("工具卡片可点击", async ({ page }) => {
 		await page.goto("/", { waitUntil: "domcontentloaded" });
 

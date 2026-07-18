@@ -76,6 +76,52 @@ POST https://nav-site-kappa.vercel.app/api/resource-search  {"query":"...","mode
 
 若日后需要真正 24/7 无本机依赖：把 origin 换成任意常驻 Linux/VPS 上的同一 `embed-server.py`（或 Docker `Dockerfile.embed`），**不必改 Vercel 代码**——只改 Tunnel 目标或 `EMBED_SERVER_URL`。
 
+## T5 常开落地清单（2026-07-18）
+
+> 目标：本机关机时 production embedding 仍 `ok`。  
+> 约束：不伪造 health；无 VPS 时保持 degraded + FTS。
+
+### 路径 A — 最小（推荐先做）
+
+1. 租一台常驻 Linux（1c1g+ 即可跑 bge-small CPU；GPU 可选）  
+2. 安装 Python 3.11+、`scripts/requirements-embed.txt`  
+3. 部署 `scripts/embed-server.py`，监听 `127.0.0.1:18003`  
+4. 在 **该机器** 安装 cloudflared，接入现有 Named Tunnel `nav-site-embed`  
+   - 或新建 tunnel，把 Worker `nav-site-embed-proxy` 上游改到新 hostname  
+5. 验证：
+
+```text
+GET https://nav-site-embed-proxy.xiej4352.workers.dev/health
+GET https://yuanjia1314.ccwu.cc/api/health → checks.embedding=ok
+```
+
+6. 本机 `uninstall-embed-autostart`（避免双 origin 抢隧道）
+
+### 路径 B — Worker AI / 其他云推理
+
+- 代码侧已有 `lib/search/embed-provider.ts` 抽象与 1024-d 实验路径  
+- **切换维度前**必须：迁移 SQL + 全量 re-embed + 双跑验证  
+- 无凭据/预算时 **不做**
+
+### 本轮代码侧已具备
+
+| 组件 | 状态 |
+|---|---|
+| embed-server + native 启停脚本 | ✅ |
+| Named Tunnel + Worker 反代 | ✅ |
+| ensure / autostart | ✅ |
+| 生产 env `EMBED_SERVER_URL` | ✅（指向 Worker） |
+| 真正无本机 origin | ⏳ 待 VPS |
+
+### 明确不在本轮自动执行
+
+- 购买/登录云主机  
+- 修改 Cloudflare Tunnel 路由  
+- 修改 Vercel 生产 env  
+- 全量 re-embed 到新模型维度  
+
+需要负责人提供 VPS SSH 或明确「在这台机器上装 origin」后再执行路径 A 第 2–5 步。
+
 ## 已完成
 
 - [x] ADR-005 远程 HTTPS + Bearer

@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/tooltip";
 import { highlightSearchTerm } from "@/lib/highlight";
 import { getLinkType, relativeTime, type NavLink } from "@/lib/types";
-import { cn, extractDomain, isSafeUrl } from "@/lib/utils";
+import { cn, extractDomain, isPreferredIcon, isSafeUrl } from "@/lib/utils";
 import { useFavicon } from "@/lib/use-favicon";
 import { trackClick } from "@/lib/track-click";
 
@@ -32,9 +32,8 @@ function LinkCardComponent({
   const type = getLinkType(link.category_slug ?? null);
   const ts = relativeTime(link.updated_at || link.created_at);
   const searchMeta = link.searchMeta;
-  // 优先业务库 icon；否则走域名代理（ResultGrid 会预热可见域名）
-  const preferredIcon =
-    typeof link.icon === "string" && isSafeUrl(link.icon) ? link.icon : null;
+  // 优先业务库 icon（http(s) 或同源 /api/favicon）；否则走域名代理
+  const preferredIcon = isPreferredIcon(link.icon) ? link.icon!.trim() : null;
   const faviconUrl = useFavicon(preferredIcon ? null : domain, preferredIcon);
 
   function handleLinkClick() {

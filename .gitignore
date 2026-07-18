@@ -108,3 +108,8 @@ scripts/_next.out.txt
 .embed-proxy-url.local
 .embed-autostart.log
 .vercel-env-prod-check*.local
+
+# Full Lighthouse JSON blobs (keep *.summary.json only)
+docs/perf/lighthouse-*-production.json
+!docs/perf/lighthouse-*-production.summary.json
+

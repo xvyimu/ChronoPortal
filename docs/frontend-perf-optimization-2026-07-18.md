@@ -187,4 +187,12 @@
 - 浏览器抽检：首页 favicon 请求 ~129，失败 0；卡片破图 0  
   证据目录：`docs/perf/chrome-review-2026-07-18/`
 
-仍后续：icon 数据回填、虚拟列表、E2E scrollY 断言、生产 Lighthouse 对比。
+### 第二波 backlog（同日）
+
+- icon 库内回填：**生产 512/512 preferred**（`/api/favicon?domain=…&v=2`）
+- E2E：`结果区可见时切换分类不强制滚回顶部`
+- 生产 Lighthouse desktop：Perf 0.97 · A11y 0.96 · BP 0.74 · SEO 0.92（摘要 JSON）
+- OpenAPI 骨架 / 可观测基线 / Preview·embed 文档：见 release-manifest §9
+
+仍可选：完整 Lighthouse CLI 评分、虚拟列表（有指标再动）、embed VPS 常开。
+

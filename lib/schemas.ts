@@ -35,10 +35,13 @@ export const descriptionSchema = z
   .max(500, "描述不能超过 500 字符")
   .nullish();
 
-/** 图标字段 */
+/**
+ * 图标字段：兼容历史 emoji 短串，以及 http(s) / 站内 favicon 代理 URL。
+ * 前端 prefer 安全 URL；emoji 仍可入库但不走 <img>。
+ */
 export const iconSchema = z
   .string()
-  .max(20, "图标不能超过 20 字符")
+  .max(2000, "图标不能超过 2000 字符")
   .nullish();
 
 /** 分类 ID 字段 */

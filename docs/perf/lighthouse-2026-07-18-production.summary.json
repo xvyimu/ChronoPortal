@@ -1,0 +1,20 @@
+{
+  "tool": "lighthouse@12.8.2",
+  "url": "https://yuanjia1314.ccwu.cc/",
+  "fetchTime": "2026-07-18T12:10:29.246Z",
+  "scores": {
+    "performance": 0.97,
+    "accessibility": 0.96,
+    "bestPractices": 0.74,
+    "seo": 0.92
+  },
+  "metricsMs": {
+    "FCP": 662.364,
+    "LCP": 888.5755000000001,
+    "TBT": 100,
+    "CLS": 0.05957446808510639,
+    "SI": 1209.7827740982511,
+    "TTI": 1268.034
+  },
+  "runtimeError": null
+}
