@@ -1,8 +1,8 @@
 # 综合导航站 — 项目进度文档
 
-> 最后更新：2026-07-18 · 版本 v18.0（全日收口）
+> 最后更新：2026-07-19 · 版本 v18.1（Cloudflare 1024-d 常开）
 > 项目路径：`d:\nav-site` · 开发端口：3264
-> **生产运行时 HEAD**：`ee5a047b` · **仓库 HEAD**：`50db5afc` · 主域 `https://yuanjia1314.ccwu.cc`
+> **生产运行时 HEAD**：`ee5a047b` · 主域 `https://yuanjia1314.ccwu.cc` · deploy `dpl_FNsWZWAQ…`
 
 ## 〇、2026-07-18 全日收口（权威入口）
 
@@ -17,10 +17,11 @@
 | 主域探针 expect `ee5a047b` | ✅ PASS |
 | 侧栏滚动 / 首屏预算 / favicon monogram | ✅ |
 | icon 库内回填 512/512 + isPreferredIcon | ✅ |
-| T1–T10 backlog | ✅（T5 云路径待绑卡；本机 embed ✅） |
+| T1–T10 backlog | ✅（含 T5 Cloudflare 1024-d 常开） |
 | Preview nav-dev env + SSO 关闭 + 探针 | ✅ |
 | 值守默认 / 可观测基线 | ✅ |
-| Fly/VPS 24×7 embed | ⏳ 账单硬阻塞 |
+| 主导航语义 24×7 | ✅ Workers AI；本机 BGE 仅 RL/备援 |
+| Fly/VPS BGE | 可选灾备（非阻塞） |
 
 下文 Phase 1–26 为历史进度（至 2026-07-04），数量与平台口径可能漂移；**以 release manifest 为准**。
 

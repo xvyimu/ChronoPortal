@@ -326,7 +326,7 @@ rtk pnpm run verify:launch-readiness -- --skip-network
 | 主域 `verify:production` | ✅ PASS（终检） |
 | Preview 功能探针 | ✅ SSO 关 + nav-dev env + embedding ok |
 | 前台 UX + T1–T10 | ✅ icon 回填/E2E/LH/OpenAPI 等 |
-| Embedding 常开 | ✅ 本机 tunnel+自启；⏳ Fly 待绑卡 |
+| Embedding 常开 | ✅ **Cloudflare Workers AI 1024-d**（health 明示）；本机 tunnel 备援 |
 | 值守 | ✅ `docs/oncall-and-alerts.md` |
 
 **完成定义对照（§12）：** 主域口径满足 Released/Go；运维增强已落地。  

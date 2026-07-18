@@ -66,42 +66,52 @@ GET  https://nav-site-kappa.vercel.app/api/resource-search-status → vector:tru
 POST https://nav-site-kappa.vercel.app/api/resource-search  {"query":"...","mode":"vector"|"hybrid"}
 ```
 
-## Sprint C 结论（云 embed · 2026-07-12）
+## Sprint C 结论（云 embed · 2026-07-12 · 已由 2026-07-18 路径 B 取代）
 
-「云端 embedding」在本项目的**可交付形态**不是 Fly/独立 GPU SaaS（绑卡拒绝），而是：
+历史「本机 BGE + Named Tunnel + Worker 反代」仍可用于 **Resource Library 512-d** 与本地开发。  
+**主导航语义搜索生产默认**已切到 Cloudflare Workers AI（见下节）。
 
-1. **HTTPS 公网入口**（workers.dev）+ **API Key**
-2. **Named Tunnel** 把入口接到任意在线 origin（当前为本机 18003）
-3. **登录自启**降低本机冷启动空窗
-
-若日后需要真正 24/7 无本机依赖：把 origin 换成任意常驻 Linux/VPS 上的同一 `embed-server.py`（或 Docker `Dockerfile.embed`），**不必改 Vercel 代码**——只改 Tunnel 目标或 `EMBED_SERVER_URL`。
-
-## T5 常开落地清单（2026-07-18）
+## T5 常开落地（2026-07-18 · 路径 B 已上线）
 
 > 目标：本机关机时 production embedding 仍 `ok`。  
-> 约束：不伪造 health；无 VPS 时保持 degraded + FTS。
+> **已达成：** `EMBED_PROVIDER=cloudflare` + `embedding_1024` 全量回填。
 
-### 路径 A — 最小（推荐先做）
-
-1. 租一台常驻 Linux（1c1g+ 即可跑 bge-small CPU；GPU 可选）  
-2. 安装 Python 3.11+、`scripts/requirements-embed.txt`  
-3. 部署 `scripts/embed-server.py`，监听 `127.0.0.1:18003`  
-4. 在 **该机器** 安装 cloudflared，接入现有 Named Tunnel `nav-site-embed`  
-   - 或新建 tunnel，把 Worker `nav-site-embed-proxy` 上游改到新 hostname  
-5. 验证：
+### 路径 B — Cloudflare Workers AI（**当前生产默认**）
 
 ```text
-GET https://nav-site-embed-proxy.xiej4352.workers.dev/health
-GET https://yuanjia1314.ccwu.cc/api/health → checks.embedding=ok
+Vercel
+  EMBED_PROVIDER=cloudflare
+  CF_ACCOUNT_ID / CF_AI_API_TOKEN
+  → REST @cf/baai/bge-m3 (1024-d)
+  → RPC search_links_semantic_v2
+  → nav_links.embedding_1024
 ```
 
-6. 本机 `uninstall-embed-autostart`（避免双 origin 抢隧道）
+| 项 | 状态 |
+|---|---|
+| 生产 health | ✅ `cloudflare embedding ready (1024-d)` · deploy `dpl_FNsWZWAQ…` |
+| 回填 | ✅ 512/512 `embedding_1024`（`--provider cloudflare --apply --batch-size 8`） |
+| 语义 smoke | ✅ `search_links_semantic_v2` + `/api/search?semantic=true` hybrid |
+| Preview | ✅ 同 env 已写 |
+| 本机 BGE / Tunnel | 保留作 RL 512-d 与 fallback，**非主路径** |
+| Fly/VPS | **不再阻塞语义搜索** |
 
-### 路径 B — Worker AI / 其他云推理
+回填（生产，需 CF token + service_role；默认 dry-run 加 `--apply`）：
 
-- 代码侧已有 `lib/search/embed-provider.ts` 抽象与 1024-d 实验路径  
-- **切换维度前**必须：迁移 SQL + 全量 re-embed + 双跑验证  
-- 无凭据/预算时 **不做**
+```powershell
+$env:CF_ACCOUNT_ID="..."
+$env:CF_AI_API_TOKEN="..."
+$env:SUPABASE_URL="https://vyqqbypwrbdcafanzwmj.supabase.co"
+$env:SUPABASE_SERVICE_ROLE_KEY="<prod service role>"
+python scripts/backfill-embeddings.py --provider cloudflare --apply --batch-size 8 --max-retries 6
+```
+
+### 路径 A — 本机/VPS BGE（备援 · 512-d）
+
+1. 常驻 Linux 或本机 `embed-server.py` @ `127.0.0.1:18003`  
+2. Named Tunnel `nav-site-embed` + Worker 反代  
+3. `EMBED_PROVIDER=embed-server` + `EMBED_SERVER_URL` / `EMBED_SERVER_API_KEY`  
+4. 验证：`/api/health` → `embed service reachable`
 
 ### 本轮代码侧已具备
 
