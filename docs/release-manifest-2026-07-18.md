@@ -133,7 +133,7 @@
 |---|---|
 | R0 候选 SHA | 本地 `78369801` 已形成；**未 push** |
 | DB0 staging 迁移验收 | 对象/权限/关键行为 **通过**；完整应用联调未做 |
-| QA0 E2E 绑定候选 | **未执行**（见下节风险门） |
+| QA0 E2E 绑定候选 | **未执行**；2026-07-18 因 `.env.local` 主链指向 prod 且缺少 nav-dev `service_role` 而中止 |
 | CD0 Vercel 后验探针 | 未完成 |
 | OBS0 生产基线 | 未完成 |
 
@@ -147,7 +147,38 @@
 | 验证 | Playwright 退出码 0；报告/trace 记录候选 SHA |
 | 回滚 | 删除 E2E 产生的测试数据；停 dev server；不改生产 |
 
-**未获“E2E 可对 nav-dev 写库”的单独确认前不执行。**
+**已获“E2E 用 nav-dev”确认，但本地环境门禁失败，仍未执行。**
+
+环境门禁结果（仅 host/JWT `ref`，无 secret）：
+
+| 变量 | 解析结果 |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` + anon | **prod** `vyqqbypwrbdcafanzwmj` |
+| `NEXT_PUBLIC_SUPABASE_URL_DEV` + anon_DEV | **nav-dev** `nzaocqwumlmbewoddysd` |
+| `SOURCE_SUPABASE_*` | **nav-dev**（仅 URL/anon） |
+| `SUPABASE_SERVICE_ROLE_KEY` / `_PROD` | 均为 **prod** ref |
+| nav-dev `SUPABASE_SERVICE_ROLE_KEY` | **缺失** |
+
+应用 `getServiceRoleKey()` 优先读 `_PROD`，再读 plain；在当前文件下**无法**安全绑定 nav-dev 写路径。  
+若用 prod service_role + nav-dev URL，JWT ref 与项目不一致，也会失败或行为未定义——已拒绝。
+
+恢复 E2E 的最小条件（任选其一，**不写盘改 prod 默认**）：
+
+1. 提供 **仅用于进程内覆盖** 的 nav-dev service_role（JWT ref=`nzaocqwumlmbewoddysd`），由启动脚本设置：
+   - `NEXT_PUBLIC_SUPABASE_URL` → nav-dev URL  
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` → nav-dev anon  
+   - `SUPABASE_SERVICE_ROLE_KEY` → nav-dev service_role  
+   - **清空/覆盖** `SUPABASE_SERVICE_ROLE_KEY_PROD`（否则仍优先 prod）  
+   - `E2E_AUTH_SECRET` = 与测试服相同的 `AUTH_SECRET`
+2. 或新建 disposable `.env.e2e.local`（gitignore）只含 nav-dev 三元组 + AUTH_SECRET，再跑。
+
+提供后启动命令示例（值由你本地注入，不入库）：
+
+```powershell
+# 在 D:\nav-site，先 export/覆盖到 nav-dev，再：
+rtk pnpm e2e
+rtk pnpm e2e:admin -- --headless
+```
 
 ## 7. Go/No-Go
 
