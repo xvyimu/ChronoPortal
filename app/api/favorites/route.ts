@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { getClientIp } from "@/lib/utils";
 import { checkOrigin } from "@/lib/csrf";
-import { linkIdsSchema } from "@/lib/schemas";
+import { linkIdSchema, linkIdsSchema } from "@/lib/schemas";
 import { checkRateLimit, recordAttempt } from "@/lib/rate-limit";
 import {
   getUserFavorites,
@@ -25,7 +25,7 @@ const FAVORITES_MAX_ATTEMPTS = 30;
  *
  * 表 RLS 仅允许 service_role SELECT/DELETE，anon 只有 INSERT →
  * 必须用 service_role 做 count，否则 check 恒 fail-open。
- * 写路径 fail-close（DB 故障走内存兜底），防刷。
+ * 写路径在 DB/RPC 故障时拒绝，避免多实例内存桶放大配额。
  */
 async function enforceFavoritesRateLimit(ip: string): Promise<{ allowed: boolean; count: number }> {
   const supabase = createServiceRoleClient();
@@ -34,7 +34,7 @@ async function enforceFavoritesRateLimit(ip: string): Promise<{ allowed: boolean
     ip,
     FAVORITES_WINDOW_MS,
     FAVORITES_MAX_ATTEMPTS,
-    true,
+    "deny",
     supabase
   );
 }
@@ -130,6 +130,17 @@ export async function DELETE(request: NextRequest) {
     const csrfError = checkOrigin(request, "api-favorites");
     if (csrfError) return csrfError;
 
+    const { searchParams } = new URL(request.url);
+    const linkId = searchParams.get("linkId");
+    const all = searchParams.get("all") === "true";
+
+    if (!all) {
+      const parsedLinkId = linkIdSchema.safeParse(linkId);
+      if (!parsedLinkId.success) {
+        return NextResponse.json({ error: "linkId 格式不正确" }, { status: 400 });
+      }
+    }
+
     const ip = getClientIp(request);
 
     const { allowed } = await enforceFavoritesRateLimit(ip);
@@ -140,17 +151,11 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const { searchParams } = new URL(request.url);
-    const linkId = searchParams.get("linkId");
-    const all = searchParams.get("all") === "true";
-
     let result: { ok?: true; cleared?: true; error?: string };
     if (all) {
       result = await clearUserFavorites(session.user.id);
-    } else if (!linkId) {
-      return NextResponse.json({ error: "缺少 linkId 或 all 参数" }, { status: 400 });
     } else {
-      result = await removeUserFavorite(session.user.id, linkId);
+      result = await removeUserFavorite(session.user.id, linkId as string);
     }
 
     await recordFavoritesAttempt(ip, !("error" in result));

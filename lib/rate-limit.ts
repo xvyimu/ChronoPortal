@@ -3,7 +3,7 @@
  *
  * 统一所有 API 路由的速率限制逻辑，避免在多个文件中重复实现。
  * 基于 Supabase 表的分布式速率限制，支持惰性清理。
- * 对敏感操作（如登录）提供内存级备用限制，数据库故障时 fail-close。
+ * 调用方必须显式选择数据库故障策略：拒绝、进程内降级或放行。
  */
 
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
@@ -20,13 +20,15 @@ interface MemoryBucket {
   windowStart: number;
 }
 
+export type RateLimitFailurePolicy = "deny" | "memory" | "allow";
+
 const memoryBuckets = new Map<string, MemoryBucket>();
 
 /**
  * 内存级速率限制检查（备用方案）
  *
  * 当数据库不可用时，使用内存计数器作为后备。
- * 对敏感操作采用 fail-close 策略。
+ * 仅在调用方明确选择 memory 策略时启用。
  * 也可直接用于无 DB 表的高 QPS 公开 API（search / favicon）。
  */
 function checkMemoryRateLimit(
@@ -103,7 +105,7 @@ export async function cleanupOldAttempts(
  * @param ip - 客户端 IP
  * @param windowMs - 时间窗口（毫秒）
  * @param maxAttempts - 窗口内最大尝试次数
- * @param failClose - 若为 true，数据库故障时拒绝请求（敏感操作）；否则放行（默认）
+ * @param failurePolicy - 数据库故障策略；敏感操作应使用 deny
  * @returns { allowed, count } — 是否允许操作及当前计数
  */
 export async function checkRateLimit(
@@ -111,7 +113,7 @@ export async function checkRateLimit(
   ip: string,
   windowMs: number,
   maxAttempts: number,
-  failClose: boolean = false,
+  failurePolicy: RateLimitFailurePolicy = "allow",
   client?: SupabaseClient
 ): Promise<{ allowed: boolean; count: number }> {
   const supabase = client ?? createServiceRoleClient();
@@ -130,22 +132,14 @@ export async function checkRateLimit(
   }
 
   if (error) {
-    // 数据库故障时，对敏感操作使用内存备用限制（fail-close）
-    if (failClose) {
-      cleanupMemoryBuckets(windowMs);
-      const memoryAllowed = checkMemoryRateLimit(
-        `${table}:${ip}`,
-        windowMs,
-        maxAttempts
-      );
-      logger.warn("Rate limit DB failed, using memory fallback (fail-close)", {
-        table, ip, error: error.message, memoryAllowed,
-      });
-      return { allowed: memoryAllowed, count: 0 };
-    }
-    // 非敏感操作放行
-    logger.warn("Rate limit check failed (fail-open)", { table, ip, error: error.message });
-    return { allowed: true, count: 0 };
+    return applyFailurePolicy(
+      failurePolicy,
+      table,
+      ip,
+      windowMs,
+      maxAttempts,
+      error.message
+    );
   }
 
   const row = Array.isArray(data) ? data[0] : data;
@@ -155,19 +149,60 @@ export async function checkRateLimit(
     typeof (row as { allowed?: unknown }).allowed !== "boolean" ||
     typeof (row as { current_count?: unknown }).current_count !== "number"
   ) {
-    logger.warn("Rate limit RPC returned an invalid payload", { table, ip });
-    if (failClose) {
-      cleanupMemoryBuckets(windowMs);
-      const allowed = checkMemoryRateLimit(`${table}:${ip}`, windowMs, maxAttempts);
-      return { allowed, count: 0 };
-    }
-    return { allowed: true, count: 0 };
+    return applyFailurePolicy(
+      failurePolicy,
+      table,
+      ip,
+      windowMs,
+      maxAttempts,
+      "invalid_rpc_payload"
+    );
   }
 
   return {
     allowed: (row as { allowed: boolean }).allowed,
     count: (row as { current_count: number }).current_count,
   };
+}
+
+function applyFailurePolicy(
+  failurePolicy: RateLimitFailurePolicy,
+  table: string,
+  ip: string,
+  windowMs: number,
+  maxAttempts: number,
+  error: string
+): { allowed: boolean; count: number } {
+  if (failurePolicy === "deny") {
+    logger.error("Rate limit backend unavailable; request denied", {
+      table,
+      ip,
+      failurePolicy,
+      error,
+    });
+    return { allowed: false, count: 0 };
+  }
+
+  if (failurePolicy === "memory") {
+    cleanupMemoryBuckets(windowMs);
+    const allowed = checkMemoryRateLimit(`${table}:${ip}`, windowMs, maxAttempts);
+    logger.warn("Rate limit backend unavailable; using memory fallback", {
+      table,
+      ip,
+      failurePolicy,
+      error,
+      allowed,
+    });
+    return { allowed, count: 0 };
+  }
+
+  logger.warn("Rate limit backend unavailable; request allowed", {
+    table,
+    ip,
+    failurePolicy,
+    error,
+  });
+  return { allowed: true, count: 0 };
 }
 
 /** 仅有 ip/created_at、无 success 列的限流表 */
@@ -188,7 +223,7 @@ export async function recordAttempt(
   extra?: Record<string, unknown>,
   client?: SupabaseClient
 ): Promise<void> {
-  const supabase = client ?? (await createClient());
+  const supabase = client ?? createServiceRoleClient();
   const row = TABLES_WITHOUT_SUCCESS.has(table)
     ? { ip, ...extra }
     : { ip, success, ...extra };

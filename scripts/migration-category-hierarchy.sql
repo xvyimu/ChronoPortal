@@ -16,17 +16,22 @@
 --   - 选中子分类时，仅显示该子分类的链接
 -- ============================================================
 
+BEGIN;
+
 -- 1. 添加 parent_id 列（可空，自引用外键）
-ALTER TABLE nav_categories
-  ADD COLUMN IF NOT EXISTS parent_id UUID REFERENCES nav_categories(id) ON DELETE SET NULL;
+ALTER TABLE public.nav_categories
+  ADD COLUMN IF NOT EXISTS parent_id UUID
+  REFERENCES public.nav_categories(id) ON DELETE SET NULL;
 
 -- 2. 索引：加速按父分类查询子分类
 CREATE INDEX IF NOT EXISTS idx_nav_categories_parent_id
-  ON nav_categories(parent_id)
+  ON public.nav_categories(parent_id)
   WHERE parent_id IS NOT NULL;
 
 -- 3. 注释
-COMMENT ON COLUMN nav_categories.parent_id IS '父分类 ID（NULL = 顶级分类）。选中父分类时聚合所有子分类的链接';
+COMMENT ON COLUMN public.nav_categories.parent_id IS '父分类 ID（NULL = 顶级分类）。选中父分类时聚合所有子分类的链接';
+
+COMMIT;
 
 -- 注意：此迁移不修改现有数据。
 -- 所有现有分类的 parent_id 默认为 NULL（顶级分类）。

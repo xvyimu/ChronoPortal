@@ -308,8 +308,18 @@ test.describe.serial("ToolQuickView 预览弹窗", () => {
 		const dialog = page.locator('[role="dialog"]');
 		await expect(dialog).toBeVisible();
 		await expect(dialog).toHaveAttribute("aria-modal", "true");
-		await expect(dialog).toHaveAttribute("aria-labelledby", "tool-quick-view-title");
-		await expect(dialog).toHaveAttribute("aria-describedby", "tool-quick-view-desc");
+
+		const title = dialog.getByRole("heading");
+		await expect(title).toBeVisible();
+		const titleId = await title.getAttribute("id");
+		expect(titleId).not.toBeNull();
+		await expect(dialog).toHaveAttribute("aria-labelledby", titleId!);
+
+		const description = dialog.locator("#tool-quick-view-desc");
+		await expect(description).toBeAttached();
+		const descriptionId = await description.getAttribute("id");
+		expect(descriptionId).not.toBeNull();
+		await expect(dialog).toHaveAttribute("aria-describedby", descriptionId!);
 	});
 
 	test("弹窗包含打开网站链接和收藏按钮", async ({ page }) => {
@@ -340,9 +350,8 @@ test.describe.serial("ToolQuickView 预览弹窗", () => {
 		await previewBtn.click();
 		await expect(page.locator('[role="dialog"]')).toBeVisible();
 
-		// 点击背板遮罩顶部区域（避开 aside 面板覆盖区）
-		const backdrop = page.locator('button[aria-label="关闭工具预览"]').first();
-		await backdrop.click({ position: { x: 200, y: 50 } });
+		// 点击视口左上角遮罩区域，避开桌面右侧和移动底部的 Dialog 内容。
+		await page.mouse.click(8, 8);
 		await expect(page.locator('[role="dialog"]')).not.toBeVisible();
 	});
 
@@ -351,7 +360,7 @@ test.describe.serial("ToolQuickView 预览弹窗", () => {
 		await previewBtn.click();
 
 		// 弹窗应显示工具名称（h2）
-		await expect(page.locator("#tool-quick-view-title")).toBeVisible();
+		await expect(page.locator('[role="dialog"]').getByRole("heading")).toBeVisible();
 
 		// 收录说明区域存在
 		await expect(page.locator("text=收录说明")).toBeVisible();
@@ -367,22 +376,22 @@ test.describe.serial("ToolQuickView 预览弹窗", () => {
 		await previewBtn.click();
 		await expect(page.locator('[role="dialog"]')).toBeVisible();
 
-		const aside = page.locator("aside.nav-quick-view");
+		const dialog = page.getByRole("dialog");
 
 		// 初始焦点在关闭按钮（closeRef.current?.focus()）
 		// 连按 Tab 6 次（弹窗内仅 3 个可聚焦元素：关闭按钮 / 打开网站 / 收藏），
-		// 验证焦点始终在 aside 内，不外逸到页面其他元素
+		// 验证焦点始终在 Dialog 内，不外逸到页面其他元素
 		for (let i = 0; i < 6; i++) {
 			await page.keyboard.press("Tab");
-			const inAside = await aside.evaluate((el) => el.contains(document.activeElement));
-			expect(inAside, `Tab #${i + 1}: 焦点外逸到 aside 之外`).toBe(true);
+			const inDialog = await dialog.evaluate((el) => el.contains(document.activeElement));
+			expect(inDialog, `Tab #${i + 1}: 焦点外逸到 Dialog 之外`).toBe(true);
 		}
 
 		// Shift+Tab 反向循环，同样不应外逸
 		for (let i = 0; i < 4; i++) {
 			await page.keyboard.press("Shift+Tab");
-			const inAside = await aside.evaluate((el) => el.contains(document.activeElement));
-			expect(inAside, `Shift+Tab #${i + 1}: 焦点外逸到 aside 之外`).toBe(true);
+			const inDialog = await dialog.evaluate((el) => el.contains(document.activeElement));
+			expect(inDialog, `Shift+Tab #${i + 1}: 焦点外逸到 Dialog 之外`).toBe(true);
 		}
 
 		await page.keyboard.press("Escape");

@@ -4,11 +4,10 @@ import { logger } from "@/lib/logger";
 import { generateResourceEmbedding } from "@/lib/search/embed-provider";
 import { mergeResourceHybrid } from "@/lib/resource-search-merge";
 import { checkDistributedRateLimit } from "@/lib/rate-limit-distributed";
+import { getResourceLibrarySearchEndpoint } from "@/lib/resource-library/client";
 import { getClientIp } from "@/lib/utils";
 import type { ResourceItem } from "@/lib/types";
 
-const SEARCH_API =
-  "https://ihnmfsfbfnctgkhxmghk.supabase.co/functions/v1/search-api-v3";
 // 仅服务端密钥；禁止 NEXT_PUBLIC_* 回落（会进浏览器包）
 const RESOURCE_SEARCH_API_KEY = process.env.RESOURCE_LIBRARY_API_KEY || "";
 const SEARCH_TIMEOUT_MS = 8000;
@@ -105,7 +104,7 @@ async function upstreamSearch(body: Record<string, unknown>): Promise<{
   status: number;
   data: unknown;
 }> {
-  const upstream = await fetch(SEARCH_API, {
+  const upstream = await fetch(getResourceLibrarySearchEndpoint(), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

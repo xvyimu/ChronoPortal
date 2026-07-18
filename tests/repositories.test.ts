@@ -3,7 +3,7 @@ import {
   getCategories, getApprovedLinks, getApprovedLinkBySlug, getAllApprovedLinkSlugs,
   getRelatedLinks, getApprovedLinksForApi, queryApprovedLinksForApi, getToolReviews, getReviewStats,
   hasUserReviewed, createReview, checkReviewRateLimit, recordReviewAttempt,
-  getAllLinksForAdmin, createLink, updateLink, deleteLink,
+  getAllLinksForAdmin, getAdminLinksPage, createLink, updateLink, deleteLink,
   getAllCategoriesForAdmin, createCategory, updateCategory, deleteCategory,
   getAllTagsForAdmin, createTag, updateTag, deleteTag,
   findExistingLinkByUrl, submitLink, findApprovedLinkByUrl,
@@ -27,13 +27,13 @@ import {
 // ═══════════════════════════════════════════════════════════════
 
 type MockError = { code?: string; message?: string } | null;
-type RowMap = Record<string, { data?: unknown; error?: MockError }>;
+type RowMap = Record<string, { data?: unknown; error?: MockError; count?: number }>;
 
 class MockDB {
   private rows: RowMap = {};
   private _calls: Record<string, { table: string; args: unknown[] }[]> = {};
 
-  setResponse(table: string, r: { data?: unknown; error?: MockError }) {
+  setResponse(table: string, r: { data?: unknown; error?: MockError; count?: number }) {
     this.rows[table] = r;
   }
 
@@ -51,7 +51,7 @@ class MockDB {
     });
     return Promise.resolve(this._resp());
   }
-  select(_c?: string) { this._call("select", _c); return this; }
+  select(_c?: string, options?: unknown) { this._call("select", _c, options); return this; }
   eq(c: string, v: unknown) { this._call("eq", c, v); return this; }
   neq(...a: unknown[]) { this._call("neq", ...a); return this; }
   in_(c: string, v: unknown[]) { this._call("in", c, v); return this; }
@@ -97,6 +97,7 @@ class MockDB {
     return {
       data: this.rows[this._lastTable]?.data ?? null,
       error: this.rows[this._lastTable]?.error ?? null,
+      count: this.rows[this._lastTable]?.count ?? null,
     };
   }
 
@@ -106,6 +107,7 @@ class MockDB {
    */
   get data() { return this._resp().data; }
   get error() { return this._resp().error; }
+  get count() { return this._resp().count; }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -198,6 +200,35 @@ describe("repositories · 分类", () => {
     db.setResponse("nav_categories", { data: [mockCat], error: null });
     expect(await getAllCategoriesForAdmin()).toHaveLength(1);
     expectAdminClientOnly();
+  });
+
+  it("getAllCategoriesForAdmin falls back when parent_id is not migrated", async () => {
+    const selections: string[] = [];
+    const legacyCategory = { ...mockCat };
+    Reflect.deleteProperty(legacyCategory, "parent_id");
+    const client = {
+      from: () => ({
+        select: (columns: string) => {
+          selections.push(columns);
+          return {
+            order: async () => columns.includes("parent_id")
+              ? {
+                  data: null,
+                  error: { code: "42703", message: "column nav_categories.parent_id does not exist" },
+                }
+              : { data: [legacyCategory], error: null },
+          };
+        },
+      }),
+    };
+    vi.mocked(createServiceRoleClient).mockReturnValue(
+      client as unknown as ReturnType<typeof createServiceRoleClient>
+    );
+
+    const result = await getAllCategoriesForAdmin();
+
+    expect(selections).toHaveLength(2);
+    expect(result).toEqual([{ ...legacyCategory, parent_id: null }]);
   });
 
   it("createCategory", async () => {
@@ -505,7 +536,10 @@ describe("repositories · 评价", () => {
 
   it("checkReviewRateLimit 允许", async () => {
     const db = freshMocks();
-    db.setResponse("review_rate_limits", { data: { allowed: true }, error: null });
+    db.setResponse("rpc:consume_rate_limit", {
+      data: [{ allowed: true, current_count: 1 }],
+      error: null,
+    });
     expect(await checkReviewRateLimit("1.1.1.1")).toBe(true);
   });
 
@@ -579,6 +613,29 @@ describe("repositories · Admin 链接 CRUD", () => {
     expectAdminClientOnly();
   });
 
+  it("getAdminLinksPage pushes filters and pagination into the database", async () => {
+    const db = freshMocks();
+    db.setResponse("nav_links", { data: [mockLinkRow], count: 41, error: null });
+
+    const result = await getAdminLinksPage({
+      page: 2,
+      pageSize: 20,
+      search: "chat",
+      categoryId: "cat-1",
+      status: "featured",
+    });
+
+    expect(result).toMatchObject({ total: 41, page: 2, pageSize: 20 });
+    expect(result.links).toHaveLength(1);
+    expect(db.callsFor("nav_links")).toEqual(expect.arrayContaining([
+      expect.objectContaining({ args: ["range", 20, 39] }),
+      expect.objectContaining({ args: ["eq", "category_id", "cat-1"] }),
+      expect.objectContaining({ args: ["eq", "featured", true] }),
+    ]));
+    expect(db.callsFor("nav_links").some((call) => call.args[0] === "or")).toBe(true);
+    expectAdminClientOnly();
+  });
+
   it("createLink 无tag_ids", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: { ...mockLinkRow, id: "new-1" }, error: null });
@@ -592,26 +649,33 @@ describe("repositories · Admin 链接 CRUD", () => {
   it("createLink 带tag_ids同步标签关联", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: { ...mockLinkRow, id: "new-1" }, error: null });
-    db.setResponse("nav_links_tags", { data: null, error: null });
+    db.setResponse("rpc:create_nav_link_with_tags", { data: "new-1", error: null });
     await createLink({
       title: "N", url: "https://n.com", description: null, icon: "",
       category_id: null, approved: true, featured: false, tag_ids: ["t1", "t2"],
     });
-    const del = db.callsFor("nav_links_tags").filter(c => c.args[0] === "delete");
-    const ins = db.callsFor("nav_links_tags").filter(c => c.args[0] === "insert");
-    expect(del.length).toBeGreaterThanOrEqual(1);
-    expect(ins.length).toBeGreaterThanOrEqual(1);
+    expect(db.callsFor("rpc:create_nav_link_with_tags")).toEqual([
+      expect.objectContaining({
+        args: ["rpc", expect.objectContaining({ p_tag_ids: ["t1", "t2"] })],
+      }),
+    ]);
+    expect(db.callsFor("nav_links_tags")).toHaveLength(0);
   });
 
-  it("createLink 空tag_ids不操作标签", async () => {
+  it("createLink 空tag_ids通过事务创建无标签链接", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: { ...mockLinkRow, id: "new-1" }, error: null });
+    db.setResponse("rpc:create_nav_link_with_tags", { data: "new-1", error: null });
     await createLink({
       title: "N", url: "https://n.com", description: null, icon: "",
       category_id: null, approved: true, featured: false, tag_ids: [],
     });
-    const del = db.callsFor("nav_links_tags").filter(c => c.args[0] === "delete");
-    expect(del.length).toBe(0);
+    expect(db.callsFor("rpc:create_nav_link_with_tags")).toEqual([
+      expect.objectContaining({
+        args: ["rpc", expect.objectContaining({ p_tag_ids: [] })],
+      }),
+    ]);
+    expect(db.callsFor("nav_links_tags")).toHaveLength(0);
   });
 
   it("updateLink 无tag_ids", async () => {
@@ -619,6 +683,26 @@ describe("repositories · Admin 链接 CRUD", () => {
     db.setResponse("nav_links", { data: { id: "lnk-1", title: "Upd" }, error: null });
     expect((await updateLink("lnk-1", { title: "Upd" })).title).toBe("Upd");
     expectAdminClientOnly();
+  });
+
+  it("updateLink 带tag_ids通过单个 RPC 原子更新", async () => {
+    const db = freshMocks();
+    db.setResponse("rpc:update_nav_link_with_tags", { data: "lnk-1", error: null });
+    db.setResponse("nav_links", { data: { ...mockLinkRow, id: "lnk-1", title: "Upd" }, error: null });
+
+    await updateLink("lnk-1", { title: "Upd", tag_ids: ["t1"] });
+
+    expect(db.callsFor("rpc:update_nav_link_with_tags")).toEqual([
+      expect.objectContaining({
+        args: ["rpc", {
+          p_link_id: "lnk-1",
+          p_patch: { title: "Upd" },
+          p_tag_ids: ["t1"],
+        }],
+      }),
+    ]);
+    expect(db.callsFor("nav_links_tags")).toHaveLength(0);
+    expect(db.callsFor("nav_links").some((call) => call.args[0] === "update")).toBe(false);
   });
 
   it("deleteLink 成功", async () => {

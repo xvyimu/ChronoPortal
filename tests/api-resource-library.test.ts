@@ -439,6 +439,36 @@ describe("resource library API routes", () => {
     );
   });
 
+  it("uses the configured resource-library URL for the resource search endpoint", async () => {
+    vi.stubEnv("RESOURCE_LIBRARY_API_KEY", "server-search-key");
+    vi.stubEnv("RESOURCE_LIBRARY_SUPABASE_URL", "https://resource-library.example.test/");
+    const fetchMock = vi.fn(async () =>
+      new Response(JSON.stringify({ results: [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { POST } = await importRoute<typeof import("@/app/api/resource-search/route")>(
+      "@/app/api/resource-search/route"
+    );
+
+    const response = await POST(
+      new Request("http://localhost/api/resource-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: "design", mode: "fts", limit: 10 }),
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://resource-library.example.test/functions/v1/search-api-v3",
+      expect.objectContaining({ method: "POST" })
+    );
+  });
+
   it("embeds the query and proxies vector search with query_embedding", async () => {
     vi.stubEnv("RESOURCE_LIBRARY_API_KEY", "server-search-key");
     const embedding = makeEmbedding(512);
@@ -701,10 +731,7 @@ describe("resource library API routes", () => {
     expect(mocks.createClient).not.toHaveBeenCalled();
   });
 
-  it("adds an abort signal to rating stats queries", async () => {
-    const stats = query({ count: 2, error: null });
-    mocks.createClient.mockReturnValue({ from: vi.fn(() => stats) });
-
+  it("fails closed when public rating stats are not configured", async () => {
     const { GET } = await importRoute<typeof import("@/app/api/resource-ratings/route")>(
       "@/app/api/resource-ratings/route"
     );
@@ -715,10 +742,8 @@ describe("resource library API routes", () => {
       )
     );
 
-    expect(response.status).toBe(200);
-    expect(response.headers.get("cache-control")).toContain("s-maxage=60");
-    expect(await response.json()).toEqual({ count: 2 });
-    expect(stats.abortSignal).toHaveBeenCalledWith(expect.any(AbortSignal));
+    expect(response.status).toBe(503);
+    expect(mocks.createClient).not.toHaveBeenCalled();
   });
 
   it("uses the public rating stats RPC before service role for rating stats when anon is configured", async () => {
@@ -749,6 +774,27 @@ describe("resource library API routes", () => {
       target_page_id: "0194b64d-5cb6-7330-a273-1ab8f926e169",
     });
     expect(stats.abortSignal).toHaveBeenCalledWith(expect.any(AbortSignal));
+  });
+
+  it("fails closed instead of falling back to service role when the public rating RPC fails", async () => {
+    const stats = query({ error: { code: "PGRST202", message: "missing rpc" } });
+    const rpc = vi.fn(() => stats);
+    mocks.createClient.mockReturnValue({ rpc });
+
+    const { GET } = await importRoute<typeof import("@/app/api/resource-ratings/route")>(
+      "@/app/api/resource-ratings/route",
+      { anonKey: "test-anon-key", publicRatingStatsRpc: "get_public_resource_rating_count" }
+    );
+
+    const response = await GET(
+      new Request(
+        "http://localhost/api/resource-ratings?page_id=0194b64d-5cb6-7330-a273-1ab8f926e169"
+      )
+    );
+
+    expect(response.status).toBe(503);
+    expect(mocks.createClient).toHaveBeenCalledTimes(1);
+    expect(rpc).toHaveBeenCalledTimes(1);
   });
 
   it("rejects invalid rating payloads before opening a DB client", async () => {
@@ -880,7 +926,7 @@ describe("resource library API routes", () => {
       "203.0.113.10",
       15 * 60 * 1000,
       10,
-      true
+      "deny"
     );
     expect(insert.insert).toHaveBeenCalledWith({
       page_id: "0194b64d-5cb6-7330-a273-1ab8f926e169",

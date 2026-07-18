@@ -70,8 +70,14 @@ function ResultGridInner({
 }: ResultGridProps) {
   const [visibleCount, setVisibleCount] = useState(initialVisible);
   const rootRef = useRef<HTMLDivElement>(null);
-  const visible = links.slice(0, visibleCount);
-  const hasMore = visibleCount < links.length;
+  const focusedLocalIndex = focusedIndex - baseIndex;
+  const focusRequiredCount =
+    focusedLocalIndex >= 0 && focusedLocalIndex < links.length
+      ? focusedLocalIndex + 1
+      : 0;
+  const effectiveVisibleCount = Math.max(visibleCount, focusRequiredCount);
+  const visible = links.slice(0, effectiveVisibleCount);
+  const hasMore = effectiveVisibleCount < links.length;
 
   useEffect(() => {
     if (visibleCount > 0 || links.length === 0) return;
@@ -109,7 +115,10 @@ function ResultGridInner({
               role="listitem"
               data-result-index={idx}
               data-focused={isFocused ? "true" : undefined}
-              onKeyDown={(e) => onKeyDown(e, idx)}
+              onKeyDown={(e) => {
+                if (e.target !== e.currentTarget) return;
+                onKeyDown(e, idx);
+              }}
               tabIndex={isFocused ? 0 : -1}
               className="outline-none rounded-xl transition-all duration-150"
             >
@@ -130,10 +139,12 @@ function ResultGridInner({
             variant="outline"
             size="sm"
             onClick={() =>
-              setVisibleCount((c) => Math.min(c + pageSize, links.length))
+              setVisibleCount((c) =>
+                Math.min(Math.max(c, focusRequiredCount) + pageSize, links.length)
+              )
             }
           >
-            加载更多（{links.length - visibleCount}）
+            加载更多（{links.length - effectiveVisibleCount}）
           </Button>
         </div>
       )}

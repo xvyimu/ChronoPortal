@@ -46,13 +46,13 @@ export function unauthorized() {
  * GET 不需要 CSRF 检查（幂等），但所有 admin 路由都需要鉴权。
  */
 export function withAdminGet(
-  handler: () => Promise<NextResponse>,
-): () => Promise<NextResponse> {
-  return async () => {
+  handler: (request: Request) => Promise<NextResponse>,
+): (request: Request) => Promise<NextResponse> {
+  return async (request) => {
     const { authorized } = await requireAdmin();
     if (!authorized) return unauthorized();
     try {
-      return await handler();
+      return await handler(request);
     } catch (e) {
       logger.error("Admin GET handler failed", { source: "with-admin" }, e instanceof Error ? e : undefined);
       return NextResponse.json({ error: "服务器错误" }, { status: 500 });
@@ -132,4 +132,62 @@ export function withAdminDelete(
       return NextResponse.json({ error: "服务器错误" }, { status: 500 });
     }
   };
+}
+
+/** 解析动态管理路由 ID，并保持现有 400 错误 contract。 */
+function parseAdminId(
+  params?: Record<string, string>
+): { id: string } | { response: NextResponse } {
+  const id = params?.id;
+  if (!id) {
+    return {
+      response: NextResponse.json({ error: "缺少 id 参数" }, { status: 400 }),
+    };
+  }
+
+  const parsed = z.string().uuid("ID 格式不正确").safeParse(id);
+  if (!parsed.success) {
+    return {
+      response: NextResponse.json({ error: "ID 格式不正确" }, { status: 400 }),
+    };
+  }
+  return { id: parsed.data };
+}
+
+/**
+ * 带 UUID 参数的管理写入包装器。
+ *
+ * 在通用 Auth、CSRF、JSON 和 Zod 校验后统一解析动态路由 ID，
+ * 让具体 Route Handler 只负责调用后端 domain module。
+ */
+export function withAdminIdWrite<T extends z.ZodType>(
+  schema: T,
+  handler: (params: {
+    id: string;
+    parsed: z.infer<T>;
+    request: Request;
+  }) => Promise<NextResponse>
+): (
+  request: Request,
+  ctx: { params: Promise<Record<string, string>> }
+) => Promise<NextResponse> {
+  return withAdminWrite(schema, async ({ parsed, params, request }) => {
+    const idResult = parseAdminId(params);
+    if ("response" in idResult) return idResult.response;
+    return handler({ id: idResult.id, parsed, request });
+  });
+}
+
+/** 带 UUID 参数的管理删除包装器，复用 Auth、CSRF 和错误处理 contract。 */
+export function withAdminIdDelete(
+  handler: (params: { id: string; request: Request }) => Promise<NextResponse>
+): (
+  request: Request,
+  ctx: { params: Promise<Record<string, string>> }
+) => Promise<NextResponse> {
+  return withAdminDelete(async ({ params, request }) => {
+    const idResult = parseAdminId(params);
+    if ("response" in idResult) return idResult.response;
+    return handler({ id: idResult.id, request });
+  });
 }

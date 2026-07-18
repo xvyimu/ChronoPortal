@@ -1,0 +1,84 @@
+{
+  "measuredAt": "2026-07-17T11:18:11.579Z",
+  "scope": "local-synthetic",
+  "caveat": "Actual local measurements; not production RUM or a Lighthouse report.",
+  "baseURL": "http://localhost:3264",
+  "browser": {
+    "name": "chromium",
+    "version": "149.0.7827.55",
+    "mode": "headed"
+  },
+  "serverMode": "production-build",
+  "pages": {
+    "login": {
+      "runs": 5,
+      "ttfbMs": {
+        "median": 8,
+        "p95": 29.7
+      },
+      "domContentLoadedMs": {
+        "median": 22.2,
+        "p95": 136.7
+      },
+      "loadMs": {
+        "median": 34.6,
+        "p95": 185.4
+      },
+      "fcpMs": {
+        "median": 40,
+        "p95": 300
+      },
+      "lcpMs": {
+        "median": 40,
+        "p95": 300
+      },
+      "cls": {
+        "median": 0,
+        "p95": 0
+      }
+    },
+    "dashboard": {
+      "runs": 5,
+      "ttfbMs": {
+        "median": 18.2,
+        "p95": 35.6
+      },
+      "domContentLoadedMs": {
+        "median": 310.8,
+        "p95": 1293.5
+      },
+      "loadMs": {
+        "median": 311.3,
+        "p95": 1338.1
+      },
+      "fcpMs": {
+        "median": 364,
+        "p95": 1340
+      },
+      "lcpMs": {
+        "median": 364,
+        "p95": 1340
+      },
+      "cls": {
+        "median": 0,
+        "p95": 0
+      }
+    }
+  },
+  "api": {
+    "links": {
+      "runs": 10,
+      "latencyMs": {
+        "median": 121.8,
+        "p95": 158.2
+      }
+    },
+    "categories": {
+      "runs": 10,
+      "latencyMs": {
+        "median": 209.9,
+        "p95": 382.9
+      }
+    }
+  }
+}

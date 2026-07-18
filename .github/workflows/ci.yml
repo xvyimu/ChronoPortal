@@ -116,8 +116,6 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.CI_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.CI_SUPABASE_ANON_KEY }}
           RESOURCE_LIBRARY_ANON_KEY: ${{ secrets.RESOURCE_LIBRARY_ANON_KEY }}
-          RESOURCE_LIBRARY_API_KEY: ${{ secrets.RESOURCE_LIBRARY_API_KEY }}
-          RESOURCE_LIBRARY_SERVICE_ROLE_KEY: ${{ secrets.RESOURCE_LIBRARY_SERVICE_ROLE_KEY }}
 
       - name: 健康检查
         run: |

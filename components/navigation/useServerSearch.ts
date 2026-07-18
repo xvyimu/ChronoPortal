@@ -8,6 +8,7 @@ import type {
   SearchSuggestion,
 } from "@/lib/search-experience";
 import { buildSearchFacets, buildSearchSuggestions } from "@/lib/search-experience";
+import { searchApiSuccessSchema } from "@/lib/search/response-schema";
 
 const EMPTY_SEARCH_FACETS: SearchFacets = {
   categories: [],
@@ -57,21 +58,25 @@ export function useServerSearch(params: ServerSearchParams): ServerSearchState {
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const q = rawSearch.trim();
-    if (!q) {
-      const localFacets = buildSearchFacets(links, {
-        category: activeCategory,
-        tagSlugs: activeTags,
-        minRating: minRatingFilter,
-        popularity: popularityFilter,
-      });
-      setSearch("");
-      setServerResults([]);
-      setSearchLoading(false);
-      setSearchFacets(localFacets);
-      setSearchSuggestions(buildSearchSuggestions("", links, localFacets));
-      setZeroResultRecommendations([]);
-      return;
-    }
+    if (q) return;
+
+    const localFacets = buildSearchFacets(links, {
+      category: activeCategory,
+      tagSlugs: activeTags,
+      minRating: minRatingFilter,
+      popularity: popularityFilter,
+    });
+    setSearch("");
+    setServerResults([]);
+    setSearchLoading(false);
+    setSearchFacets(localFacets);
+    setSearchSuggestions(buildSearchSuggestions("", links, localFacets));
+    setZeroResultRecommendations([]);
+  }, [rawSearch, activeCategory, activeTags, minRatingFilter, popularityFilter, links, setSearch]);
+
+  useEffect(() => {
+    const q = rawSearch.trim();
+    if (!q) return;
 
     setSearchLoading(true);
     const controller = new AbortController();
@@ -91,33 +96,11 @@ export function useServerSearch(params: ServerSearchParams): ServerSearchState {
           setSearchSuggestions([]);
           setZeroResultRecommendations([]);
         } else {
-          const data = await res.json();
-          const mapped: NavLink[] = (data.results || []).map((r: Record<string, unknown>) => ({
-            id: r.id as string,
-            title: r.title as string,
-            url: r.url as string,
-            description: r.description as string | null,
-            icon: r.icon as string | null,
-            category_id: null,
-            approved: true,
-            paid: r.paid as boolean,
-            featured: r.featured as boolean,
-            click_count: r.click_count as number,
-            created_at: typeof r.created_at === "string" ? r.created_at : "",
-            updated_at: typeof r.updated_at === "string" ? r.updated_at : undefined,
-            score: r.score as number | undefined,
-            similarity: r.similarity as number | undefined,
-            avg_rating: r.avg_rating as number | undefined,
-            review_count: r.review_count as number | undefined,
-            category_name: r.category_name as string | undefined,
-            category_slug: r.category_slug as string | undefined,
-            tags: r.tags as NavLink["tags"],
-            searchMeta: r.searchMeta as NavLink["searchMeta"],
-          }));
-          setServerResults(mapped);
-          setSearchFacets((data.facets ?? EMPTY_SEARCH_FACETS) as SearchFacets);
-          setSearchSuggestions((data.suggestions ?? []) as SearchSuggestion[]);
-          setZeroResultRecommendations((data.recommendations ?? []) as NavLink[]);
+          const data = searchApiSuccessSchema.parse(await res.json());
+          setServerResults(data.results);
+          setSearchFacets(data.facets);
+          setSearchSuggestions(data.suggestions);
+          setZeroResultRecommendations(data.recommendations);
         }
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
@@ -133,7 +116,7 @@ export function useServerSearch(params: ServerSearchParams): ServerSearchState {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [rawSearch, activeCategory, semanticSearch, activeTags, minRatingFilter, popularityFilter, links, setSearch]);
+  }, [rawSearch, activeCategory, semanticSearch, activeTags, minRatingFilter, popularityFilter, setSearch]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   return {

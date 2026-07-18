@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   createServiceRoleClient: vi.fn(),
   getClientIp: vi.fn(),
   addUserFavorites: vi.fn(),
+  removeUserFavorite: vi.fn(),
   findExistingLinkByUrl: vi.fn(),
   submitLink: vi.fn(),
   findApprovedLinkByUrl: vi.fn(),
@@ -48,6 +49,7 @@ vi.mock("@/lib/repositories", async () => {
   return {
     ...actual,
     addUserFavorites: mocks.addUserFavorites,
+    removeUserFavorite: mocks.removeUserFavorite,
     findExistingLinkByUrl: mocks.findExistingLinkByUrl,
     submitLink: mocks.submitLink,
     findApprovedLinkByUrl: mocks.findApprovedLinkByUrl,
@@ -108,6 +110,24 @@ describe("API malformed JSON boundaries", () => {
     expect(mocks.addUserFavorites).not.toHaveBeenCalled();
   });
 
+  it("rejects a non-UUID favorite linkId before rate limiting or deletion", async () => {
+    const { DELETE } = await importFresh<typeof import("@/app/api/favorites/route")>(
+      "@/app/api/favorites/route"
+    );
+
+    const response = await DELETE(new Request(
+      "http://localhost/api/favorites?linkId=not-a-uuid",
+      {
+        method: "DELETE",
+        headers: { origin: "http://localhost", host: "localhost" },
+      }
+    ) as NextRequest);
+
+    expect(response.status).toBe(400);
+    expect(mocks.checkRateLimit).not.toHaveBeenCalled();
+    expect(mocks.removeUserFavorite).not.toHaveBeenCalled();
+  });
+
   it("returns 400 for malformed submit JSON", async () => {
     const { POST } = await importFresh<typeof import("@/app/api/submit/route")>(
       "@/app/api/submit/route"
@@ -147,4 +167,3 @@ describe("API malformed JSON boundaries", () => {
     expect(mocks.hasUserReviewed).not.toHaveBeenCalled();
   });
 });
-

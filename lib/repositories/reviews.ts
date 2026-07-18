@@ -120,7 +120,7 @@ export async function checkReviewRateLimit(ip: string): Promise<boolean> {
     ip,
     15 * 60 * 1000,
     3,
-    true,
+    "deny",
     supabase
   );
   return allowed;

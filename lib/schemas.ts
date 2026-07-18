@@ -145,7 +145,8 @@ export const submitLinkSchema = z.object({
 });
 
 /** 收藏 linkIds schema */
-export const linkIdsSchema = z.array(z.string().uuid()).min(1).max(100);
+export const linkIdSchema = z.string().uuid("工具 ID 格式不正确");
+export const linkIdsSchema = z.array(linkIdSchema).min(1).max(100);
 
 /** 点击计数 schema（用于 /api/click） */
 export const clickSchema = z.object({

@@ -7,6 +7,8 @@
 
 import type { Category } from "@/lib/types";
 
+export const MAX_CATEGORY_TREE_DEPTH = 32;
+
 /**
  * 获取某分类的所有后代 slug（包括自身）
  *
@@ -17,20 +19,25 @@ import type { Category } from "@/lib/types";
  * @returns 包含自身及所有后代 slug 的数组
  */
 export function getDescendantSlugs(categories: Category[], slug: string): string[] {
-  // 找到目标分类
-  const target = categories.find((c) => c.slug === slug);
-  if (!target) return [slug];
+  const visited = new Set<string>();
 
-  const result: string[] = [slug];
+  const collect = (currentSlug: string, depth: number): string[] => {
+    if (depth >= MAX_CATEGORY_TREE_DEPTH) return [];
 
-  // 找到直接子分类
-  const children = categories.filter((c) => c.parent_id === target.id);
+    const target = categories.find((c) => c.slug === currentSlug);
+    if (!target) return [currentSlug];
+    if (visited.has(target.id)) return [];
 
-  // 递归收集所有后代
-  for (const child of children) {
-    const childSlugs = getDescendantSlugs(categories, child.slug);
-    result.push(...childSlugs);
-  }
+    visited.add(target.id);
+    const result: string[] = [currentSlug];
+    const children = categories.filter((c) => c.parent_id === target.id);
 
-  return result;
+    for (const child of children) {
+      result.push(...collect(child.slug, depth + 1));
+    }
+
+    return result;
+  };
+
+  return collect(slug, 0);
 }

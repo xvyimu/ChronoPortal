@@ -13,7 +13,10 @@
 
 import type { Category, Tag, NavLink } from "@/lib/types";
 import { SECTION_LABELS } from "@/lib/nav-config";
-import { getDescendantSlugs } from "@/lib/category-tree";
+import {
+  getDescendantSlugs,
+  MAX_CATEGORY_TREE_DEPTH,
+} from "@/lib/category-tree";
 
 // ── 共享类型 ────────────────────────────────────────────────
 
@@ -106,13 +109,23 @@ export function buildTabTree(
   links: NavLink[],
   descendantSlugsMap: Record<string, string[]>,
 ): SidebarTabNode[] {
-  const buildNode = (cat: Category): SidebarTabNode => {
+  const buildNode = (
+    cat: Category,
+    path: Set<string>,
+    depth: number,
+  ): SidebarTabNode | null => {
+    if (depth >= MAX_CATEGORY_TREE_DEPTH || path.has(cat.id)) return null;
+
+    const nextPath = new Set(path);
+    nextPath.add(cat.id);
     const children = categories.filter((c) => c.parent_id === cat.id);
     return {
       key: cat.slug,
       label: SECTION_LABELS[cat.slug] || cat.name,
       count: countLinksForSlug(cat.slug, links, descendantSlugsMap),
-      children: children.map(buildNode),
+      children: children
+        .map((child) => buildNode(child, nextPath, depth + 1))
+        .filter((child): child is SidebarTabNode => child !== null),
     };
   };
 
@@ -120,7 +133,8 @@ export function buildTabTree(
     { key: "all", label: "全部", count: links.length, children: [] },
     ...categories
       .filter((c) => !c.parent_id && c.slug !== "model-ranking")
-      .map(buildNode),
+      .map((category) => buildNode(category, new Set(), 0))
+      .filter((category): category is SidebarTabNode => category !== null),
   ];
 }
 

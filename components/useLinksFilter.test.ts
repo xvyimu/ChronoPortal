@@ -21,6 +21,25 @@ function makeLink(overrides: Partial<NavLink> & { id: string }): NavLink {
   };
 }
 
+function makeSearchResponse(
+  results: NavLink[],
+  overrides: Record<string, unknown> = {}
+) {
+  const query = typeof overrides.query === "string" ? overrides.query : "";
+  return {
+    results,
+    total: results.length,
+    query,
+    mode: "fuse",
+    facets: { categories: [], tags: [], ratings: [], popularity: [] },
+    suggestions: [],
+    recommendations: [],
+    expandedTerms: query ? [query] : [],
+    appliedSynonyms: [],
+    ...overrides,
+  };
+}
+
 const categories: Category[] = [
   { id: "c1", name: "云服务 & VPS", slug: "cloud-vps", description: null, icon: null, sort_order: 0, created_at: "2026-01-01T00:00:00Z" },
   { id: "c2", name: "Relay Station", slug: "free-relay", description: null, icon: null, sort_order: 1, created_at: "2026-01-01T00:00:00Z" },
@@ -37,7 +56,7 @@ describe("useLinksFilter", () => {
     // Default fetch mock: empty search results
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ results: [], total: 0, query: "" }),
+      json: async () => makeSearchResponse([]),
     }));
   });
 
@@ -116,20 +135,12 @@ describe("useLinksFilter", () => {
     // Mock server search to return l1 for query "chat"
     vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
-      json: async () => ({
-        results: [{
+      json: async () => makeSearchResponse([makeLink({
           id: "l1",
           title: "ChatGPT",
-          url: "https://example.com",
-          description: "A test link",
-          icon: null,
           category_name: "云服务 & VPS",
           category_slug: "cloud-vps",
-          featured: false,
-          paid: false,
-          click_count: 0,
-        }],
-        total: 1,
+        })], {
         query: "chat",
       }),
     } as never);
@@ -143,17 +154,13 @@ describe("useLinksFilter", () => {
   it("sends productized search filters and preserves search metadata", async () => {
     vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
-      json: async () => ({
-        results: [{
+      json: async () => makeSearchResponse([makeLink({
           id: "l1",
           title: "ChatGPT",
-          url: "https://example.com",
           description: "AI API tool",
-          icon: null,
           category_name: "AI",
           category_slug: "ai-tools",
           featured: true,
-          paid: false,
           click_count: 12,
           tags: [{ id: "t1", name: "API", slug: "api", created_at: "2026-01-01T00:00:00Z" }],
           avg_rating: 4.8,
@@ -169,7 +176,7 @@ describe("useLinksFilter", () => {
               matchedFields: ["description"],
             },
           },
-        }],
+        })], {
         facets: {
           categories: [],
           tags: [{ value: "api", label: "API", count: 1, active: true }],
@@ -178,7 +185,6 @@ describe("useLinksFilter", () => {
         },
         suggestions: [{ type: "tool", value: "ChatGPT", label: "ChatGPT" }],
         recommendations: [],
-        total: 1,
         query: "chat",
       }),
     } as never);

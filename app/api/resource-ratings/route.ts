@@ -77,7 +77,7 @@ export async function POST(request: Request) {
       ip,
       RATING_WINDOW_MS,
       RATING_MAX_ATTEMPTS,
-      true
+      "deny"
     );
     if (!allowed) {
       return NextResponse.json(
@@ -149,45 +149,31 @@ export async function GET(request: Request) {
     const { page_id: pageId } = parsed.data;
 
     const publicStats = createResourceLibraryPublicRatingStatsClient();
-    if (publicStats) {
-      try {
-        const { data, error } = await publicStats.client
-          .rpc(publicStats.rpcName, { target_page_id: pageId })
-          .abortSignal(AbortSignal.timeout(RATING_TIMEOUT_MS));
-
-        if (!error) {
-          return ratingStatsResponse(parseRatingCount(data));
-        }
-
-        logger.warn("Resource public rating stats RPC failed", {
-          source: "resource-ratings",
-          code: error.code,
-        });
-      } catch (e) {
-        logger.warn("Resource public rating stats RPC threw", {
-          source: "resource-ratings",
-          error: e instanceof Error ? e.message : String(e),
-        });
-      }
+    if (!publicStats) {
+      logger.warn("Resource public rating stats client is not configured", {
+        source: "resource-ratings",
+      });
+      return NextResponse.json({ error: "评分统计服务暂不可用" }, { status: 503 });
     }
 
-    const supabase = createResourceLibraryServiceClient();
-    if (!supabase) {
-      return NextResponse.json({ error: "评分服务未配置" }, { status: 503 });
-    }
-
-    const { count, error } = await supabase
-      .from("ratings")
-      .select("id", { count: "exact", head: true })
-      .eq("page_id", pageId)
+    const { data, error } = await publicStats.client
+      .rpc(publicStats.rpcName, { target_page_id: pageId })
       .abortSignal(AbortSignal.timeout(RATING_TIMEOUT_MS));
 
     if (error) {
-      return NextResponse.json({ error: "获取评分失败" }, { status: 500 });
+      logger.warn("Resource public rating stats RPC failed", {
+        source: "resource-ratings",
+        code: error.code,
+      });
+      return NextResponse.json({ error: "评分统计服务暂不可用" }, { status: 503 });
     }
 
-    return ratingStatsResponse(count ?? 0);
-  } catch {
+    return ratingStatsResponse(parseRatingCount(data));
+  } catch (e) {
+    logger.warn("Resource public rating stats RPC threw", {
+      source: "resource-ratings",
+      error: e instanceof Error ? e.message : String(e),
+    });
     return NextResponse.json({ error: "服务器错误" }, { status: 500 });
   }
 }

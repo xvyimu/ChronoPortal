@@ -23,6 +23,23 @@ interface UpstashConfig {
   token: string;
 }
 
+export type DistributedRateLimitBackend = "upstash" | "memory" | "unavailable";
+
+function isProductionRuntime(env: EnvLike): boolean {
+  return env.NODE_ENV === "production" || env.VERCEL === "1";
+}
+
+function shouldFailClosed(env: EnvLike): boolean {
+  return isProductionRuntime(env) && env.DISTRIBUTED_RATE_LIMIT_FAIL_CLOSED === "1";
+}
+
+export function getDistributedRateLimitStatus(env: EnvLike = process.env) {
+  return {
+    configured: readUpstashConfig(env) !== null,
+    failClosed: shouldFailClosed(env),
+  };
+}
+
 function readUpstashConfig(env: EnvLike): UpstashConfig | null {
   const url = env.UPSTASH_REDIS_REST_URL?.trim();
   const token = env.UPSTASH_REDIS_REST_TOKEN?.trim();
@@ -85,9 +102,16 @@ export async function checkDistributedRateLimit(
   windowMs: number,
   maxAttempts: number,
   env: EnvLike = process.env
-): Promise<{ allowed: boolean; backend: "upstash" | "memory" }> {
+): Promise<{ allowed: boolean; backend: DistributedRateLimitBackend }> {
   const cfg = readUpstashConfig(env);
   if (!cfg) {
+    if (shouldFailClosed(env)) {
+      logger.error("Distributed rate limit unavailable in fail-closed mode", {
+        bucketKey,
+        reason: "upstash_not_configured",
+      });
+      return { allowed: false, backend: "unavailable" };
+    }
     // 无 Redis：回退进程内（旧行为，单实例仍有效）
     return { allowed: checkInMemoryRateLimit(bucketKey, windowMs, maxAttempts).allowed, backend: "memory" };
   }
@@ -102,6 +126,14 @@ export async function checkDistributedRateLimit(
     );
     return { allowed, backend: "upstash" };
   } catch (e) {
+    if (shouldFailClosed(env)) {
+      logger.error("Distributed rate limit unavailable in fail-closed mode", {
+        bucketKey,
+        reason: "upstash_request_failed",
+        error: e instanceof Error ? e.message : String(e),
+      });
+      return { allowed: false, backend: "unavailable" };
+    }
     // Redis 抖动 → 回退进程内，避免误伤正常用户（fail-open 到本地桶）
     logger.warn("Distributed rate limit fell back to memory", {
       bucketKey,

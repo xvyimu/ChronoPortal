@@ -20,6 +20,16 @@ describe("resource-library client configuration", () => {
     expect(getResourceLibraryUrl()).toBe("https://ihnmfsfbfnctgkhxmghk.supabase.co");
   });
 
+  it("builds the resource search endpoint from the configured resource-library URL", async () => {
+    vi.stubEnv("RESOURCE_LIBRARY_SUPABASE_URL", "https://resource-library.example.test/");
+    vi.stubEnv("RESOURCE_LIBRARY_URL", "https://legacy-resource-library.example.test");
+    const { getResourceLibrarySearchEndpoint } = await import("@/lib/resource-library/client");
+
+    expect(getResourceLibrarySearchEndpoint()).toBe(
+      "https://resource-library.example.test/functions/v1/search-api-v3"
+    );
+  });
+
   it("uses the anon key for production public reads and never falls back to service_role", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("RESOURCE_LIBRARY_ANON_KEY", "");

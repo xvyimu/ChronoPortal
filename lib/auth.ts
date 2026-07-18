@@ -22,7 +22,7 @@ export const { handlers, auth } = NextAuth({
     Credentials({
       credentials: { password: { label: "密码", type: "password" } },
       authorize: async (credentials, request) => {
-        // ── IP 级速率限制（fail-close：DB 故障时使用内存备用限制）──
+        // ── IP 级速率限制（DB/RPC 故障时拒绝登录）──
         // 与原 /api/admin/login 行为一致，防止凭证爆破
         const ip = getClientIp(request);
         const { allowed } = await checkRateLimit(
@@ -30,7 +30,7 @@ export const { handlers, auth } = NextAuth({
           ip,
           LOGIN_WINDOW_MS,
           LOGIN_MAX_ATTEMPTS,
-          true // fail-close
+          "deny"
         );
         if (!allowed) {
           // 通过抛错让 NextAuth 把用户重定向回登录页（error=AccessDenied）
@@ -73,7 +73,7 @@ export const { handlers, auth } = NextAuth({
     async jwt({ token, user }) {
       // 首次登录时，从 user 对象读取 role（来自 provider 的 profile/authorize 返回值）
       if (user) {
-        token.role = (user as { role?: string }).role;
+        token.role = (user as { role?: unknown }).role === "admin" ? "admin" : "user";
       }
       // 默认 role 为 user（更安全：未显式赋予 admin 的会话无管理员权限）
       token.role ??= "user";

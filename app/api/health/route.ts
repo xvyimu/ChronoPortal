@@ -7,6 +7,7 @@ import {
   resolveEmbedEndpoint,
 } from "@/lib/embedding-runtime";
 import { logger } from "@/lib/logger";
+import { getDistributedRateLimitStatus } from "@/lib/rate-limit-distributed";
 import {
   RESOURCE_LIBRARY_URL,
   getResourceLibraryAnonKey,
@@ -195,7 +196,7 @@ export async function GET() {
     const supabase = await createClient();
     const { count, error } = await supabase
       .from("nav_categories")
-      .select("*", { count: "exact", head: true });
+      .select("id", { count: "exact", head: true });
 
     if (error) {
       checks.database = {
@@ -241,6 +242,23 @@ export async function GET() {
     latency_ms: Date.now() - sentryStart,
     detail: process.env.NEXT_PUBLIC_SENTRY_DSN ? "configured" : "not configured (optional)",
   };
+
+  const rateLimitStart = Date.now();
+  const distributedRateLimit = getDistributedRateLimitStatus();
+  checks.distributedRateLimit = {
+    status: distributedRateLimit.configured
+      ? "ok"
+      : distributedRateLimit.failClosed
+        ? "error"
+        : "skipped",
+    latency_ms: Date.now() - rateLimitStart,
+    detail: distributedRateLimit.configured
+      ? "Upstash distributed limiter configured"
+      : distributedRateLimit.failClosed
+        ? "strict distributed limiting requires Upstash configuration"
+        : "Upstash not configured; in-memory fallback active",
+  };
+  if (checks.distributedRateLimit.status === "error") healthy = false;
 
   checks.embedding = await checkEmbeddingHealth();
   if (

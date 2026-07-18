@@ -11,7 +11,20 @@
 
 /* ===== Admin form inputs ===== */
 .field-input {
-  @apply w-full rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-white outline-none focus:border-sky-400 text-sm;
+  @apply w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-60;
+  min-height: 2.5rem;
+  border-color: var(--admin-border);
+  background: #ffffff;
+  color: var(--admin-text);
+}
+
+.field-input::placeholder {
+  color: var(--admin-faint);
+}
+
+.field-input:focus {
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 3px var(--admin-primary-soft);
 }
 
 /* ===== 视觉层 ===== */
@@ -71,6 +84,24 @@
   --sidebar-accent-foreground: #3d4a5a;
   --sidebar-border: #d8e0e7;
   --sidebar-ring: #5f84b2;
+
+  /* 管理后台：克制的蓝灰工作界面 */
+  --admin-primary: #4a5568;
+  --admin-primary-hover: #374151;
+  --admin-primary-soft: #edf2f7;
+  --admin-canvas: #f7f9fb;
+  --admin-surface: #f8fafc;
+  --admin-text: #1f2937;
+  --admin-muted: #718096;
+  --admin-faint: #a0aec0;
+  --admin-border: #e2e8f0;
+  --admin-danger: #9f2f2d;
+  --admin-danger-soft: #fdebec;
+  --admin-success: #346538;
+  --admin-success-soft: #edf3ec;
+  --admin-warning: #956400;
+  --admin-warning-soft: #fbf3db;
+  --admin-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 @theme inline {
@@ -117,6 +148,35 @@ body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.admin-shell {
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.admin-panel {
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: var(--admin-shadow);
+}
+
+.admin-icon-button {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--admin-muted);
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.admin-icon-button:hover {
+  background: var(--admin-surface);
+  color: var(--admin-text);
 }
 
 html {

@@ -60,4 +60,24 @@ describe("rate-limit-distributed", () => {
     expect(res.allowed).toBe(true);
     expect(res.backend).toBe("memory");
   });
+
+  it("fails closed in production when strict distributed limiting is enabled without Upstash", async () => {
+    const res = await checkDistributedRateLimit(`strict-${Math.random()}`, 60_000, 5, {
+      NODE_ENV: "production",
+      DISTRIBUTED_RATE_LIMIT_FAIL_CLOSED: "1",
+    });
+
+    expect(res).toEqual({ allowed: false, backend: "unavailable" });
+  });
+
+  it("fails closed in production when strict Upstash requests fail", async () => {
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("network down"));
+    const res = await checkDistributedRateLimit(`strict-${Math.random()}`, 60_000, 5, {
+      ...UPSTASH_ENV,
+      NODE_ENV: "production",
+      DISTRIBUTED_RATE_LIMIT_FAIL_CLOSED: "1",
+    });
+
+    expect(res).toEqual({ allowed: false, backend: "unavailable" });
+  });
 });

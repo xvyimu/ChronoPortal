@@ -33,10 +33,15 @@ export {
 
 export {
   getAllLinksForAdmin,
+  getAdminLinksPage,
   createLink,
   updateLink,
   deleteLink,
 } from "@/lib/repositories/admin-links";
+export type {
+  AdminLinksPage,
+  AdminLinksQuery,
+} from "@/lib/admin/contracts";
 
 export {
   findExistingLinkByUrl,

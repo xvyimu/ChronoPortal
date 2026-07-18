@@ -43,3 +43,26 @@
 ---
 *每执行2次查看/浏览器/搜索操作后更新此文件*
 *防止视觉信息丢失*
+
+## 2026-07-18：优化与发布文档规划
+
+### 已核验事实
+
+- 当前分支仍为 `master`，Git 基线为 `9733897d8d417e36cb293e94fff11cde4215ec76`。
+- 当前工作树包含跨前端、API、repository、CI、测试、迁移和文档的大量未提交改动，尚不存在可审计候选 SHA。
+- ADR-009 已固定管理后台 interface：客户端组件通过 `lib/admin/client.ts` 调用 Route Handler，Server Component 继续直接调用 repository。
+- 当前代码优化与数据库迁移必须分开陈述：SQL 文件存在不等于 staging 或 production 已执行。
+- 现有 `task_plan.md`、`findings.md`、`progress.md` 是 2026-07-04 已完成性能专项，不能覆盖其历史，只追加新阶段。
+
+### 文档决策
+
+- 新增 `docs/optimization-and-release-plan-2026-07-18.md`，作为当前优化范围、依赖、授权门和完成定义的主入口。
+- ADR 只记录长期决策；LAUNCH-CHECKLIST 保持短清单；PRODUCTION-RUNBOOK 保持操作与故障处理；每个候选另建 release manifest、migration ledger 和 validation report。
+- 候选 SHA 存在前不创建空的 release 证据目录，避免模板被误读为已验证事实。
+- README、PROGRESS、API 文档和运行手册中的生产声明，待候选或生产证据形成后再校准。
+
+### 未确定事项
+
+- staging/production 数据库 schema、迁移历史、RLS/GRANT 和备份能力不确定。
+- disposable nav DB、Vercel deployment protection、GitHub required checks、生产监控基线和 canary 能力不确定。
+- commit、push、数据库迁移、外部配置和部署均未获本轮执行授权。

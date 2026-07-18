@@ -1,4 +1,8 @@
 import type { NavLink, Tag } from "@/lib/types";
+import type {
+  AdminTagCreateInput,
+  AdminTagUpdateInput,
+} from "@/lib/admin/contracts";
 import { logger } from "@/lib/logger";
 import {
   createAdminClient,
@@ -12,8 +16,11 @@ interface RawLinkTagRow {
   tag_id: string;
 }
 
+const TAG_COLUMNS = "id,name,slug,created_at";
+
 let reportedMissingTagsTables = false;
 
+/** 识别标签表或关联关系尚未迁移时的查询错误。 */
 function isMissingTagsJoinError(error: { code?: string; message?: string }): boolean {
   return (
     isMissingRelationError(error) ||
@@ -22,6 +29,7 @@ function isMissingTagsJoinError(error: { code?: string; message?: string }): boo
   );
 }
 
+/** 每个进程只记录一次可选标签迁移缺失，避免日志洪泛。 */
 function reportMissingTagsTablesOnce(code?: string) {
   if (reportedMissingTagsTables) return;
 
@@ -34,6 +42,7 @@ function reportMissingTagsTablesOnce(code?: string) {
   reportedMissingTagsTables = true;
 }
 
+/** 批量附加链接标签；可选迁移缺失时保留原始链接结果。 */
 export async function attachTagsToLinks(
   supabase: SupabaseServerClient,
   links: NavLink[],
@@ -140,7 +149,7 @@ export async function getAllTagsForAdmin(): Promise<Tag[]> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("tags")
-    .select("*")
+    .select(TAG_COLUMNS)
     .order("name", { ascending: true });
 
   if (error) {
@@ -154,12 +163,12 @@ export async function getAllTagsForAdmin(): Promise<Tag[]> {
 /**
  * 创建标签（admin）
  */
-export async function createTag(input: { name: string; slug: string }): Promise<Tag> {
+export async function createTag(input: AdminTagCreateInput): Promise<Tag> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("tags")
     .insert({ name: input.name, slug: input.slug })
-    .select()
+    .select(TAG_COLUMNS)
     .single();
 
   if (error) {
@@ -175,14 +184,14 @@ export async function createTag(input: { name: string; slug: string }): Promise<
  */
 export async function updateTag(
   id: string,
-  input: { name?: string; slug?: string }
+  input: AdminTagUpdateInput
 ): Promise<Tag> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("tags")
     .update(input)
     .eq("id", id)
-    .select()
+    .select(TAG_COLUMNS)
     .single();
 
   if (error) {

@@ -87,3 +87,46 @@
 
 ---
 *每个阶段完成后或遇到错误时更新此文件*
+
+## 会话：2026-07-18（优化与发布文档规划）
+
+### 阶段 6：上下文与文档规划
+- **状态：** complete
+- 执行的操作：
+  - 读取项目 `AGENTS.md`、共享 Claude 配置、记忆索引和相关技能说明。
+  - 执行 `rtk gain`、项目 discovery、handoff 查询、`git status --short` 和 `git diff --stat`。
+  - 核对深度审计、发布审计、ADR-009、发布检查清单、生产运行手册和管理后台收尾报告。
+  - 新建 `docs/optimization-and-release-plan-2026-07-18.md`。
+  - 仅规划文档；未修改业务代码，未执行数据库迁移、commit、push 或部署。
+- 创建/修改的文件：
+  - `docs/optimization-and-release-plan-2026-07-18.md`
+  - `task_plan.md`
+  - `findings.md`
+  - `progress.md`
+
+### 待验证
+
+| 检查 | 目标 |
+|---|---|
+| 文档链接 | 所有仓库内相对链接目标存在 |
+| Markdown 结构 | 标题层级、表格和 fenced block 完整 |
+| `git diff --check` | 无空白错误 |
+| `git diff --name-only` | 本轮仅新增/修改四个规划文档 |
+
+### 验证结果
+
+| 检查 | 结果 | 状态 |
+|---|---|---|
+| 五个仓库内相对链接 | 目标文件全部存在 | 通过 |
+| Markdown fenced block | 8 个标记，成对完整 | 通过 |
+| 新主计划文件 | 323 行，16,795 bytes | 通过 |
+| `git diff --check` | 无输出，退出码 0 | 通过 |
+| 本轮文件边界 | `task_plan.md`、`findings.md`、`progress.md` 和新增主计划 | 通过 |
+| 代码测试/构建 | 本轮未修改业务代码；候选 SHA 形成后按主计划重跑 | 未执行（不适用） |
+
+### 校验错误记录
+
+| 错误 | 尝试次数 | 处理 |
+|---|---:|---|
+| 嵌套 PowerShell/RTK 中的变量和数组引号被外层解析，导致批量只读校验失败 | 2 | 停止批量嵌套脚本，改用五个独立 `Test-Path`，全部通过 |
+| 新计划文档为未跟踪文件，普通 `git diff --stat` 未显示 | 1 | 改用 `git status --short`、`Test-Path` 和独立内容检查 |

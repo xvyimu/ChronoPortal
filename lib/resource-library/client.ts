@@ -15,6 +15,10 @@ export function getResourceLibraryUrl(): string {
   return fromEnv || DEFAULT_RESOURCE_LIBRARY_URL;
 }
 
+export function getResourceLibrarySearchEndpoint(): string {
+  return new URL("/functions/v1/search-api-v3", getResourceLibraryUrl()).toString();
+}
+
 export const RESOURCE_LIBRARY_URL = getResourceLibraryUrl();
 
 export const RESOURCE_LIBRARY_SAFE_PAGE_COLUMNS =

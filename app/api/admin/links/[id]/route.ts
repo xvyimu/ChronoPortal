@@ -1,32 +1,16 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
-import { withAdminWrite, withAdminDelete } from "@/lib/with-admin";
+import { withAdminIdWrite, withAdminIdDelete } from "@/lib/with-admin";
 import { updateLinkSchema } from "@/lib/schemas";
-import { updateLink, deleteLink } from "@/lib/repositories";
+import { updateLink, deleteLink } from "@/lib/repositories/admin-links";
 
-function validateId(id: string | undefined): NextResponse | null {
-  if (!id) {
-    return NextResponse.json({ error: "缺少 id 参数" }, { status: 400 });
-  }
-  const uuidResult = z.string().uuid("ID 格式不正确").safeParse(id);
-  if (!uuidResult.success) {
-    return NextResponse.json({ error: "ID 格式不正确" }, { status: 400 });
-  }
-  return null;
-}
-
-export const PUT = withAdminWrite(updateLinkSchema, async ({ parsed, params }) => {
-  const id = params?.id;
-  const idError = validateId(id);
-  if (idError) return idError;
-  const link = await updateLink(id!, parsed as Record<string, unknown>);
+/** 更新指定 UUID 的管理链接。 */
+export const PUT = withAdminIdWrite(updateLinkSchema, async ({ parsed, id }) => {
+  const link = await updateLink(id, parsed);
   return NextResponse.json({ link });
 });
 
-export const DELETE = withAdminDelete(async ({ params }) => {
-  const id = params?.id;
-  const idError = validateId(id);
-  if (idError) return idError;
-  await deleteLink(id!);
+/** 删除指定 UUID 的管理链接。 */
+export const DELETE = withAdminIdDelete(async ({ id }) => {
+  await deleteLink(id);
   return NextResponse.json({ success: true });
 });

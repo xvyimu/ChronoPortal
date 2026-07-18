@@ -21,12 +21,27 @@ function parseBooleanArg(args, name) {
   return args.includes(name);
 }
 
+function parseBooleanValue(value) {
+  return ["1", "true", "yes", "on"].includes(String(value ?? "").trim().toLowerCase());
+}
+
 export function readConfigFromEnv(env = process.env, args = process.argv.slice(2)) {
+  const requireEmbedding =
+    parseBooleanArg(args, "--require-embedding") ||
+    parseBooleanValue(env.PRODUCTION_REQUIRE_EMBEDDING) ||
+    parseBooleanValue(env.HEALTH_REQUIRE_EMBEDDING);
+  const expectEmbeddingSkipped = !requireEmbedding && (
+    parseBooleanArg(args, "--expect-embedding-skipped") ||
+    parseBooleanValue(env.PRODUCTION_EXPECT_EMBEDDING_SKIPPED)
+  );
+
   return {
     baseUrl: readArgValue(args, "--base-url") || env.PRODUCTION_BASE_URL || DEFAULT_BASE_URL,
     expectedCommit: readArgValue(args, "--expect-commit") || env.PRODUCTION_EXPECT_COMMIT || "",
     json: parseBooleanArg(args, "--json"),
     skipNetwork: parseBooleanArg(args, "--skip-network"),
+    requireEmbedding,
+    expectEmbeddingSkipped,
     allowedDirtyPaths: (
       readArgValue(args, "--allow-dirty") ||
       env.LAUNCH_READINESS_ALLOW_DIRTY ||
@@ -149,7 +164,8 @@ export async function collectLaunchReadiness({
       config: {
         baseUrl: config.baseUrl,
         timeoutMs: 45_000,
-        expectEmbeddingSkipped: false,
+        expectEmbeddingSkipped: config.expectEmbeddingSkipped,
+        requireEmbedding: config.requireEmbedding,
         expectedCommit: "",
         retries: 1,
         retryDelayMs: 750,
@@ -161,7 +177,8 @@ export async function collectLaunchReadiness({
       config: {
         baseUrl: config.baseUrl,
         timeoutMs: 45_000,
-        expectEmbeddingSkipped: true,
+        expectEmbeddingSkipped: config.expectEmbeddingSkipped,
+        requireEmbedding: config.requireEmbedding,
         expectedCommit: head,
         retries: 1,
         retryDelayMs: 750,

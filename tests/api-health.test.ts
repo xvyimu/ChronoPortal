@@ -40,11 +40,15 @@ describe("/api/health", () => {
     delete process.env.CF_AI_API_TOKEN;
     delete process.env.RESOURCE_LIBRARY_ANON_KEY;
     delete process.env.RESOURCE_LIBRARY_SUPABASE_ANON_KEY;
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+    delete process.env.DISTRIBUTED_RATE_LIMIT_FAIL_CLOSED;
     supabaseSelect.mockResolvedValue({ count: 3, error: null });
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
     delete process.env.NEXT_PUBLIC_SUPABASE_URL;
     delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     delete process.env.EMBED_SERVER_URL;
@@ -55,6 +59,9 @@ describe("/api/health", () => {
     delete process.env.CF_AI_API_TOKEN;
     delete process.env.RESOURCE_LIBRARY_ANON_KEY;
     delete process.env.RESOURCE_LIBRARY_SUPABASE_ANON_KEY;
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+    delete process.env.DISTRIBUTED_RATE_LIMIT_FAIL_CLOSED;
     delete process.env.EMBED_SERVER_LOOPBACK_ENABLED;
     delete process.env.NETLIFY;
     delete process.env.VERCEL;
@@ -83,6 +90,30 @@ describe("/api/health", () => {
       deployId: "deploy-123",
     });
     expect(JSON.stringify(body)).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
+  });
+
+  it("reports distributed rate limiting as optional when Upstash is not configured", async () => {
+    const { GET } = await import("@/app/api/health/route");
+    const response = await GET();
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.checks.distributedRateLimit).toMatchObject({
+      status: "skipped",
+      detail: "Upstash not configured; in-memory fallback active",
+    });
+  });
+
+  it("fails health when strict distributed limiting is enabled without Upstash", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    process.env.DISTRIBUTED_RATE_LIMIT_FAIL_CLOSED = "1";
+
+    const { GET } = await import("@/app/api/health/route");
+    const response = await GET();
+    const body = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(body.checks.distributedRateLimit.status).toBe("error");
   });
 
   it("reports embedding health when the local embed service is reachable", async () => {

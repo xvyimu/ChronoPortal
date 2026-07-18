@@ -147,6 +147,15 @@ describe("ToolQuickView", () => {
     expect(dialog.getAttribute("aria-modal")).toBe("true");
   });
 
+  it("labels the dialog with the rendered title", () => {
+    render(<ToolQuickView link={makeLink()} onClose={vi.fn()} />);
+
+    const dialog = screen.getByRole("dialog");
+    const title = screen.getByRole("heading", { name: "Figma" });
+    expect(title.id).toBe("tool-quick-view-title");
+    expect(dialog.getAttribute("aria-labelledby")).toBe(title.id);
+  });
+
   it("renders open website button with external link", () => {
     render(<ToolQuickView link={makeLink()} onClose={vi.fn()} />);
 

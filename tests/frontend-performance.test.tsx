@@ -1,4 +1,4 @@
-import { act, render, renderHook, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Category, NavLink } from "@/lib/types";
 import type { ResourceItem } from "@/lib/types";
@@ -18,7 +18,12 @@ vi.mock("pangu/browser", () => ({
 }));
 
 vi.mock("@/components/LinkCard", () => ({
-  LinkCard: ({ link }: { link: NavLink }) => <div data-testid="link-card">{link.title}</div>,
+  LinkCard: ({ link }: { link: NavLink }) => (
+    <div data-testid="link-card">
+      {link.title}
+      <button type="button" aria-label={`收藏 ${link.title}`}>收藏</button>
+    </div>
+  ),
 }));
 
 const category: Category = {
@@ -48,6 +53,20 @@ function link(id: string): NavLink {
     category_name: category.name,
     category_slug: category.slug,
     tags: [],
+  };
+}
+
+function searchBody(results: NavLink[], query = "test") {
+  return {
+    results,
+    total: results.length,
+    query,
+    mode: "fuse",
+    facets: { categories: [], tags: [], ratings: [], popularity: [] },
+    suggestions: [],
+    recommendations: [],
+    expandedTerms: [query],
+    appliedSynonyms: [],
   };
 }
 
@@ -93,7 +112,7 @@ describe("frontend performance and lifecycle regressions", () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ results: [{ ...link("first"), category_id: null }] }), {
+        new Response(JSON.stringify(searchBody([{ ...link("first"), category_id: null }], "first")), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         })
@@ -125,6 +144,38 @@ describe("frontend performance and lifecycle regressions", () => {
     await act(async () => {
       await vi.runAllTimersAsync();
     });
+    expect(result.current.serverResults).toEqual([]);
+    expect(result.current.searchLoading).toBe(false);
+  });
+
+  it("rejects a malformed successful search response at the client boundary", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ results: [{ id: 42 }], total: 1, query: "bad", mode: "fuse" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    ));
+    const { useServerSearch } = await import("@/components/navigation/useServerSearch");
+    const activeTags: string[] = [];
+    const links: NavLink[] = [];
+    const setSearch = vi.fn();
+
+    const { result } = renderHook(() => useServerSearch({
+      rawSearch: "bad",
+      semanticSearch: false,
+      activeCategory: "all",
+      activeTags,
+      minRatingFilter: null,
+      popularityFilter: null,
+      links,
+      setSearch,
+    }));
+
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+
     expect(result.current.serverResults).toEqual([]);
     expect(result.current.searchLoading).toBe(false);
   });
@@ -165,6 +216,44 @@ describe("frontend performance and lifecycle regressions", () => {
       );
     });
     expect(view.queryAllByTestId("link-card")).toHaveLength(2);
+  });
+
+  it("mounts the focused keyboard result even when it is outside the initial window", async () => {
+    const { ResultGrid } = await import("@/components/ResultGrid");
+    const view = render(
+      <ResultGrid
+        links={[link("one"), link("two"), link("three")]}
+        baseIndex={0}
+        focusedIndex={2}
+        onFocusChange={vi.fn()}
+        onKeyDown={vi.fn()}
+        initialVisible={1}
+        pageSize={1}
+      />
+    );
+
+    expect(view.queryAllByTestId("link-card")).toHaveLength(3);
+    expect(view.container.querySelector('[data-result-index="2"]')).not.toBeNull();
+  });
+
+  it("does not route Enter from a card action through result keyboard navigation", async () => {
+    const onKeyDown = vi.fn();
+    const { ResultGrid } = await import("@/components/ResultGrid");
+    const view = render(
+      <ResultGrid
+        links={[link("one")]}
+        baseIndex={0}
+        focusedIndex={0}
+        onFocusChange={vi.fn()}
+        onKeyDown={onKeyDown}
+      />
+    );
+
+    fireEvent.keyDown(view.getByRole("button", { name: "收藏 Link one" }), {
+      key: "Enter",
+    });
+
+    expect(onKeyDown).not.toHaveBeenCalled();
   });
 
   it("allocates one mount budget across all category sections", async () => {

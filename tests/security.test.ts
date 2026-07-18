@@ -10,6 +10,7 @@ import {
   escapeJsonForHtml,
 } from "@/lib/utils";
 import { requireAdmin, unauthorized } from "@/lib/with-admin";
+import { checkOrigin } from "@/lib/csrf";
 import {
   urlSchema, titleSchema, slugSchema,
   createLinkSchema, createCategorySchema, submitLinkSchema,
@@ -25,6 +26,57 @@ vi.mock("@/lib/auth", () => ({
 import { auth } from "@/lib/auth";
 
 const mockAuth = vi.mocked(auth) as unknown as ReturnType<typeof vi.fn>;
+
+describe("checkOrigin — browser write CSRF boundary", () => {
+  it("allows a same-origin browser Origin", () => {
+    const request = new Request("https://example.com/api/write", {
+      method: "POST",
+      headers: { origin: "https://example.com", host: "example.com", cookie: "session=x" },
+    });
+
+    expect(checkOrigin(request)).toBeNull();
+  });
+
+  it("rejects a cookie-authenticated write with neither Origin nor Referer", () => {
+    const request = new Request("https://example.com/api/write", {
+      method: "POST",
+      headers: { host: "example.com", cookie: "session=x" },
+    });
+
+    expect(checkOrigin(request)?.status).toBe(403);
+  });
+
+  it("allows a cookie-authenticated write with a same-origin Referer", () => {
+    const request = new Request("https://example.com/api/write", {
+      method: "POST",
+      headers: {
+        host: "example.com",
+        referer: "https://example.com/favorites",
+        cookie: "session=x",
+      },
+    });
+
+    expect(checkOrigin(request)).toBeNull();
+  });
+
+  it("allows a non-browser request without cookies or browser provenance headers", () => {
+    const request = new Request("https://example.com/api/write", {
+      method: "POST",
+      headers: { host: "example.com", authorization: "Bearer test" },
+    });
+
+    expect(checkOrigin(request)).toBeNull();
+  });
+
+  it("rejects requests explicitly marked cross-site", () => {
+    const request = new Request("https://example.com/api/write", {
+      method: "POST",
+      headers: { host: "example.com", "sec-fetch-site": "cross-site" },
+    });
+
+    expect(checkOrigin(request)?.status).toBe(403);
+  });
+});
 
 describe("admin-auth (now in with-admin)", () => {
   beforeEach(() => {
@@ -192,10 +244,10 @@ describe("isSafeUrl", () => {
 
 describe("checkMemoryRateLimit — 内存级备用速率限制", () => {
   // 通过 import 内的函数测试内存限制逻辑
-  // 模块内部通过 checkRateLimit(failClose=true) 触发内存备用
+  // 模块内部通过 checkRateLimit(failurePolicy="memory") 触发内存备用
 
   it("第一次请求始终放行", async () => {
-    // 避免直接测试内部内存 Map 的竞态，通过 mock Supabase 失败+ failClose 触发备用
+    // 避免直接测试内部内存 Map 的竞态，通过 mock Supabase 失败触发备用
     vi.resetModules();
     vi.doMock("@/lib/supabase/server", () => ({
       createServiceRoleClient: () => ({
@@ -204,11 +256,11 @@ describe("checkMemoryRateLimit — 内存级备用速率限制", () => {
     }));
 
     const { checkRateLimit } = await import("@/lib/rate-limit");
-    const result = await checkRateLimit("login_attempts", "1.2.3.4", 60_000, 5, true);
+    const result = await checkRateLimit("login_attempts", "1.2.3.4", 60_000, 5, "memory");
     expect(result.allowed).toBe(true);
   });
 
-  it("超过内存桶上限后拒绝（failClose 模式）", async () => {
+  it("超过内存桶上限后拒绝（memory 模式）", async () => {
     vi.resetModules();
     vi.doMock("@/lib/supabase/server", () => ({
       createServiceRoleClient: () => ({
@@ -219,13 +271,13 @@ describe("checkMemoryRateLimit — 内存级备用速率限制", () => {
     const { checkRateLimit } = await import("@/lib/rate-limit");
     // 连续超过 maxAttempts 次
     for (let i = 0; i < 5; i++) {
-      await checkRateLimit("login_attempts", "5.6.7.8", 60_000, 3, true);
+      await checkRateLimit("login_attempts", "5.6.7.8", 60_000, 3, "memory");
     }
-    const result = await checkRateLimit("login_attempts", "5.6.7.8", 60_000, 3, true);
+    const result = await checkRateLimit("login_attempts", "5.6.7.8", 60_000, 3, "memory");
     expect(result.allowed).toBe(false);
   });
 
-  it("failOpen 模式下数据库故障时放行", async () => {
+  it("allow 模式下数据库故障时放行", async () => {
     vi.resetModules();
     vi.doMock("@/lib/supabase/server", () => ({
       createServiceRoleClient: () => ({
@@ -234,7 +286,7 @@ describe("checkMemoryRateLimit — 内存级备用速率限制", () => {
     }));
 
     const { checkRateLimit } = await import("@/lib/rate-limit");
-    const result = await checkRateLimit("submit_attempts", "9.9.9.9", 60_000, 3);
+    const result = await checkRateLimit("submit_attempts", "9.9.9.9", 60_000, 3, "allow");
     expect(result.allowed).toBe(true);
   });
 });
@@ -252,7 +304,7 @@ describe("checkRateLimit — 数据库速率限制", () => {
     }));
 
     const { checkRateLimit } = await import("@/lib/rate-limit");
-    const result = await checkRateLimit("login_attempts", "1.2.3.4", 60_000, 5, true);
+    const result = await checkRateLimit("login_attempts", "1.2.3.4", 60_000, 5, "deny");
     expect(result.allowed).toBe(true);
     expect(result.count).toBe(2);
   });
@@ -269,7 +321,7 @@ describe("checkRateLimit — 数据库速率限制", () => {
     }));
 
     const { checkRateLimit } = await import("@/lib/rate-limit");
-    const result = await checkRateLimit("login_attempts", "1.2.3.4", 60_000, 5, true);
+    const result = await checkRateLimit("login_attempts", "1.2.3.4", 60_000, 5, "deny");
     expect(result.allowed).toBe(false);
     expect(result.count).toBe(5);
   });
@@ -332,13 +384,15 @@ describe("checkClickRateLimit — 点击去重限流", () => {
 describe("recordAttempt — 记录尝试", () => {
   it("正常记录不抛出异常", async () => {
     vi.resetModules();
-    vi.doMock("@/lib/supabase/server", () => ({
-      createClient: () => ({
+    const client = {
         from: () => ({
           insert: () => Promise.resolve({ error: null }),
         }),
         rpc: () => Promise.resolve({ error: null }),
-      }),
+      };
+    vi.doMock("@/lib/supabase/server", () => ({
+      createClient: () => client,
+      createServiceRoleClient: () => client,
     }));
 
     const { recordAttempt } = await import("@/lib/rate-limit");
@@ -347,13 +401,15 @@ describe("recordAttempt — 记录尝试", () => {
 
   it("数据库故障时静默失败", async () => {
     vi.resetModules();
-    vi.doMock("@/lib/supabase/server", () => ({
-      createClient: () => ({
+    const client = {
         from: () => ({
           insert: () => Promise.resolve({ error: new Error("Insert failed") }),
         }),
         rpc: () => Promise.resolve({ error: null }),
-      }),
+      };
+    vi.doMock("@/lib/supabase/server", () => ({
+      createClient: () => client,
+      createServiceRoleClient: () => client,
     }));
 
     const { recordAttempt } = await import("@/lib/rate-limit");
@@ -684,7 +740,7 @@ describe("withAdminGet — 只读路由包装器", () => {
     const handler = vi.fn(async () => NextResponse.json({ data: "ok" }, { status: 200 }));
     const wrapped = withAdminGet(handler);
 
-    const res = await wrapped();
+    const res = await wrapped(new Request("http://localhost/api/admin/test"));
     expect(handler).toHaveBeenCalledOnce();
     expect(res.status).toBe(200);
   });
@@ -699,7 +755,7 @@ describe("withAdminGet — 只读路由包装器", () => {
     const handler = vi.fn(async () => NextResponse.json({ data: "ok" }, { status: 200 }));
     const wrapped = withAdminGet(handler);
 
-    const res = await wrapped();
+    const res = await wrapped(new Request("http://localhost/api/admin/test"));
     expect(handler).not.toHaveBeenCalled();
     expect(res.status).toBe(401);
   });

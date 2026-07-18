@@ -21,10 +21,10 @@ export default function ApiDocsPage() {
         {/* Quick Stats */}
         <div className="mb-12 grid grid-cols-2 gap-4 sm:grid-cols-4">
           {[
-            { label: "站点数", value: "287+" },
-            { label: "分类数", value: "11" },
-            { label: "认证", value: "无需" },
-            { label: "限流", value: "100/请求" },
+            { label: "数据规模", value: "动态" },
+            { label: "部署主轨", value: "Vercel" },
+            { label: "公开 GET", value: "免认证" },
+            { label: "限流", value: "按 IP" },
           ].map((s) => (
             <div key={s.label} className="rounded-lg border border-border bg-card p-4">
               <div className="text-2xl font-bold text-primary">{s.value}</div>
@@ -81,29 +81,32 @@ export default function ApiDocsPage() {
 
             <h3 className="text-sm font-semibold text-foreground mb-2">请求示例</h3>
             <pre className="rounded-lg bg-muted p-4 text-sm overflow-x-auto mb-4"><code>{`# 获取全部站点
-curl https://nav-site.netlify.app/api/tools
+curl https://yuanjia1314.ccwu.cc/api/tools
 
 # 按分类过滤
-curl "https://nav-site.netlify.app/api/tools?category=ai-api"
+curl "https://yuanjia1314.ccwu.cc/api/tools?category=ai-api"
 
 # 搜索 + 限制数量
-curl "https://nav-site.netlify.app/api/tools?search=react&limit=10"`}</code></pre>
+curl "https://yuanjia1314.ccwu.cc/api/tools?search=react&limit=10"`}</code></pre>
 
             <h3 className="text-sm font-semibold text-foreground mb-2">响应示例</h3>
             <pre className="rounded-lg bg-muted p-4 text-sm overflow-x-auto mb-4"><code>{`{
-  "links": [
+  "tools": [
     {
       "id": "uuid",
-      "title": "OpenAI Platform",
+      "name": "OpenAI Platform",
+      "slug": "openai-platform",
       "url": "https://platform.openai.com",
       "description": "GPT-4o、DALL-E、Whisper 等 AI API 平台",
       "icon": "🤖",
-      "category": "ai-api",
-      "category_name": "AI & 大模型",
-      "featured": true,
-      "paid": false,
+      "category": {
+        "id": "uuid",
+        "name": "AI & 大模型",
+        "slug": "ai-api"
+      },
+      "tags": ["featured"],
       "click_count": 42,
-      "created_at": "2026-06-24T00:00:00Z"
+      "detail_page": "/tool/openai-platform"
     }
   ],
   "total": 287,
@@ -161,7 +164,7 @@ curl "https://nav-site.netlify.app/api/tools?search=react&limit=10"`}</code></pr
               </table>
             </div>
 
-            <pre className="rounded-lg bg-muted p-4 text-sm overflow-x-auto mb-4"><code>{`curl "https://nav-site.netlify.app/api/search?q=react&semantic=true&limit=5"`}</code></pre>
+            <pre className="rounded-lg bg-muted p-4 text-sm overflow-x-auto mb-4"><code>{`curl "https://yuanjia1314.ccwu.cc/api/search?q=react&semantic=true&limit=5"`}</code></pre>
 
             <pre className="rounded-lg bg-muted p-4 text-sm overflow-x-auto mb-4"><code>{`{
   "results": [
@@ -191,7 +194,7 @@ curl "https://nav-site.netlify.app/api/tools?search=react&limit=10"`}</code></pr
             <p className="text-sm text-muted-foreground mb-4">
               记录用户点击外链的行为，用于热门排行榜。同一 IP 对同一链接 15 分钟内只计一次。
             </p>
-            <pre className="rounded-lg bg-muted p-4 text-sm overflow-x-auto mb-4"><code>{`curl -X POST https://nav-site.netlify.app/api/click \\
+            <pre className="rounded-lg bg-muted p-4 text-sm overflow-x-auto mb-4"><code>{`curl -X POST https://yuanjia1314.ccwu.cc/api/click \\
   -H "Content-Type: application/json" \\
   -d '{"url":"https://vercel.com"}'`}</code></pre>
           </section>
@@ -205,7 +208,7 @@ curl "https://nav-site.netlify.app/api/tools?search=react&limit=10"`}</code></pr
             <p className="text-sm text-muted-foreground mb-4">
               获取工具的评价列表和评分统计。支持缓存（s-maxage=60s）。
             </p>
-            <pre className="rounded-lg bg-muted p-4 text-sm overflow-x-auto mb-4"><code>{`curl "https://nav-site.netlify.app/api/reviews?linkId=uuid"`}</code></pre>
+            <pre className="rounded-lg bg-muted p-4 text-sm overflow-x-auto mb-4"><code>{`curl "https://yuanjia1314.ccwu.cc/api/reviews?link_id=uuid"`}</code></pre>
           </section>
 
           {/* POST /api/submit */}
@@ -217,7 +220,7 @@ curl "https://nav-site.netlify.app/api/tools?search=react&limit=10"`}</code></pr
             <p className="text-sm text-muted-foreground mb-4">
               提交新站点到导航站。需通过 Zod 输入验证和速率限制（每 IP 15 分钟 3 次）。提交后进入待审核状态。
             </p>
-            <pre className="rounded-lg bg-muted p-4 text-sm overflow-x-auto mb-4"><code>{`curl -X POST https://nav-site.netlify.app/api/submit \\
+            <pre className="rounded-lg bg-muted p-4 text-sm overflow-x-auto mb-4"><code>{`curl -X POST https://yuanjia1314.ccwu.cc/api/submit \\
   -H "Content-Type: application/json" \\
   -d '{
     "title": "示例站点",
@@ -239,14 +242,14 @@ curl "https://nav-site.netlify.app/api/tools?search=react&limit=10"`}</code></pr
             </p>
 
             <h3 className="text-sm font-medium mb-2">GET — 获取收藏列表</h3>
-            <pre className="rounded-lg bg-muted p-4 text-sm overflow-x-auto mb-4"><code>{`curl https://nav-site.netlify.app/api/favorites \\
+            <pre className="rounded-lg bg-muted p-4 text-sm overflow-x-auto mb-4"><code>{`curl https://yuanjia1314.ccwu.cc/api/favorites \\
   -b "next-auth.session-token=..."`}</code></pre>
             <pre className="rounded-lg bg-muted p-4 text-sm overflow-x-auto mb-4"><code>{`{
   "favorites": ["uuid-1", "uuid-2", "uuid-3"]
 }`}</code></pre>
 
             <h3 className="text-sm font-medium mb-2">POST — 批量添加收藏</h3>
-            <pre className="rounded-lg bg-muted p-4 text-sm overflow-x-auto mb-4"><code>{`curl -X POST https://nav-site.netlify.app/api/favorites \\
+            <pre className="rounded-lg bg-muted p-4 text-sm overflow-x-auto mb-4"><code>{`curl -X POST https://yuanjia1314.ccwu.cc/api/favorites \\
   -H "Content-Type: application/json" \\
   -b "next-auth.session-token=..." \\
   -d '{"linkIds": ["uuid-1", "uuid-2"]}'`}</code></pre>
@@ -256,7 +259,7 @@ curl "https://nav-site.netlify.app/api/tools?search=react&limit=10"`}</code></pr
               <p><code className="text-primary">?linkId=uuid</code> — 删除单条收藏</p>
               <p><code className="text-primary">?all=true</code> — 清空所有收藏</p>
             </div>
-            <pre className="rounded-lg bg-muted p-4 text-sm overflow-x-auto mb-4"><code>{`curl -X DELETE "https://nav-site.netlify.app/api/favorites?linkId=uuid" \\
+            <pre className="rounded-lg bg-muted p-4 text-sm overflow-x-auto mb-4"><code>{`curl -X DELETE "https://yuanjia1314.ccwu.cc/api/favorites?linkId=uuid" \\
   -b "next-auth.session-token=..."`}</code></pre>
           </section>
         </div>
@@ -265,18 +268,18 @@ curl "https://nav-site.netlify.app/api/tools?search=react&limit=10"`}</code></pr
         <section className="mt-12 rounded-lg border border-border bg-card p-6">
           <h2 className="text-lg font-semibold mb-3">速率限制</h2>
           <div className="space-y-2 text-sm text-muted-foreground">
-            <p><code className="text-primary">/api/tools</code> — 无限制（上限 100 条/请求）</p>
-            <p><code className="text-primary">/api/search</code> — 无限制</p>
+            <p><code className="text-primary">/api/tools</code> — 每 IP 每分钟 60 次（每次最多 100 条）</p>
+            <p><code className="text-primary">/api/search</code> — 普通搜索每 IP 每分钟 60 次；语义搜索 20 次</p>
             <p><code className="text-primary">/api/click</code> — 同一 IP + URL 15 分钟去重</p>
             <p><code className="text-primary">/api/submit</code> — 每 IP 15 分钟 3 次</p>
             <p><code className="text-primary">/api/reviews</code> — GET 缓存 60s，POST 每 IP 15 分钟 3 次</p>
-            <p><code className="text-primary">/api/favorites</code> — 需登录会话，无额外限制</p>
+            <p><code className="text-primary">/api/favorites</code> — 需登录；写操作每 IP 每 15 分钟 30 次</p>
           </div>
         </section>
 
         {/* Footer */}
         <div className="mt-12 pt-8 border-t border-border text-center text-sm text-muted-foreground">
-          <p>API 无需认证，可直接调用。如需高频访问或商业使用，请联系管理员获取 API Key。</p>
+          <p>公开 GET 接口无需认证；收藏等用户接口需要登录会话。所有接口均受输入上限和速率限制约束。</p>
         </div>
       </div>
     </div>

@@ -32,7 +32,7 @@ describe("CI workflow launch behavior", () => {
     expect(workflow).not.toContain("labels: ['production-monitor', 'automated']");
   });
 
-  it("keeps the resource library service role out of build and Lighthouse jobs", () => {
+  it("keeps resource library privileged credentials out of pull-request CI", () => {
     const ci = readWorkflow("ci.yml");
     const lighthouse = readWorkflow("lighthouse.yml");
     const buildSteps = [
@@ -46,11 +46,18 @@ describe("CI workflow launch behavior", () => {
       expect(step).not.toContain("NEXT_PUBLIC_RESOURCE_LIBRARY_API_KEY");
     }
 
-    // SERVICE_ROLE_KEY 应仅在 start/server 环境出现（e2e 需要），不在 build 中
-    const serviceRoleLines = ci.match(/^\s+RESOURCE_LIBRARY_SERVICE_ROLE_KEY:/gm) ?? [];
-    expect(serviceRoleLines.length).toBeGreaterThanOrEqual(1);
+    expect(ci).not.toContain("RESOURCE_LIBRARY_SERVICE_ROLE_KEY");
+    expect(ci).not.toContain("RESOURCE_LIBRARY_API_KEY");
     expect(ci).not.toContain("NEXT_PUBLIC_RESOURCE_LIBRARY_API_KEY");
     expect(lighthouse).not.toContain("RESOURCE_LIBRARY_SERVICE_ROLE_KEY");
     expect(lighthouse).not.toContain("NEXT_PUBLIC_RESOURCE_LIBRARY_API_KEY");
+  });
+
+  it("does not enable authenticated admin E2E without an isolated nav database", () => {
+    const workflow = readWorkflow("ci.yml");
+
+    expect(workflow).not.toContain("E2E_AUTH_SECRET");
+    expect(workflow).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
+    expect(workflow).toContain("pnpm run e2e");
   });
 });

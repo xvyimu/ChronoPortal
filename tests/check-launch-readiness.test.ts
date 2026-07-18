@@ -15,6 +15,22 @@ describe("scripts/check-launch-readiness", () => {
     );
   });
 
+  it("derives the embedding expectation from readiness configuration", async () => {
+    const { readConfigFromEnv } = await importReadinessModule();
+
+    expect(readConfigFromEnv({
+      NODE_ENV: "test",
+      HEALTH_REQUIRE_EMBEDDING: "1",
+    } as NodeJS.ProcessEnv, [])).toMatchObject({
+      requireEmbedding: true,
+      expectEmbeddingSkipped: false,
+    });
+    expect(readConfigFromEnv({} as NodeJS.ProcessEnv, ["--expect-embedding-skipped"])).toMatchObject({
+      requireEmbedding: false,
+      expectEmbeddingSkipped: true,
+    });
+  });
+
   it("parses branch ahead state and ignores allowed local planning files", async () => {
     const { parseGitStatus } = await importReadinessModule();
 
@@ -84,6 +100,8 @@ describe("scripts/check-launch-readiness", () => {
         expectedCommit: "",
         json: false,
         skipNetwork: true,
+        requireEmbedding: false,
+        expectEmbeddingSkipped: false,
         allowedDirtyPaths: [".planning/"],
       },
       execFileImpl: execFileImpl as never,

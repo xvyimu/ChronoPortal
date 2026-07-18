@@ -1,14 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 import { Analytics } from "@/components/Analytics";
-import { PanguSpacing } from "@/components/PanguSpacing";
 import dynamic from "next/dynamic";
-import { Shell } from "@/components/Shell";
-import { FavoritesProvider } from "@/components/FavoritesProvider";
 import { Providers } from "@/components/Providers";
+import { AppChrome } from "@/components/AppChrome";
 import { escapeJsonForHtml } from "@/lib/utils";
 import { WebVitals } from "./_components/web-vitals";
 
@@ -53,15 +49,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <ThemeProvider>
           <WebVitals />
-          <PanguSpacing />
           <Providers>
-            <FavoritesProvider>
-              <Shell>
-                <Header />
-                <main id="main-content" className="flex-1">{children}</main>
-              </Shell>
-              <Footer />
-            </FavoritesProvider>
+            <AppChrome>{children}</AppChrome>
           </Providers>
           <Analytics />
           <ShortcutPanel />

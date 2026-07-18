@@ -54,6 +54,7 @@ export function ToolQuickView({ link, onClose }: ToolQuickViewProps) {
       <DialogContent
         showCloseButton={false}
         className="nav-quick-view fixed inset-x-3 bottom-3 top-auto left-auto right-auto max-h-[86svh] w-auto max-w-none translate-x-0 translate-y-0 gap-0 overflow-y-auto rounded-3xl border border-[var(--paper-line)] bg-[var(--paper-surface)]/96 p-4 text-[var(--paper-ink)] shadow-[0_30px_90px_rgba(61,74,90,0.24)] sm:max-w-none md:inset-y-4 md:bottom-auto md:left-auto md:right-4 md:top-4 md:w-[430px] md:translate-x-0 md:translate-y-0 md:p-5"
+        aria-labelledby="tool-quick-view-title"
         aria-describedby="tool-quick-view-desc"
       >
         <DialogHeader className="space-y-0 text-left">
