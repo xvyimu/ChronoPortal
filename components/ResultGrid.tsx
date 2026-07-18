@@ -43,9 +43,13 @@ export function ResultGrid({
   initialVisible = DEFAULT_INITIAL,
   pageSize = DEFAULT_PAGE,
 }: ResultGridProps) {
-  // onFocusChange 由键盘导航上层持有；网格本身只消费 focusedIndex
+  const safeInitial =
+    typeof initialVisible === "number" && Number.isFinite(initialVisible)
+      ? Math.max(0, initialVisible)
+      : DEFAULT_INITIAL;
+
   const identity = useMemo(() => linksIdentity(links), [links]);
-  const [visibleCount, setVisibleCount] = useState(initialVisible);
+  const [visibleCount, setVisibleCount] = useState(safeInitial);
   const rootRef = useRef<HTMLDivElement>(null);
   const prevIdentityRef = useRef(identity);
 
@@ -53,8 +57,8 @@ export function ResultGrid({
   useEffect(() => {
     if (prevIdentityRef.current === identity) return;
     prevIdentityRef.current = identity;
-    setVisibleCount(initialVisible);
-  }, [identity, initialVisible]);
+    setVisibleCount(safeInitial);
+  }, [identity, safeInitial]);
 
   const focusedLocalIndex = focusedIndex - baseIndex;
   const focusRequiredCount =
@@ -63,8 +67,8 @@ export function ResultGrid({
       : 0;
   const effectiveVisibleCount = Math.max(visibleCount, focusRequiredCount);
   const visible = links.slice(0, effectiveVisibleCount);
-  // initialVisible=0 表示等 IntersectionObserver 首挂；此时不要展示空的「加载更多」
-  const awaitingFirstMount = initialVisible === 0 && visibleCount === 0 && links.length > 0;
+  // safeInitial=0 表示等 IntersectionObserver 首挂；此时不要展示空的「加载更多」
+  const awaitingFirstMount = safeInitial === 0 && visibleCount === 0 && links.length > 0;
   const hasMore = !awaitingFirstMount && effectiveVisibleCount < links.length;
 
   // 可见切片就绪后预热域名 favicon（跳过已有安全 icon 的链接）
@@ -99,7 +103,11 @@ export function ResultGrid({
   }, [links.length, pageSize, visibleCount, identity]);
 
   return (
-    <div ref={rootRef} className="space-y-3">
+    <div
+      ref={rootRef}
+      // 空网格保留 1px 高度，避免 IntersectionObserver 对 0 高度节点永不回调
+      className={awaitingFirstMount ? "min-h-px space-y-3" : "space-y-3"}
+    >
       <div
         className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
         role="list"

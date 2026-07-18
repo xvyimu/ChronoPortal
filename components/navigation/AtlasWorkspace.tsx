@@ -8,9 +8,6 @@ import { CategorySection } from "@/components/CategorySection";
 import { DualTrackSection } from "@/components/DualTrackSection";
 import { SearchExperiencePanel } from "@/components/SearchExperiencePanel";
 import { Button } from "@/components/ui/button";
-import { allocateSectionMountBudget } from "./mount-budget";
-
-const INITIAL_LINK_CARD_BUDGET = 24;
 
 const emptyClearClass =
   "h-auto p-0 text-xs text-[var(--paper-muted)] underline underline-offset-2 hover:text-[var(--paper-accent)]";
@@ -105,27 +102,25 @@ export function AtlasWorkspace({
     [flatResults],
   );
 
-  // DualTrack 用独立小配额，避免「推荐」吃光 24 后分类区全部 initialVisible=0
-  //（表现为标题 +「加载更多」却零卡片）。分类区单独使用完整首屏预算。
-  const dualTrackInitial = useMemo(() => {
-    const perTrack = 8;
-    const featuredN = Math.min(featured.length, perTrack);
-    const latestN = Math.min(latest.length, perTrack);
-    const popularN = Math.min(popular.length, perTrack);
-    return {
-      featured: featuredN,
-      latest: latestN,
-      popular: popularN,
-    };
-  }, [featured.length, latest.length, popular.length]);
+  // DualTrack / 分类区各自限流：每轨/每区最多 12 张，绝不下发 0（0 会导致空网格高度为 0，
+  // IntersectionObserver 永不触发，只剩「加载更多」按钮）。
+  const dualTrackInitial = useMemo(
+    () => ({
+      featured: Math.min(featured.length, 12),
+      latest: Math.min(latest.length, 12),
+      popular: Math.min(popular.length, 12),
+    }),
+    [featured.length, latest.length, popular.length]
+  );
 
   const sectionInitialCounts = useMemo(() => {
-    const counts = allocateSectionMountBudget(
-      linkSections.map((section) => section.links.length),
-      INITIAL_LINK_CARD_BUDGET,
-      0
+    const MAX_PER_SECTION = 12;
+    return new Map(
+      linkSections.map((section) => [
+        section.key,
+        Math.min(section.links.length, MAX_PER_SECTION),
+      ])
     );
-    return new Map(linkSections.map((section, index) => [section.key, counts[index] ?? 0]));
   }, [linkSections]);
 
   const clearBase = () => {
@@ -204,7 +199,10 @@ export function AtlasWorkspace({
               onKeyDown={handleResultKeyDown}
               searchQuery={q}
               onPreview={openPreview}
-              initialVisible={sectionInitialCounts.get(section.key) ?? 0}
+              initialVisible={
+                sectionInitialCounts.get(section.key) ??
+                Math.min(section.links.length, 12)
+              }
             />
           ))}
 
@@ -223,7 +221,7 @@ export function AtlasWorkspace({
               onKeyDown={() => {}}
               searchQuery={q}
               onPreview={openPreview}
-              initialVisible={Math.min(INITIAL_LINK_CARD_BUDGET, zeroResultRecommendations.length)}
+              initialVisible={Math.min(12, zeroResultRecommendations.length)}
             />
           )}
         </div>

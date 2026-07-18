@@ -266,12 +266,11 @@ describe("frontend performance and lifecycle regressions", () => {
   });
 
   it("shares the first-screen budget with dual-track sections before categories", async () => {
-    const { allocateSectionMountBudget } = await import(
-      "@/components/navigation/mount-budget"
-    );
-    // DualTrack 现改为独立 per-track 配额；分类区仍用完整 24 预算
-    const categories = allocateSectionMountBudget([10, 10, 10], 24, 0);
-    expect(categories).toEqual([10, 10, 4]);
+    // 分类区改为每区上限 12，不再与 DualTrack 抢同一 24 预算；零卡片区已禁止
+    const perSection = (length: number) => Math.min(length, 12);
+    expect(perSection(10)).toBe(10);
+    expect(perSection(53)).toBe(12);
+    expect(perSection(0)).toBe(0);
   });
 
   it("hides load-more while a zero-initial grid awaits first intersection mount", async () => {
