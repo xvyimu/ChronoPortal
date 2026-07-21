@@ -80,14 +80,18 @@ export async function POST(request: NextRequest) {
     const csrfError = checkOrigin(request, "api-favorites");
     if (csrfError) return csrfError;
 
-    // 先校验 body，避免坏请求仍打 service_role 限流
+    // 先校验 body，避免坏请求仍打 service_role 限流。
+    // 只读取 linkIds；忽略任何客户端传入的 userId。
     let body: unknown;
     try {
       body = await request.json();
     } catch {
       return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
-    const { linkIds } = body as { linkIds?: string[] };
+    const linkIds =
+      body && typeof body === "object" && "linkIds" in body
+        ? (body as { linkIds?: unknown }).linkIds
+        : undefined;
 
     const parsed = linkIdsSchema.safeParse(linkIds);
     if (!parsed.success) {
@@ -134,11 +138,14 @@ export async function DELETE(request: NextRequest) {
     const linkId = searchParams.get("linkId");
     const all = searchParams.get("all") === "true";
 
+    // all=true 优先：同时带非法 linkId 时不校验 linkId
+    let parsedLinkId: string | undefined;
     if (!all) {
-      const parsedLinkId = linkIdSchema.safeParse(linkId);
-      if (!parsedLinkId.success) {
+      const parsed = linkIdSchema.safeParse(linkId);
+      if (!parsed.success) {
         return NextResponse.json({ error: "linkId 格式不正确" }, { status: 400 });
       }
+      parsedLinkId = parsed.data;
     }
 
     const ip = getClientIp(request);
@@ -155,7 +162,7 @@ export async function DELETE(request: NextRequest) {
     if (all) {
       result = await clearUserFavorites(session.user.id);
     } else {
-      result = await removeUserFavorite(session.user.id, linkId as string);
+      result = await removeUserFavorite(session.user.id, parsedLinkId!);
     }
 
     await recordFavoritesAttempt(ip, !("error" in result));

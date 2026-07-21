@@ -213,11 +213,14 @@ Favicon 代理。按优先级尝试三个源：cccyun → DuckDuckGo → Google 
 
 已登录用户收藏管理。
 
-**认证：** NextAuth session（任意已登录用户）  
+**认证：** NextAuth session；**user 范围仅 `session.user.id`**，忽略任何客户端 `userId`。  
+**校验：** `linkIds` / `linkId` 必须为 UUID；空数组 / >100 / 非法 → **400**（不触限流/DB）。  
+**未登录 → 401**；写路径 CSRF 失败 → **403**；限流 → **429**。  
+**实现：** service_role + 应用层 `user_id` 隔离（非 Supabase JWT RLS）；DB 级 subject / SECURITY DEFINER RPC 强制为后续项。  
 **速率限制（写操作）：** 每 IP 15min 30 次（Supabase service_role 限流表 + `deny` policy，非 Upstash）  
-**GET：** `{ "favorites": ["uuid", ...] }`  
-**POST：** `{ "linkIds": ["uuid1", "uuid2"] }` → `{ "ok": true, "added": 2 }`；限流 → **429**  
-**DELETE：** `?linkId=<uuid>` 或 `?all=true` → `{ "ok": true }`；限流 → **429**
+**GET：** `{ "favorites": ["uuid", ...] }`；`?detail=links` → `{ "links": [...] }`  
+**POST：** `{ "linkIds": ["uuid1", "uuid2"] }` → `{ "ok": true, "added": 2 }`  
+**DELETE：** `?linkId=<uuid>` 或 `?all=true` → `{ "ok": true }`（`all=true` 可带无效 `linkId`，优先清空本人）
 
 ---
 

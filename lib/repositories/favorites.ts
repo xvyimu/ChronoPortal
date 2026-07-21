@@ -16,8 +16,11 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 // `auth.jwt() ->> 'sub'` 恒为 null → RLS 策略会拒绝所有读写。
 // 因此收藏操作走 service_role 客户端绕过 RLS，在应用层用 session.user.id 做权限隔离。
 // 这与 admin/submit/click 的模式一致。
+//
+// 调用方必须传入 session.user.id；禁止客户端 userId。
+// 后续 follow-up：JWT subject / SECURITY DEFINER RPC 强制 user_id（本层不交付）。
 
-/** 获取指定用户的收藏 link_id 列表 */
+/** 获取指定用户的收藏 link_id 列表（userId = session.user.id） */
 export async function getUserFavorites(userId: string): Promise<string[]> {
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
@@ -63,7 +66,7 @@ export async function getUserFavoriteLinks(userId: string): Promise<NavLink[]> {
   return ids.map((id) => byId.get(id)).filter((link): link is NavLink => Boolean(link));
 }
 
-/** 批量添加收藏（去重） */
+/** 批量添加收藏（去重）。userId 必须来自 session，不可客户端指定。 */
 export async function addUserFavorites(
   supabase: SupabaseServerClient,
   userId: string,
@@ -82,7 +85,7 @@ export async function addUserFavorites(
   return { added: data?.length ?? 0 };
 }
 
-/** 删除单条收藏 */
+/** 删除单条收藏（eq user_id + link_id；userId = session.user.id） */
 export async function removeUserFavorite(
   userId: string,
   linkId: string
@@ -101,7 +104,7 @@ export async function removeUserFavorite(
   return { ok: true };
 }
 
-/** 清空用户所有收藏 */
+/** 清空指定用户全部收藏（必须带 user_id 过滤，禁止无过滤 delete） */
 export async function clearUserFavorites(
   userId: string
 ): Promise<{ ok: true; cleared: true } | { error: string }> {
