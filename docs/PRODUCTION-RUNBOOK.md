@@ -394,13 +394,23 @@ scripts/migration-audit-s0-constraints.sql
 
 运营闭环：CLI 检测 → 可选入库 → Admin 列表 → 人工「标记已处理」。**不**自动下架/改 URL；**不**在恢复正常时自动 resolve。
 
-### 1. 迁移（按需 apply，本切片不强制生产）
+### 1. 迁移（nav-prod · `vyqqbypwrbdcafanzwmj`）
 
 ```text
 scripts/migration-link-health.sql
 ```
 
-在目标 Supabase SQL Editor 执行。Rollback 见文件头注释。未 apply 时 Admin `GET /api/admin/link-health` 返回 200 + `meta.unavailable: true` 空列表，不 500。
+**已于 2026-07-21 apply**（Management API `POST /v1/projects/<ref>/database/query` + 浏览器 UA；直连 MCP 可能被 CF 1010）。Rollback 见文件头。
+
+备选：
+
+- Supabase SQL Editor（**拥有 vyqq 项目的账号**，不是 RL 所在 `2174274760@qq.com` 组织）
+- 若有 Postgres URI：`psql "$SUPABASE_NAV_DATABASE_URI" -f scripts/migration-link-health.sql`
+
+**配置缺口（1）**：本机 User env 目前只有 **RL** 的 `SUPABASE_DATABASE_URI` / `SUPABASE_RL_DATABASE_URI`（`postgres.ihnmfs…`）。  
+建议对称增加 **`SUPABASE_NAV_DATABASE_URI`**（`postgres.vyqq…@pooler…`），**不要**覆盖 RL URI。未配时用 Management API / SQL Editor 做 DDL。
+
+未 apply 时 Admin `GET /api/admin/link-health` → 200 + `meta.unavailable: true` 空列表。
 
 ### 2. CLI
 
@@ -408,21 +418,38 @@ scripts/migration-link-health.sql
 # Markdown + JSON（默认 link-health-report.json）
 pnpm check:links
 
-# 仅 JSON 路径可自定义
+# 仅 JSON
 node scripts/check-links.mjs --json ./tmp-report.json
 
-# 写入 open findings（需 SUPABASE_SERVICE_ROLE_KEY；persist 失败只 warn，exit 仍由 BROKEN 数决定，exit 2 = 有死链）
+# 写入 open findings
+# 必须用 nav-prod service role（User env 默认 SUPABASE_SERVICE_ROLE_KEY 常是 RL，会 Invalid API key）
+$env:SUPABASE_SERVICE_ROLE_KEY = $env:SUPABASE_PROD_SERVICE_ROLE
+# 或从 .env.local 的 SUPABASE_SERVICE_ROLE_KEY / _PROD 读取
 node scripts/check-links.mjs --report --json --persist
 ```
 
-Redirects 默认以 `kind=redirect` 入队；broken 为 `kind=broken`。同一 `link_id`+`kind` 且 `resolved_at IS NULL` 则 update，否则 insert。
+Redirects → `kind=redirect`；broken → `kind=broken`。同 `link_id`+`kind` 且未 resolve 则 update，否则 insert。  
+persist 失败只 warn；**exit 2 = 本轮有 BROKEN**（不是 persist 失败码）。
+
+**2026-07-21 冒烟**：migration 后 `--persist` **upserted 115/117**（2 条瞬时 fetch 失败）；库内 open findings **144**（含历史/多次 run 累计，`kind=broken`）。
 
 ### 3. Admin
 
-- 导航：「链接健康」→ `/admin/link-health`
-- API：`GET/POST /api/admin/link-health`（admin；写操作 CSRF）
+- 导航：「链接健康」→ `/admin/link-health`（需部署含 C3 的 commit，如 `c80ab9bd`）
+- API：`GET/POST /api/admin/link-health`（admin；写 CSRF）
   - resolve：`{ "action": "resolve", "id": "<uuid>" }`
-  - import：`{ "action": "import", "report": { ...check-links JSON... } }`
+  - import：`{ "action": "import", "report": { ... } }`
+
+### 4. 三库密钥提醒（3）
+
+| 库 | ref | REST service_role | Postgres URI |
+|----|-----|-------------------|--------------|
+| nav-prod | `vyqq…` | `SUPABASE_PROD_SERVICE_ROLE` / `.env.local` | 建议 `SUPABASE_NAV_DATABASE_URI`（待补） |
+| nav-dev | `nzao…` | `SUPABASE_DEV_SERVICE_ROLE` | — |
+| rl | `ihnm…` | `SUPABASE_RL_SERVICE_ROLE*` | `SUPABASE_DATABASE_URI`（live） |
+
+MCP：`supabase-nav-prod` / `supabase-nav-dev` / `supabase-rl`（PAT 在 User env）。  
+Management API SQL 可用；裸 `mcp.supabase.com` 可能 1010，改用 `api.supabase.com` + 浏览器 UA。
 
 ## 回滚
 
