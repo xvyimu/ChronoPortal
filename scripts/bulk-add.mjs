@@ -2,17 +2,20 @@
 /**
  * 综合导航站 — 批量录入脚本（半自动）
  *
- * 从 JSON 文件批量导入站点到 Supabase，支持：
+ * 从 JSON / Netscape 书签 HTML / TXT 批量导入站点到 Supabase，支持：
  *   - 自动 slug 生成（与 lib/slugify.ts 一致）
  *   - URL 去重
  *   - 分类自动匹配
  *   - dry-run 预览模式
  *   - 批量插入（单次 API 调用）
+ *   - 浏览器导出书签 HTML → bulk JSON（可选 --out）
  *
  * 用法：
  *   node scripts/bulk-add.mjs data.json              # 正式导入
  *   node scripts/bulk-add.mjs data.json --dry-run    # 预览模式
  *   node scripts/bulk-add.mjs data.json --featured    # 标记为精选
+ *   node scripts/bulk-add.mjs bookmarks.html --dry-run --default-category dev-tools
+ *   node scripts/bulk-add.mjs bookmarks.html --out tmp.json --dry-run
  *
  * JSON 格式：
  *   [
@@ -27,6 +30,10 @@
  *     }
  *   ]
  *
+ * Netscape HTML：Chrome/Edge/Firefox「导出书签」.html
+ *   - 仅 http(s)；忽略 javascript: / 空 href
+ *   - 书签夹名写入 description（「来自书签夹: …」），分类用 --default-category
+ *
  * 也可以从简单列表导入（每行一个 URL，自动提取标题）：
  *   node scripts/bulk-add.mjs urls.txt --auto-title
  *
@@ -37,9 +44,13 @@
  */
 
 import { createClient } from "@supabase/supabase-js";
-import { readFileSync, existsSync } from "fs";
+import { readFileSync, writeFileSync, existsSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
+import {
+  isNetscapeBookmarkHtml,
+  parseNetscapeBookmarks,
+} from "./lib/parse-netscape-bookmarks.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(__dirname, "..");
@@ -63,60 +74,118 @@ function loadEnv() {
 
 loadEnv();
 
+/**
+ * @param {string[]} argv
+ * @param {string} name e.g. "--default-category"
+ * @returns {string | undefined}
+ */
+function getFlagValue(argv, name) {
+  const idx = argv.indexOf(name);
+  if (idx === -1) return undefined;
+  const next = argv[idx + 1];
+  if (!next || next.startsWith("--")) return undefined;
+  return next;
+}
+
 const args = process.argv.slice(2);
 const dryRun = args.includes("--dry-run");
 const defaultFeatured = args.includes("--featured");
 const autoTitle = args.includes("--auto-title");
-const fileArg = args.find((a) => !a.startsWith("--"));
+const defaultCategory =
+  getFlagValue(args, "--default-category") || "dev-tools";
+const outPath = getFlagValue(args, "--out");
 
-if (!fileArg) {
+// First non-flag that is not a value of a known flag
+function resolveFileArg(argv) {
+  const valueFlags = new Set(["--default-category", "--out"]);
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a.startsWith("--")) {
+      if (valueFlags.has(a)) i += 1;
+      continue;
+    }
+    return a;
+  }
+  return undefined;
+}
+
+const inputFile = resolveFileArg(args);
+
+if (!inputFile) {
   console.log(`
 用法:
   node scripts/bulk-add.mjs <file> [选项]
 
 选项:
-  --dry-run     预览模式，不写入数据库
-  --featured    将所有条目标记为精选
-  --auto-title  从 URL 自动提取标题（适用于纯 URL 列表）
+  --dry-run                 预览模式，不写入数据库
+  --featured                将所有条目标记为精选
+  --auto-title              从 URL 自动提取标题（适用于纯 URL 列表）
+  --default-category <slug>  HTML/TXT 无 category 时使用（默认 dev-tools）
+  --out <path.json>         只写出 bulk JSON（可与 --dry-run 同用）
 
 文件格式:
   JSON: [{ "title": "...", "url": "...", "description": "...", "category": "..." }]
+  HTML: Netscape 书签导出（.html / .htm）
   TXT:  每行一个 URL（需配合 --auto-title）
 
 示例:
   node scripts/bulk-add.mjs sites.json
   node scripts/bulk-add.mjs sites.json --dry-run
   node scripts/bulk-add.mjs urls.txt --auto-title
+  node scripts/bulk-add.mjs bookmarks.html --dry-run --default-category dev-tools
+  node scripts/bulk-add.mjs bookmarks.html --out tmp-from-bookmarks.json --dry-run
 `);
   process.exit(0);
 }
 
-const filePath = join(process.cwd(), fileArg);
+const filePath = join(process.cwd(), inputFile);
 if (!existsSync(filePath)) {
   console.error(`文件不存在: ${filePath}`);
   process.exit(1);
 }
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  console.error("缺少 NEXT_PUBLIC_SUPABASE_URL 或 NEXT_PUBLIC_SUPABASE_ANON_KEY");
-  process.exit(1);
+/**
+ * Map Netscape parse result → bulk-add item shape.
+ * @param {Array<{ title: string, url: string, description?: string, folder?: string }>} bookmarks
+ * @param {string} categorySlug
+ */
+function mapBookmarksToBulk(bookmarks, categorySlug) {
+  return bookmarks.map((b) => ({
+    title: b.title,
+    url: b.url,
+    description: b.folder
+      ? `来自书签夹: ${b.folder}`
+      : b.description || "",
+    category: categorySlug,
+  }));
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
-
 // ── 解析输入文件 ──
-function parseInput(filePath, autoTitle) {
-  const content = readFileSync(filePath, "utf-8");
+/**
+ * @param {string} path
+ * @param {boolean} autoTitleMode
+ * @param {string} categorySlug
+ */
+function parseInput(path, autoTitleMode, categorySlug) {
+  const content = readFileSync(path, "utf-8");
+  const lower = path.toLowerCase();
 
-  if (filePath.endsWith(".json")) {
+  if (lower.endsWith(".json")) {
     return JSON.parse(content);
   }
 
+  const looksHtml =
+    lower.endsWith(".html") ||
+    lower.endsWith(".htm") ||
+    isNetscapeBookmarkHtml(content);
+
+  if (looksHtml) {
+    const bookmarks = parseNetscapeBookmarks(content);
+    return mapBookmarksToBulk(bookmarks, categorySlug);
+  }
+
   // TXT 模式：每行一个 URL
-  if (autoTitle) {
+  if (autoTitleMode) {
     return content
       .split("\n")
       .map((line) => line.trim())
@@ -130,28 +199,58 @@ function parseInput(filePath, autoTitle) {
         } catch {
           title = url;
         }
-        return { title, url, description: "", category: "dev-tools" };
+        return {
+          title,
+          url,
+          description: "",
+          category: categorySlug,
+        };
       });
   }
 
-  console.error("TXT 文件需要 --auto-title 选项");
+  console.error(
+    "无法识别输入：JSON / Netscape HTML(.html) / 或 TXT+--auto-title",
+  );
   process.exit(1);
 }
 
 // ── 主流程 ──
 async function main() {
-  const items = parseInput(filePath, autoTitle);
+  const items = parseInput(filePath, autoTitle, defaultCategory);
 
   console.log(`\n=== 批量导入 ===`);
-  console.log(`文件: ${fileArg}`);
+  console.log(`文件: ${inputFile}`);
   console.log(`条目数: ${items.length}`);
+  console.log(`默认分类: ${defaultCategory}`);
   console.log(`模式: ${dryRun ? "预览（dry-run）" : "正式导入"}`);
-  console.log(`默认精选: ${defaultFeatured ? "是" : "否"}\n`);
+  console.log(`默认精选: ${defaultFeatured ? "是" : "否"}`);
+  if (outPath) console.log(`写出 JSON: ${outPath}`);
+  console.log("");
+
+  if (outPath) {
+    const absOut = join(process.cwd(), outPath);
+    writeFileSync(absOut, JSON.stringify(items, null, 2) + "\n", "utf-8");
+    console.log(`已写出 bulk JSON: ${absOut}（${items.length} 条）`);
+    // --out = convert only, never write DB (review JSON then import without --out)
+    console.log("\n--out 模式：仅写出 JSON，不导入。确认后可用：");
+    console.log(`  node scripts/bulk-add.mjs ${outPath}${dryRun ? " --dry-run" : ""}`);
+    return;
+  }
 
   if (items.length === 0) {
     console.log("没有条目可导入");
     return;
   }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.error("缺少 NEXT_PUBLIC_SUPABASE_URL 或 NEXT_PUBLIC_SUPABASE_ANON_KEY");
+    process.exit(1);
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
   // 1. 获取分类映射
   const { data: categories, error: catErr } = await supabase
@@ -254,7 +353,7 @@ async function main() {
     }
     console.log(`\n逐条插入完成: ${success}/${toInsert.length} 成功`);
   } else {
-    console.log(`\n✅ 成功导入 ${toInsert.length} 条！`);
+    console.log(`\n成功导入 ${toInsert.length} 条！`);
   }
 }
 

@@ -166,7 +166,7 @@ nav-site/
 │   ├── logger.ts               # 结构化日志
 │   └── ...
 ├── scripts/                    # 运维脚本
-│   ├── bulk-add.mjs            # 批量导入站点（JSON/TXT）
+│   ├── bulk-add.mjs            # 批量导入站点（JSON/TXT/Netscape HTML）
 │   ├── bulk-sites.json         # 批量录入数据源（356 条）
 │   ├── check-links.mjs         # 链接健康检测
 │   ├── dedupe-figma-api.mjs    # Figma 去重脚本（admin API）
@@ -291,9 +291,12 @@ Netlify 不是生产主轨；仅在人工紧急镜像且 `ALLOW_NETLIFY_MIRROR=1
 ## 内容管理
 
 ```bash
-# 批量导入站点（JSON/TXT）
+# 批量导入站点（JSON/TXT/Netscape 书签 HTML）
 pnpm bulk:add scripts/bulk-sites.json
 pnpm bulk:add scripts/bulk-sites.json --dry-run    # 预览模式
+# 浏览器导出书签 → 先 dry-run / --out 审阅，勿默认写库
+node scripts/bulk-add.mjs path\to\bookmarks.html --dry-run --default-category dev-tools
+node scripts/bulk-add.mjs path\to\bookmarks.html --out tmp-from-bookmarks.json --dry-run
 
 # 检查链接健康状态
 pnpm check:links

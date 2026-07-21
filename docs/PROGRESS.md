@@ -922,7 +922,7 @@ pnpm sync         # 数据库同步
 - [ ] 分类层级支持（父/子分类）— 需数据库 schema 变更
 - [x] 标签系统 — Admin tags CRUD + contracts/client 已实现；前台多标签交叉过滤可增强
 - [x] 热门排行榜（按点击量排序）— 已实现"热门访问"区域
-- [x] 链接健康检测 — Admin 队列最小闭环已交付（需 apply migration + persist）
+- [x] 链接健康检测 — Admin 队列最小闭环已交付（需 apply migration + persist）；运营口径（误报/周检/不自动下架）见 [PRODUCTION-RUNBOOK §链接健康](./PRODUCTION-RUNBOOK.md)
 - [x] 收藏夹功能 — 已实现 localStorage + /favorites 页面 + 登录同步
 - [x] 批量录入至 500+ 站点 — §一口径 **513**（持续扩充；历史「287」仅指早期导入阶段）
 - [ ] Google Search Console 提交（运营项）
