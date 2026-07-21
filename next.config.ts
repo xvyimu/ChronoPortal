@@ -9,6 +9,58 @@ const withBundleAnalyzer = bundleAnalyzer({
 const isDev = process.env.NODE_ENV !== "production";
 const hasSentryAuthToken = Boolean(process.env.SENTRY_AUTH_TOKEN);
 
+/**
+ * Enforcing CSP (current production baseline).
+ * script/style still allow 'unsafe-inline' (Next/GA); full nonce tighten is T9 follow-up.
+ */
+const cspEnforcing = [
+  "default-src 'self'",
+  [
+    "script-src",
+    "'self'",
+    "'unsafe-inline'",
+    ...(isDev ? ["'unsafe-eval'"] : []),
+    "https://www.googletagmanager.com",
+    "https://www.google-analytics.com",
+  ].join(" "),
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data:",
+  "frame-ancestors 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  // 生产 favicon/CDN 与 Sentry/GA；不放宽 script 的 unsafe-inline（Next/GA 仍需，T9 完整收紧另立项）
+  "connect-src 'self' https://*.supabase.co https://*.ingest.us.sentry.io https://www.google-analytics.com https://region1.google-analytics.com",
+  "object-src 'none'",
+  "upgrade-insecure-requests",
+].join("; ");
+
+/**
+ * Report-Only CSP (P1-3): tighter script-src without 'unsafe-inline'/'unsafe-eval'.
+ * Violations POST to /api/csp-report (sampled logs only; never blocks render).
+ * Enable/disable with CSP_REPORT_ONLY=0 to turn off without removing enforcing CSP.
+ */
+const cspReportOnlyEnabled = process.env.CSP_REPORT_ONLY !== "0";
+const cspReportOnly = [
+  "default-src 'self'",
+  [
+    "script-src",
+    "'self'",
+    // intentional: no 'unsafe-inline' / 'unsafe-eval' — measure breakage only
+    "https://www.googletagmanager.com",
+    "https://www.google-analytics.com",
+  ].join(" "),
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data:",
+  "frame-ancestors 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "connect-src 'self' https://*.supabase.co https://*.ingest.us.sentry.io https://www.google-analytics.com https://region1.google-analytics.com",
+  "object-src 'none'",
+  "report-uri /api/csp-report",
+].join("; ");
+
 const securityHeaders = [
   {
     key: "X-Frame-Options",
@@ -32,28 +84,16 @@ const securityHeaders = [
   },
   {
     key: "Content-Security-Policy",
-    value: [
-      "default-src 'self'",
-      [
-        "script-src",
-        "'self'",
-        "'unsafe-inline'",
-        ...(isDev ? ["'unsafe-eval'"] : []),
-        "https://www.googletagmanager.com",
-        "https://www.google-analytics.com",
-      ].join(" "),
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob: https:",
-      "font-src 'self' data:",
-      "frame-ancestors 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      // 生产 favicon/CDN 与 Sentry/GA；不放宽 script 的 unsafe-inline（Next/GA 仍需，T9 完整收紧另立项）
-      "connect-src 'self' https://*.supabase.co https://*.ingest.us.sentry.io https://www.google-analytics.com https://region1.google-analytics.com",
-      "object-src 'none'",
-      "upgrade-insecure-requests",
-    ].join("; "),
+    value: cspEnforcing,
   },
+  ...(cspReportOnlyEnabled
+    ? [
+        {
+          key: "Content-Security-Policy-Report-Only",
+          value: cspReportOnly,
+        },
+      ]
+    : []),
 ];
 
 const nextConfig: NextConfig = {
