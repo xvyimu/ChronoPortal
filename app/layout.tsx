@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Analytics } from "@/components/Analytics";
@@ -6,6 +7,7 @@ import dynamic from "next/dynamic";
 import { Providers } from "@/components/Providers";
 import { AppChrome } from "@/components/AppChrome";
 import { escapeJsonForHtml } from "@/lib/utils";
+import { CSP_NONCE_HEADER } from "@/lib/csp";
 import { WebVitals } from "./_components/web-vitals";
 
 const ShortcutPanel = dynamic(() => import("@/components/ShortcutPanel").then((m) => m.ShortcutPanel));
@@ -43,20 +45,24 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Present only when CSP_DYNAMIC=1 (proxy sets x-nonce); static CSP path leaves this null.
+  const nonce = (await headers()).get(CSP_NONCE_HEADER) ?? undefined;
+
   return (
     <html lang="zh-CN" className="h-full antialiased" suppressHydrationWarning>
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <ThemeProvider>
+        <ThemeProvider nonce={nonce}>
           <WebVitals />
           <Providers>
             <AppChrome>{children}</AppChrome>
           </Providers>
-          <Analytics />
+          <Analytics nonce={nonce} />
           <ShortcutPanel />
           <ToasterWrapper />
           <script
             type="application/ld+json"
+            nonce={nonce}
             dangerouslySetInnerHTML={{
               __html: escapeJsonForHtml(JSON.stringify({
                 "@context": "https://schema.org",
