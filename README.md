@@ -117,7 +117,7 @@ npx vercel deploy --prod --scope aijiai520
 
 | # | 事项 | 备注 |
 |---|------|------|
-| B″ | 读 Sentry `csp-report` 样本 1–2 天后再评估 T9 去 `unsafe-inline` | 需 nonce 或足够证据 |
+| T9 | **2026-07-22 已评估：暂不去** script `unsafe-inline` | 见 [`docs/csp-t9-decision-2026-07-22.md`](./docs/csp-t9-decision-2026-07-22.md)；前置 nonce/GA 外置 |
 | A′ | 浏览器生产 Admin 秒更手测 | 可选；本地已验证 |
 | D–F | AI 建议标签 / 死链周报 / favorites DB JWT | 需 spec |
 
@@ -132,6 +132,7 @@ npx vercel deploy --prod --scope aijiai520
 | 文档 | 用途 |
 |------|------|
 | [`docs/AGENT-CONTINUE-2026-07-21.md`](./docs/AGENT-CONTINUE-2026-07-21.md) | Agent 续作 / 陷阱 / 命令 |
+| [`docs/csp-t9-decision-2026-07-22.md`](./docs/csp-t9-decision-2026-07-22.md) | CSP T9 评估：暂不去 unsafe-inline |
 | [`docs/PRODUCTION-RUNBOOK.md`](./docs/PRODUCTION-RUNBOOK.md) | 生产运维 |
 | [`GITHUB_IDENTITY.md`](./GITHUB_IDENTITY.md) | GitHub 身份 |
 | `docs/adr-*.md` | 架构决策 |

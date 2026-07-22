@@ -10,8 +10,9 @@
 | 健康 | `GET /api/health` | database / env / embedding / resourceLibrarySearch |
 | 构建身份 | `GET /build-info.json` | commit / branch / deployId |
 | Web Vitals → Sentry | 客户端 `WebVitals` → `POST /api/web-vitals` | 采样：`SENTRY_WEB_VITALS_SAMPLE_RATE`（生产默认 0.1） |
+| CSP Report-Only → Sentry | 浏览器 → `POST /api/csp-report` | 1/20 采样 + tag `source:csp-report`；T9 决策见 `docs/csp-t9-decision-2026-07-22.md` |
 | Sentry SDK | `@sentry/nextjs` | client/server/edge；release 随构建 |
-| 生产探针 | `pnpm run verify:production` | 主域 commit-aware |
+| 生产探针 | `pnpm run verify:production` / `probe-production.mjs --no-proxy` | 主域 commit-aware |
 | Lighthouse 抽检 | `node scripts/probe-lighthouse-production.mjs` | 写入 `docs/perf/lighthouse-*-production*` |
 
 ## 2. 建议阈值（首版 · 可改）

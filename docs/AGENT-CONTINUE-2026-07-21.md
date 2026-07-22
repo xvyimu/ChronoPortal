@@ -30,7 +30,7 @@
 | 项 | 结论 |
 |----|------|
 | Admin 写→前台秒更 | **本地 dev + prod 库写测 PASS**（~300ms 首页见新标题，已还原）。生产脚本登录因 CSRF cookie 未自动化；代码已在生产路径。 |
-| CSP T9 去 inline | **暂缓**。生产 HTML ~17 inline script + GA 路径；RO 在采。Sentry 过滤：`message:"csp-report:"` 或 tag `source:csp-report`。 |
+| CSP T9 去 inline | **2026-07-22 评估：暂不去**（结构阻断，非仅缺样本）。决策：`docs/csp-t9-decision-2026-07-22.md`。Sentry：`message:"csp-report:"` / tag `source:csp-report`（本机无 auth token 时用 UI）。 |
 
 ## 1. 不可动的架构不变式（ADR）
 
@@ -62,7 +62,8 @@ C1 favorites 权限纵深 · C2 文档 SSOT · C3 死链→Admin · Upstash+FAIL
 
 | # | 事项 | 类型 | 就绪度 | 备注 |
 |---|------|------|--------|------|
-| B″ | 读 Sentry CSP 样本后评估 T9 | 安全 | 等 1–2 天 | **勿盲去** `unsafe-inline`；先 nonce 或足够证据 |
+| T9 | 去 Enforcing script `unsafe-inline` | 安全 | **暂缓（已评估）** | 结构阻断：17 inline + GA；见 `docs/csp-t9-decision-2026-07-22.md` |
+| T9′ | nonce / GA 外置 / 边缘 script 改写排查 | 前置 | 需设计 | 满足决策文 §4 再开 PR |
 | A′ | 浏览器生产 Admin 秒更 | 验证 | 可选 | 本地已 PASS |
 | D | Admin 审核 AI 建议标签 | 产品 P2 | 需 spec | 只建议、人确认 |
 | E | 死链周报节奏 | 运营 | 需 spec | 不改 check-links 算法 |
