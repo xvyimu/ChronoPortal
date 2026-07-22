@@ -6,6 +6,8 @@
 
 人工操作清单。不改 `next.config` / `proxy` 默认 flag；不宣称生产 cutover。
 
+> **环境 guard：** `$BASE` 必须是这次 Preview deployment 的 `*.vercel.app` URL（或显式本机 URL），绝不能是 `yuanjia1314.ccwu.cc`。在 Vercel 设置变量时，截图/记录中必须能证明只选择了 **Preview**，不选择 Production；不要在 runbook、日志或记录中写入任何密钥。
+
 ---
 
 ## 0. 目的
@@ -27,6 +29,7 @@
 | 3 | Rocket Loader / 边缘 mangled type 已清 | `node scripts/audit-edge-scripts.mjs` → `mangledScriptTypeCount=0` · `rocketLoaderHints=false`（生产 host；见 `docs/cloudflare-edge-csp-hardening-2026-07-22.md`） |
 | 4 | Preview 可部署 | Vercel 项目 `nav-site`（或当前 ChronoPortal 绑定项目）；scope 与 `docs/preview-env-setup.md` 一致 |
 | 5 | 操作对象是 **Preview** env | Vercel → Project → Settings → Environment Variables → 目标选 **Preview**，**不要**勾 Production |
+| 6 | 目标 URL 不是生产域 | `$BASE` 为本次部署生成的 `*.vercel.app` URL（或 `localhost`），不等于 `https://yuanjia1314.ccwu.cc` |
 
 代码路径（只读确认，本 runbook 不改）：
 
@@ -84,6 +87,8 @@ cd D:\ChronoPortal
 ```powershell
 $BASE = "https://<preview>.vercel.app"
 
+if ($BASE -eq "https://yuanjia1314.ccwu.cc") { throw "Refusing to run the Preview canary against production." }
+
 # 应出现 Content-Security-Policy，且含 nonce- 与（阶段 A）'unsafe-inline'
 curl.exe -sI "$BASE/" | findstr /I "content-security-policy x-nonce"
 
@@ -99,6 +104,8 @@ curl.exe -s "$BASE/" | findstr /I "nonce="
 | 响应头 `Content-Security-Policy-Report-Only` | 默认仍在（`CSP_REPORT_ONLY` 未关时）；`script-src` 无 unsafe-inline |
 | `x-nonce` | 可有（proxy 写出；客户端不依赖此名，以 CSP 与 script nonce 为准） |
 | HTML | 关键 `<script>` / next script 带匹配 nonce |
+
+以下任一情况都判定阶段 A 失败：生产域被用作 `$BASE`、响应中没有 enforcing CSP、没有 `'nonce-'`、首页出现 enforcing CSP block，或部署 commit 与记录的 Preview commit 不一致。失败时只执行 §4 的 **Preview** 回滚，不进入阶段 B。
 
 若 **无** CSP 或 **无** nonce：确认 Preview env 真是 `CSP_DYNAMIC=1` 且该部署已 redeploy；再查 Vercel Runtime Logs。
 
@@ -237,7 +244,9 @@ Redeploy Preview。
 | 日期 | |
 | 操作人 | |
 | Preview URL | |
+| Preview-only 环境选择证据（不含密钥） | |
 | commit | |
+| 阶段 A CSP/nonce 观察（nonce 值可打码） | |
 | 阶段 A | 通过 / 失败 / 跳过 |
 | 阶段 B | 通过 / 失败 / 未做 |
 | 回滚 | 无 / R1 / R2 / R3 |

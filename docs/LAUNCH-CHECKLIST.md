@@ -10,7 +10,7 @@
 
 ## 发布轨道
 
-- **主生产轨：Vercel。** 将已验证的 `master` HEAD 通过 Vercel 项目 `nav-site` 部署到生产；部署后必须验证自定义域，而不是只验证预览 URL。
+- **主生产轨：Vercel Git 集成。** 已验证的 `master` HEAD 合入/推送后由 Vercel 项目 `nav-site` 创建生产部署；GitHub Actions 不直接部署 Vercel。部署后必须验证自定义域，而不是只验证预览 URL。
 - **Netlify：仅紧急镜像。** 默认不构建、不部署，也不是发布验收入口。只有人工 `workflow_dispatch` 且仓库变量 `ALLOW_NETLIFY_MIRROR=1` 时，CI 的 `[Emergency] Netlify mirror` job 才可运行。
 - Netlify 额度或站点状态不会阻断 Vercel 生产发布。不要为常规发布恢复 Netlify credit、启用站点或触发镜像。
 
@@ -24,10 +24,11 @@
    rtk pnpm run typecheck
    ```
 
-3. 部署 Vercel 生产版本（需要已获授权的 Vercel 登录态）：
+3. 在已获批准的合入/推送后，等待 Vercel Git 集成完成生产部署。不要把 CLI `vercel deploy --prod` 当作标准路径；手动部署属于带外生产操作，须单独获批。
 
    ```powershell
-   vercel deploy --prod --scope aijiai520 --yes
+   # Vercel Dashboard：确认与 master HEAD 对应的 Production deployment 已 Ready
+   # 记录 deployment 对应 commit，随后执行下一步主域验收。
    ```
 
 4. 记录本次 HEAD，并以主域名复验：

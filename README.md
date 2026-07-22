@@ -91,11 +91,14 @@ node -e "fetch('https://yuanjia1314.ccwu.cc/build-info.json').then(r=>r.json()).
 node scripts/audit-edge-scripts.mjs
 ```
 
-部署（本机约定）：
+部署（正常生产轨）：
 
 ```bash
-npx vercel deploy --prod --scope aijiai520
+# 已获批准的代码合入/推送 master 后，由 Vercel Git 集成创建生产部署。
+# 等待部署完成后，以主域执行下方的生产验收命令。
 ```
+
+不要把本地 `vercel deploy --prod` 当作常规发布步骤；它不会经过仓库的合并/审查轨道，且需要单独的生产操作授权。GitHub Actions 只跑 quality/build/e2e；其中 Netlify job 是显式开关的应急镜像，不是 Vercel 的部署入口。完整拓扑、验收与回滚见 [`docs/ops/deploy-topology-2026-07-22.md`](./docs/ops/deploy-topology-2026-07-22.md)。
 
 环境变量详见 `.env.local.example`。
 

@@ -28,6 +28,7 @@
 | 安全政策 | `SECURITY.md` |
 | 全栈审计（历史） | `docs/full-stack-audit-2026-07-17.md` |
 | RLS SQL | `scripts/rls-audit.sql` |
+| 非生产 RLS 审计 | `docs/ops/rls-audit-nonproduction-2026-07-22.md` |
 
 ---
 
@@ -41,8 +42,8 @@
 | Enforcing `script-src` 含 `'unsafe-inline'` | **默认 on** | `lib/csp.ts` · `CSP_SCRIPT_UNSAFE_INLINE` 默认 true |
 | Report-Only（无 script unsafe-inline） | **默认 on** | `CSP_REPORT_ONLY` · 上报 `/api/csp-report` |
 | Nonce 生成 + builder | **就绪** | `createCspNonce()` · `'nonce-…'` + `'strict-dynamic'` |
-| 动态 CSP 挂载（middleware/proxy） | **未默认开** | `CSP_DYNAMIC` 默认 false；`proxy.ts` **仅** Admin 鉴权 matcher |
-| layout / `<Script nonce>` 透传 `x-nonce` | **未接** | 见 T9 决策 §4 — 避免半吊子双头 |
+| 动态 CSP 挂载（middleware/proxy） | **已接线、默认关闭** | `CSP_DYNAMIC` 默认 false；`proxy.ts` 为 document 路由挂 CSP + `x-nonce` |
+| layout / `<Script nonce>` 透传 `x-nonce` | **已接线、仅 Preview 金丝雀** | `getCspNonce()` 供 layout / 页面 JSON-LD / Analytics 使用 |
 | GA bootstrap | **已外置** | `components/Analytics.tsx` + `app/api/ga` |
 | CF Rocket Loader / mangled type | **已清**（2026-07-22） | `rocket_loader=off` · `audit-edge-scripts.mjs` mangled=0 |
 
@@ -68,10 +69,10 @@ pnpm run verify:production -- --no-proxy --base-url https://yuanjia1314.ccwu.cc
 
 ### 1.4 后续（T9″ cutover，仍属 hygiene 跟踪，非本轮必做）
 
-1. `proxy.ts`（或 middleware）在 `CSP_DYNAMIC=1` 时注入 nonce + CSP 头。  
-2. layout 读 `x-nonce` 挂 Next `<Script nonce>`。  
-3. Preview 金丝雀 `CSP_SCRIPT_UNSAFE_INLINE=0`。  
-4. Sentry `source:csp-report` 1–2 天可解释后生产切换 + 回滚写 runbook。
+1. ~~`proxy.ts`（或 middleware）在 `CSP_DYNAMIC=1` 时注入 nonce + CSP 头。~~ **已接线，默认关闭。**  
+2. ~~layout 读 `x-nonce` 挂 Next `<Script nonce>`。~~ **已接线。**  
+3. Preview 金丝雀 `CSP_DYNAMIC=1`，通过后才可选测 `CSP_SCRIPT_UNSAFE_INLINE=0`。  
+4. Sentry `source:csp-report` 1–2 天可解释后，另行决策是否生产切换；**本清单不授权该操作**。
 
 ---
 
@@ -133,7 +134,7 @@ pnpm exec vitest run tests/security.test.ts tests/admin-password.test.ts tests/a
 
 ### 3.2 RLS / 权限期望（单库 · ADR-001）
 
-在 Supabase SQL Editor 跑 `scripts/rls-audit.sql`，对照：
+按 `docs/ops/rls-audit-nonproduction-2026-07-22.md` 在本地/CI/staging 的**只读事务**中跑 `scripts/rls-audit.sql`，对照：
 
 | 检查 | 期望 |
 |------|------|
@@ -158,8 +159,8 @@ pnpm exec vitest run tests/security.test.ts tests/admin-password.test.ts tests/a
 # 本地/CI 契约（不连真库也可跑 mock 测）
 pnpm exec vitest run tests/repositories.test.ts tests/api-security.test.ts tests/api-health.test.ts
 
-# 真库（SQL Editor）：粘贴 scripts/rls-audit.sql
-# 迁移存在 ≠ 生产已执行 — 以 staging/prod schema 实查为准
+# 仅 local / CI isolated DB / staging：使用非生产 RLS 审计 runbook。
+# 本波不连生产库、不改生产 RLS；迁移存在也不等于生产已执行。
 ```
 
 ---
@@ -221,7 +222,7 @@ pnpm test
 
 | ID | 项 | 状态线索 | 验收 |
 |----|-----|----------|------|
-| P1-1 | CSP T9″：nonce→layout + 可回滚去 `'unsafe-inline'` | Builder 好；挂载未开 | Preview 金丝雀 + RO 样本 |
+| P1-1 | CSP T9″：nonce→layout + 可回滚去 `'unsafe-inline'` | Builder/proxy/layout 已接线；默认关闭 | Preview 金丝雀 + RO 样本 |
 | P1-2 | 生产仅 `ADMIN_PASSWORD_HASH` | 过渡明文仍可能存在 | env 审计 + 登录 e2e |
 | P1-3 | RLS 定期审计 + 新表 policy | `rls-audit.sql` | SQL 输出存档（不入库密钥） |
 | P1-4 | 限流 fail-open 路径收敛 | 登录已 deny；其他路径核查 | 故障时安全默认有测 |
