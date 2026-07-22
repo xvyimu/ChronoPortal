@@ -1,0 +1,3 @@
+# Orca worktree setup — pnpm. Do not run `pnpm setup` / setup-env here (interactive).
+scripts:
+  setup: pnpm install
