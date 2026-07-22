@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyCspHeaderPairs,
   buildEnforcingCsp,
   buildReportOnlyCsp,
   buildCspHeaderPairs,
   createCspNonce,
+  createDynamicCspContext,
+  CSP_NONCE_HEADER,
   readCspFlags,
 } from "@/lib/csp";
 
@@ -76,5 +79,56 @@ describe("lib/csp", () => {
     expect(a.length).toBeGreaterThan(10);
     expect(a).not.toEqual(b);
     expect(a).toMatch(/^[A-Za-z0-9_-]+$/);
+  });
+
+  it("createDynamicCspContext returns null when CSP_DYNAMIC is off", () => {
+    expect(
+      createDynamicCspContext({
+        flags: {
+          reportOnlyEnabled: true,
+          scriptUnsafeInline: true,
+          dynamic: false,
+        },
+      })
+    ).toBeNull();
+  });
+
+  it("createDynamicCspContext sets x-nonce and CSP pairs with nonce", () => {
+    const incoming = new Headers({ "x-existing": "1" });
+    const ctx = createDynamicCspContext({
+      flags: {
+        reportOnlyEnabled: true,
+        scriptUnsafeInline: false,
+        dynamic: true,
+      },
+      isDev: false,
+      requestHeaders: incoming,
+      nonce: "fixed-nonce-value",
+    });
+    expect(ctx).not.toBeNull();
+    expect(ctx!.nonce).toBe("fixed-nonce-value");
+    expect(ctx!.requestHeaders.get(CSP_NONCE_HEADER)).toBe("fixed-nonce-value");
+    expect(ctx!.requestHeaders.get("x-existing")).toBe("1");
+    const enforcing = ctx!.responseHeaderPairs.find(
+      (h) => h.key === "Content-Security-Policy"
+    )?.value;
+    expect(enforcing).toContain("'nonce-fixed-nonce-value'");
+    expect(enforcing).toContain("'strict-dynamic'");
+    expect(enforcing).not.toMatch(/script-src[^;]*'unsafe-inline'/);
+  });
+
+  it("applyCspHeaderPairs writes all pairs", () => {
+    const bag = new Map<string, string>();
+    applyCspHeaderPairs(
+      { set: (k, v) => bag.set(k, v) },
+      [
+        { key: "Content-Security-Policy", value: "default-src 'self'" },
+        { key: "Content-Security-Policy-Report-Only", value: "default-src 'none'" },
+      ]
+    );
+    expect(bag.get("Content-Security-Policy")).toBe("default-src 'self'");
+    expect(bag.get("Content-Security-Policy-Report-Only")).toBe(
+      "default-src 'none'"
+    );
   });
 });

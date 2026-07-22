@@ -166,3 +166,64 @@ export function createCspNonce(bytes = 16): string {
   for (const b of arr) bin += String.fromCharCode(b);
   return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
+
+/** Request header layout reads to attach nonce to Script / theme / JSON-LD. */
+export const CSP_NONCE_HEADER = "x-nonce";
+
+export type DynamicCspContext = {
+  nonce: string;
+  /** Forwarded to the app via request headers (readable in Server Components). */
+  requestHeaders: Headers;
+  /** Response CSP header pairs (Enforcing ± Report-Only). */
+  responseHeaderPairs: Array<{ key: string; value: string }>;
+};
+
+/**
+ * Build per-request CSP context when CSP_DYNAMIC is enabled.
+ * Returns null when dynamic mode is off so callers leave static next.config CSP alone.
+ */
+export function createDynamicCspContext(options: {
+  flags?: CspFlags;
+  env?: Record<string, string | undefined>;
+  isDev?: boolean;
+  /** Incoming request headers to clone + extend with x-nonce. */
+  requestHeaders?: Headers;
+  /** Inject nonce (tests); default createCspNonce(). */
+  nonce?: string;
+} = {}): DynamicCspContext | null {
+  const flags =
+    options.flags ??
+    readCspFlags(
+      options.env ??
+        (process.env as Record<string, string | undefined>)
+    );
+  if (!flags.dynamic) return null;
+
+  const nonce = (options.nonce?.trim() || createCspNonce()).trim();
+  if (!nonce) return null;
+
+  const requestHeaders = new Headers(options.requestHeaders);
+  requestHeaders.set(CSP_NONCE_HEADER, nonce);
+
+  const isDev =
+    options.isDev ?? process.env.NODE_ENV !== "production";
+
+  const responseHeaderPairs = buildCspHeaderPairs({
+    isDev,
+    scriptUnsafeInline: flags.scriptUnsafeInline,
+    reportOnlyEnabled: flags.reportOnlyEnabled,
+    nonce,
+  });
+
+  return { nonce, requestHeaders, responseHeaderPairs };
+}
+
+/** Apply CSP header pairs onto a NextResponse-like headers bag. */
+export function applyCspHeaderPairs(
+  headers: { set: (key: string, value: string) => void },
+  pairs: Array<{ key: string; value: string }>
+): void {
+  for (const { key, value } of pairs) {
+    headers.set(key, value);
+  }
+}
