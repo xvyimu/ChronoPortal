@@ -2,7 +2,16 @@
  * Pure helpers for check-links JSON report shape (shared by CLI + unit tests).
  */
 
-/** Build structured report object for --json / --persist / Admin import. */
+/**
+ * Build structured report object for --json / --persist / Admin import.
+ * @param {{
+ *   total?: number,
+ *   ok?: number,
+ *   broken?: Array<{id?: string|null, title?: string, url?: string, status?: string|number, error?: string}>,
+ *   redirects?: Array<{id?: string|null, title?: string, url?: string, status?: string|number, location?: string}>,
+ *   generatedAt?: string,
+ * }} [input]
+ */
 export function buildLinkHealthReport({
   total,
   ok,

@@ -126,7 +126,7 @@ describe("scripts/check-launch-readiness", () => {
 
     const missing = evaluateDistributedRateLimitConfig({
       DISTRIBUTED_RATE_LIMIT_FAIL_CLOSED: "1",
-    } as NodeJS.ProcessEnv);
+    } as unknown as NodeJS.ProcessEnv);
     expect(missing).toMatchObject({
       name: "distributed-rate-limit-config",
       ok: false,
@@ -137,7 +137,7 @@ describe("scripts/check-launch-readiness", () => {
       DISTRIBUTED_RATE_LIMIT_FAIL_CLOSED: "1",
       UPSTASH_REDIS_REST_URL: "https://example.upstash.io",
       UPSTASH_REDIS_REST_TOKEN: "token",
-    } as NodeJS.ProcessEnv);
+    } as unknown as NodeJS.ProcessEnv);
     expect(configured).toMatchObject({
       name: "distributed-rate-limit-config",
       ok: true,
