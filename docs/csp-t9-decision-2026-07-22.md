@@ -58,15 +58,15 @@
 |------|------|
 | 默认能否去掉 Enforcing `'unsafe-inline'`？ | **否**（默认 flag 仍为 on） |
 | GA 是否还阻塞？ | **代码层已解**；等生产 deploy 后用 RO/Sentry 确认 |
-| 下一步 | T9″ 接线已合入；**preview** 手动 `CSP_DYNAMIC=1` 冒烟后，再 `CSP_SCRIPT_UNSAFE_INLINE=0` 金丝雀（仍勿生产 cutover） |
+| 下一步 | T9″ 接线已合入；**preview** 手动 `CSP_DYNAMIC=1` 冒烟后，再 `CSP_SCRIPT_UNSAFE_INLINE=0` 金丝雀（仍勿生产 cutover）。人工清单：`docs/ops/csp-dynamic-preview-canary-2026-07-22.md` |
 
 ## 4. 真正 cutover 清单（仍须全部满足）
 
 1. ~~**Middleware/proxy 挂动态 CSP + nonce**，layout/Script 透传 nonce（`CSP_DYNAMIC=1`）。~~ **T9″ 代码已接**（默认关；preview 开）。  
 2. 确认生产 HTML **不再**出现 inline gtag bootstrap；`audit-edge-scripts.mjs` 无 mangled type 或已关 Rocket Loader。  
 3. Sentry `csp-report` 聚类 1–2 天可解释。  
-4. Preview：`CSP_DYNAMIC=1` 冒烟 → 再 `CSP_SCRIPT_UNSAFE_INLINE=0`（首页 / 搜索 / Admin / GA network）。  
-5. 生产切换 + 一键回滚说明写在 runbook。
+4. Preview：`CSP_DYNAMIC=1` 冒烟 → 再 `CSP_SCRIPT_UNSAFE_INLINE=0`（首页 / 搜索 / Admin / GA network）。步骤见 **`docs/ops/csp-dynamic-preview-canary-2026-07-22.md`**。  
+5. 生产切换仍须单独决策；preview 回滚步骤已在上述 canary runbook（生产 cutover runbook 另写，本文件不宣称已完成）。
 
 ## 5. 明确不做
 
