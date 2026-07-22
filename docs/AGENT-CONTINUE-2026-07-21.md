@@ -62,8 +62,8 @@ C1 favorites 权限纵深 · C2 文档 SSOT · C3 死链→Admin · Upstash+FAIL
 
 | # | 事项 | 类型 | 就绪度 | 备注 |
 |---|------|------|--------|------|
-| T9 | 去 Enforcing script `unsafe-inline` | 安全 | **暂缓（已评估）** | 结构阻断：17 inline + GA；见 `docs/csp-t9-decision-2026-07-22.md` |
-| T9′ | nonce / GA 外置 / 边缘 script 改写排查 | 前置 | 需设计 | 满足决策文 §4 再开 PR |
+| T9 | 去 Enforcing script `unsafe-inline` | 安全 | **默认暂缓** | 见 `docs/csp-t9-decision-2026-07-22.md`；env `CSP_SCRIPT_UNSAFE_INLINE` |
+| T9′ | GA 外置 + CSP builder/开关 + 边缘审计 | 前置 | **代码已合** | CF **Rocket Loader 类改写 36 处**仍阻断 nonce-only；关 CF 后再接 layout nonce / 金丝雀 |
 | A′ | 浏览器生产 Admin 秒更 | 验证 | 可选 | 本地已 PASS |
 | D | Admin 审核 AI 建议标签 | 产品 P2 | 需 spec | 只建议、人确认 |
 | E | 死链周报节奏 | 运营 | 需 spec | 不改 check-links 算法 |

@@ -1,6 +1,16 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
+/**
+ * Admin auth gate only (narrow matcher).
+ *
+ * Dynamic CSP + per-request nonce lives in `lib/csp.ts` builders and is
+ * opt-in via env (CSP_DYNAMIC). Full middleware attachment is deferred until
+ * layout can consume `x-nonce` without double CSP headers — see
+ * docs/csp-t9-decision-2026-07-22.md §4 / T9′.
+ *
+ * Static CSP (default production path): next.config.ts + readCspFlags().
+ */
 export default auth((req) => {
   const path = req.nextUrl.pathname;
   const isAdmin = (req.auth?.user as { role?: string } | undefined)?.role === "admin";

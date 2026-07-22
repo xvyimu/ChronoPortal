@@ -117,7 +117,8 @@ npx vercel deploy --prod --scope aijiai520
 
 | # | 事项 | 备注 |
 |---|------|------|
-| T9 | **2026-07-22 已评估：暂不去** script `unsafe-inline` | 见 [`docs/csp-t9-decision-2026-07-22.md`](./docs/csp-t9-decision-2026-07-22.md)；前置 nonce/GA 外置 |
+| T9 | **默认仍不去** script `unsafe-inline` | 决策 + T9′：[`docs/csp-t9-decision-2026-07-22.md`](./docs/csp-t9-decision-2026-07-22.md) |
+| T9′ | GA 外置 · CSP env 回滚 · builder/nonce · **CF Rocket Loader 阻断** | 关 CF 改写 + nonce→layout 后再金丝雀 `CSP_SCRIPT_UNSAFE_INLINE=0` |
 | A′ | 浏览器生产 Admin 秒更手测 | 可选；本地已验证 |
 | D–F | AI 建议标签 / 死链周报 / favorites DB JWT | 需 spec |
 

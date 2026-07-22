@@ -1,6 +1,10 @@
 import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 import bundleAnalyzer from "@next/bundle-analyzer";
+import {
+  buildCspHeaderPairs,
+  readCspFlags,
+} from "./lib/csp";
 
 const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
@@ -8,58 +12,20 @@ const withBundleAnalyzer = bundleAnalyzer({
 
 const isDev = process.env.NODE_ENV !== "production";
 const hasSentryAuthToken = Boolean(process.env.SENTRY_AUTH_TOKEN);
+const cspFlags = readCspFlags(process.env);
 
 /**
- * Enforcing CSP (current production baseline).
- * script/style still allow 'unsafe-inline' (Next/GA); full nonce tighten is T9 follow-up.
+ * Static CSP headers from next.config.
+ * When CSP_DYNAMIC=1, proxy.ts owns CSP (+ per-request nonce) and we skip
+ * Content-Security-Policy* here to avoid duplicate / conflicting headers.
  */
-const cspEnforcing = [
-  "default-src 'self'",
-  [
-    "script-src",
-    "'self'",
-    "'unsafe-inline'",
-    ...(isDev ? ["'unsafe-eval'"] : []),
-    "https://www.googletagmanager.com",
-    "https://www.google-analytics.com",
-  ].join(" "),
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https:",
-  "font-src 'self' data:",
-  "frame-ancestors 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  // 生产 favicon/CDN 与 Sentry/GA；不放宽 script 的 unsafe-inline（Next/GA 仍需，T9 完整收紧另立项）
-  "connect-src 'self' https://*.supabase.co https://*.ingest.us.sentry.io https://www.google-analytics.com https://region1.google-analytics.com",
-  "object-src 'none'",
-  "upgrade-insecure-requests",
-].join("; ");
-
-/**
- * Report-Only CSP (P1-3): tighter script-src without 'unsafe-inline'/'unsafe-eval'.
- * Violations POST to /api/csp-report (sampled logs only; never blocks render).
- * Enable/disable with CSP_REPORT_ONLY=0 to turn off without removing enforcing CSP.
- */
-const cspReportOnlyEnabled = process.env.CSP_REPORT_ONLY !== "0";
-const cspReportOnly = [
-  "default-src 'self'",
-  [
-    "script-src",
-    "'self'",
-    // intentional: no 'unsafe-inline' / 'unsafe-eval' — measure breakage only
-    "https://www.googletagmanager.com",
-    "https://www.google-analytics.com",
-  ].join(" "),
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https:",
-  "font-src 'self' data:",
-  "frame-ancestors 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "connect-src 'self' https://*.supabase.co https://*.ingest.us.sentry.io https://www.google-analytics.com https://region1.google-analytics.com",
-  "object-src 'none'",
-  "report-uri /api/csp-report",
-].join("; ");
+const cspHeaderPairs = cspFlags.dynamic
+  ? []
+  : buildCspHeaderPairs({
+      isDev,
+      scriptUnsafeInline: cspFlags.scriptUnsafeInline,
+      reportOnlyEnabled: cspFlags.reportOnlyEnabled,
+    });
 
 const securityHeaders = [
   {
@@ -82,18 +48,7 @@ const securityHeaders = [
     key: "Strict-Transport-Security",
     value: "max-age=31536000; includeSubDomains; preload",
   },
-  {
-    key: "Content-Security-Policy",
-    value: cspEnforcing,
-  },
-  ...(cspReportOnlyEnabled
-    ? [
-        {
-          key: "Content-Security-Policy-Report-Only",
-          value: cspReportOnly,
-        },
-      ]
-    : []),
+  ...cspHeaderPairs,
 ];
 
 const nextConfig: NextConfig = {

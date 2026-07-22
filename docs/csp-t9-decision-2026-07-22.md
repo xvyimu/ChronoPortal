@@ -1,99 +1,92 @@
-# CSP T9 评估 · 2026-07-22
+# CSP T9 评估 · 2026-07-22（含 T9′ 落地）
 
-> 结论：**暂不**从 Enforcing CSP 去掉 `script-src 'unsafe-inline'`。  
-> 生产 tip：`a1e5c7f6` · deploy `dpl_EwZKkesa…` · 主域 `https://yuanjia1314.ccwu.cc`
+> **Enforcing 默认结论不变：暂不**去掉 `script-src 'unsafe-inline'`。  
+> T9′ 已交付：**可回滚开关 · GA 外置 · CSP builder · 边缘审计脚本**；nonce 动态挂载仍属后续接线。  
+> 生产 tip 以 `/build-info.json` 为准（代码合入后 redeploy 才吃到 T9′）。
+
+## 0. T9′ 交付清单（1–5）
+
+| # | 前置 | 状态 | 实现 |
+|---|------|------|------|
+| 1 | Nonce / strict-dynamic 管道 | **Builder 就绪；动态挂载未默认开** | `lib/csp.ts`：`createCspNonce` / `'nonce-…'` + `'strict-dynamic'`；`CSP_DYNAMIC=1` 时 next.config **跳过**静态 CSP（避免双头）。layout 读 `x-nonce` 挂 `<Script nonce>` **尚未接**（避免半吊子破坏生产） |
+| 2 | GA 外置 | **已做** | `components/Analytics.tsx` → gtag.js + **`/api/ga?id=`**（`app/api/ga/route.ts`），**无** inline bootstrap |
+| 3 | 边缘 script 改写排查 | **已确认阻断** | 生产 `server: cloudflare` · **36** 处 `type="<hex>-text/javascript"` · Rocket Loader 痕迹。**nonce-only 前必须在 CF 关 Rocket Loader / 对 HTML 的 JS 改写**；`node scripts/audit-edge-scripts.mjs` |
+| 4 | 样本窗口 | **通道在线** | RO + `/api/csp-report` → 采样 Sentry `source:csp-report`；本机无 `SENTRY_AUTH_TOKEN` 时用 UI。结构阻断已足够否决立刻去 inline |
+| 5 | 回滚开关 | **已做** | 见 §Env |
+
+### Env 开关
+
+| 变量 | 默认 | 作用 |
+|------|------|------|
+| `CSP_REPORT_ONLY` | on（`0` 关） | Report-Only 头 |
+| `CSP_SCRIPT_UNSAFE_INLINE` | **on**（`0` 去掉） | Enforcing 是否含 script `'unsafe-inline'` |
+| `CSP_DYNAMIC` | **off** | 为 1 时 next.config 不发 CSP（留给 middleware 动态+nonce；**完整接线前勿在生产开**） |
+
+回滚去 inline 失败：设回 `CSP_SCRIPT_UNSAFE_INLINE=1`（或不设）并 redeploy。
 
 ## 1. 样本通道状态
 
 | 通道 | 状态 | 说明 |
 |------|------|------|
 | Report-Only 头 | **在线** | `script-src` **无** `'unsafe-inline'`；`report-uri /api/csp-report` |
-| Enforcing 头 | **在线** | `script-src` **含** `'self' 'unsafe-inline' GTM/GA` |
-| `/api/csp-report` | **204** | 限流 + 1/20 采样；采样后 `logger.warn` + **Sentry `captureMessage`**（`a1e5c7f6`） |
-| Vercel Runtime Logs | 可见 `POST /api/csp-report` 204 | 探针与真实请求均到达；日志摘要无 body |
-| Sentry Issues API | **本机无 `SENTRY_AUTH_TOKEN` / sentry-cli 登录** | 无法 CLI 拉 Issues；UI 过滤见下 |
+| Enforcing 头 | **在线** | 默认 **含** `'unsafe-inline'`（可用 env 关掉） |
+| `/api/csp-report` | **204** | 限流 + 1/20 采样；`logger.warn` + Sentry |
+| Vercel Logs | 可见 POST 204 | 无 body 摘要 |
+| Sentry Issues API | 需 `SENTRY_AUTH_TOKEN` | UI：`message:"csp-report:"` / tag `source:csp-report` |
 
-**Sentry UI 过滤（人工）：**
+## 2. 生产 HTML 结构（决定性，去 inline 前）
 
-- message 前缀：`csp-report:`
-- 或 tag：`source:csp-report`
-- org/project（构建配置）：`yuanjia-m0` / `javascript-nextjs`
-- ingest：`*.ingest.us.sentry.io`（DSN 已在 Production env）
-
-> 即使 Issues 里暂时 0 条，**结构阻断已足够否决立刻去 inline**（见 §2）。采样率 1/20 + 流量低时，Issues 空窗不等于「无违规」。
-
-## 2. 生产 HTML 结构审计（决定性）
-
-对 `GET /` 实测（2026-07-22）：
+对 `GET /` 在 T9′ **前**实测过：
 
 | 指标 | 值 |
 |------|-----|
-| HTML 体积 | ~819 KB |
-| 无 `src` 的 `<script>` | **17** |
-| 类型分布 | `*-text/javascript` **15**（边缘/改写痕迹）· `application/ld+json` **1** · 无 type **1** |
-| `/_next/` chunk scripts | 21 |
-| GTM/GA 痕迹 | **有**（`Analytics.tsx` 使用 `next/script` **inline** config） |
-| JSON-LD | layout 内联 `application/ld+json` |
+| 无 `src` 的 `<script>` | **~17** |
+| 含边缘改写 type | 常见 `*-text/javascript` |
+| GTM/GA | 有；**现已改为外置** `/api/ga`（deploy 后生效） |
+| JSON-LD | layout 内联 `application/ld+json`（data 类型，script-src 通常不拦执行，但仍是 `<script>` 节点） |
 
-Enforcing 摘录：
+### 若现在 `CSP_SCRIPT_UNSAFE_INLINE=0` 且无 nonce
 
-```text
-script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com
-```
-
-Report-Only 摘录：
-
-```text
-script-src 'self' https://www.googletagmanager.com https://www.google-analytics.com
-```
-
-### 若现在去掉 Enforcing 的 `'unsafe-inline'`
-
-1. **GA inline bootstrap**（`components/Analytics.tsx`）会在 RO/Enforcing 下违规或静默失效。  
-2. **~15+ 个 inline JS script**（含边缘改写 type）会在浏览器侧触发大量 report / 功能损坏。  
-3. JSON-LD 虽多为 data 类型，仍以 `<script>` 元素存在，部分环境与策略组合会噪声。  
-4. 无 **nonce / hash / strict-dynamic** 迁移时，无法安全收紧。
+1. Next / 运行时仍可能注入 inline（需 nonce 管道）。  
+2. 边缘改写 type 的脚本行为不确定。  
+3. JSON-LD 一般安全；真正风险是 **JS inline** 与第三方。
 
 ## 3. 决策
 
 | 问题 | 答案 |
 |------|------|
-| 现在能否去掉 Enforcing `script-src 'unsafe-inline'`？ | **否** |
-| 原因类型 | **结构阻断**（非「缺样本」） |
-| Report-Only 是否继续？ | **是** — 继续采；Sentry 有 `source:csp-report` 后便于聚类 |
-| 下一步前置 | 见 §4 |
+| 默认能否去掉 Enforcing `'unsafe-inline'`？ | **否**（默认 flag 仍为 on） |
+| GA 是否还阻塞？ | **代码层已解**；等生产 deploy 后用 RO/Sentry 确认 |
+| 下一步 | §4 完成 nonce→layout 接线后，preview 上 `CSP_SCRIPT_UNSAFE_INLINE=0` 金丝雀 |
 
-## 4. T9 可动条件（全部满足再开 PR）
+## 4. 真正 cutover 清单（仍须全部满足）
 
-1. **Nonce 或 hash 管道**  
-   - Next 对 inline 引导脚本 / GA 使用 nonce 或外置纯 `src`。  
-   - 同步把 Enforcing + RO 的 `script-src` 改为 `'nonce-…'` 和/或 `'strict-dynamic'`。  
-2. **GA**  
-   - 去掉 `next/script` 子节点 inline；改为外部文件或带 nonce 的 bootstrap。  
-3. **边缘改写**  
-   - 确认 Cloudflare/中间层是否改写 script `type`；必要时关 Rocket Loader / 类似特性，避免幽灵 inline。  
-4. **样本窗口**  
-   - Sentry 上 `csp-report` 聚类稳定 **≥ 1–2 天真实流量**；已知类（GA、JSON-LD、第三方）有处置方案。  
-5. **回滚**  
-   - 一键恢复 `'unsafe-inline'` 的 config 开关（已有 `CSP_REPORT_ONLY=0` 先例；Enforcing 侧建议对称 env）。
+1. **Middleware/proxy 挂动态 CSP + nonce**，layout/Script 透传 nonce（`CSP_DYNAMIC=1`）。  
+2. 确认生产 HTML **不再**出现 inline gtag bootstrap；`audit-edge-scripts.mjs` 无 mangled type 或已关 Rocket Loader。  
+3. Sentry `csp-report` 聚类 1–2 天可解释。  
+4. Preview：`CSP_SCRIPT_UNSAFE_INLINE=0` 冒烟（首页 / 搜索 / Admin / GA network）。  
+5. 生产切换 + 一键回滚说明写在 runbook。
 
 ## 5. 明确不做
 
-- 不在无 nonce 时盲删 `'unsafe-inline'`。  
-- 不为了「Sentry 暂时 0 条」宣布 T9 完成。  
-- 不把 style-src 的 `'unsafe-inline'` 与 script 混为一谈（style 收紧另立项）。
+- 不在无 nonce 时默认 `CSP_SCRIPT_UNSAFE_INLINE=0`。  
+- 不为「Sentry 暂时 0 条」宣布 T9 完成。  
+- 不把 style-src `'unsafe-inline'` 与 script 混改。
 
 ## 6. 相关代码
 
-- `next.config.ts` — Enforcing / Report-Only CSP  
+- `lib/csp.ts` — builders + flags + nonce  
+- `next.config.ts` — 静态 CSP / `CSP_DYNAMIC` 跳过  
 - `app/api/csp-report/route.ts` — 采样 + Sentry  
-- `components/Analytics.tsx` — GA inline  
-- `app/layout.tsx` — JSON-LD inline  
+- `app/api/ga/route.ts` + `components/Analytics.tsx` — GA 外置  
+- `scripts/audit-edge-scripts.mjs` — 边缘审计  
+- `proxy.ts` — 仅 Admin 鉴权（nonce 挂载后续）
 
-## 7. 审计命令（可复跑）
+## 7. 命令
 
 ```powershell
-node scripts/probe-production.mjs --no-proxy --expect-commit a1e5c7f6
-# 结构审计（一次性脚本，可不入库）
-# 打开 Sentry：message:"csp-report:" OR tag source:csp-report
+node scripts/probe-production.mjs --no-proxy --expect-commit <sha>
+node scripts/audit-edge-scripts.mjs
+pnpm exec vitest run tests/csp.test.ts tests/api-ga.test.ts tests/api-csp-report.test.ts
+# Sentry UI: message:"csp-report:" OR tag source:csp-report
 ```
