@@ -119,10 +119,19 @@ pnpm run probe:headers -- --base-url $BASE --compare-repo --json
 禁止: 生产 CSP_DYNAMIC、RLS、无批准 purge 以外的 DNS 变更
 ```
 
-## 8. 交叉引用
+## 8. W3 指针（2026-07-23）
+
+- 生产 `probe:headers --allow-production --compare-repo`：**DRIFT 仍在**（XFO/Referrer）。  
+- Preview P1：本机 **仍** `*.vercel.app` timeout → 不得改生产平台层。  
+- **生产变更申请单模板（未执行）：** `docs/ops/headers-prod-change-request-template.md`  
+- W3 报告：`docs/ops/w3-arch-upgrade-chronoportal-claude.md`
+
+## 9. 交叉引用
 
 - `docs/ops/headers-drift-trace-2026-07.md`
+- `docs/ops/headers-prod-change-request-template.md`
 - `docs/ops/security-headers-as-is-target-2026-07-22.md`
 - `docs/ops/security-headers-matrix-2026-07-22.md`
 - `docs/ops/csp-dynamic-preview-stage-a-blocker-2026-07-23.md`
 - `docs/ops/w2-arch-upgrade-chronoportal-claude.md`
+- `docs/ops/w3-arch-upgrade-chronoportal-claude.md`

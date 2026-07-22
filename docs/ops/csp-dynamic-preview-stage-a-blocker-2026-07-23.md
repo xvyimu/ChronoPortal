@@ -83,9 +83,22 @@ https://vercel.com HEAD → 200（控制面可达）
 | Production 任何 CSP env | **未写** |
 | push / 合默认分支 | **未做** |
 
-## 8. 交叉引用
+## 8. W3 复测（2026-07-23 · 同阻断）
+
+| 检查 | 结果 |
+| --- | --- |
+| `curl` / probe → `*.vercel.app` | **仍** connect timeout / exit 28 · probe exit 1 |
+| 生产自定义域 | 可达；`/build-info.json` = `46e71ec…` |
+| Preview / Production `CSP_*` 写入 | **仍未写** |
+| 后续 | 生产 gate 卷宗：`docs/ops/w3-csp-prod-gate-dossier.md`（**PROD FLIP NOT EXECUTED**） |
+
+本阻断书结论 **不解除**。
+
+## 9. 交叉引用
 
 - Runbook：`docs/ops/csp-dynamic-preview-canary-2026-07-22.md`
 - W1 报告：`docs/ops/w1-arch-upgrade-chronoportal-claude.md`
 - W2 报告：`docs/ops/w2-arch-upgrade-chronoportal-claude.md`
+- W3 报告：`docs/ops/w3-arch-upgrade-chronoportal-claude.md`
+- 生产 CSP 卷宗：`docs/ops/w3-csp-prod-gate-dossier.md`
 - T9 决策：`docs/csp-t9-decision-2026-07-22.md`

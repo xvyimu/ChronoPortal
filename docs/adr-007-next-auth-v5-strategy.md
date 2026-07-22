@@ -101,8 +101,21 @@ ADR-002 曾写「监控 v5 正式版后升级」。W2 需书面选择：
 - W2 stack-matrix：next-auth 行标 **决策完成 · pin beta.31 · 风险接受**。  
 - W3+：仅在触发条件满足时 bump；CSP/RLS 生产 flip 与 auth 升级错开观察窗更佳。
 
+## W3 跟进（2026-07-23）
+
+| 项 | 结论 |
+| --- | --- |
+| 决策是否变更 | **否 — 仍风险接受，pin `5.0.0-beta.31`** |
+| npm 复测（本机） | `latest=4.24.15` · `beta=5.0.0-beta.32` · **仍无** 稳定 `5.0.0` dist-tag |
+| 触发条件 §迁移路径 | **均未满足**（无 stable 5.x；无安全公告驱动必须 ≥beta.32；无安装/Next 不兼容） |
+| 本波动作 | **不 bump** · 不改 `AUTH_SECRET` · 不改登录行为 |
+| 与 CSP/RLS | 生产 flip **未执行**；auth 升级继续与 flip **错开** |
+
+报告：`docs/ops/w3-arch-upgrade-chronoportal-claude.md` · matrix：`docs/ops/stack-matrix-2026-07.md`。
+
 ## 相关
 
 - `docs/adr-002-authjs-migration.md`
 - `docs/ops/stack-matrix-2026-07.md`
 - `docs/ops/w2-arch-upgrade-chronoportal-claude.md`
+- `docs/ops/w3-arch-upgrade-chronoportal-claude.md`
