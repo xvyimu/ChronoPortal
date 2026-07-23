@@ -60,4 +60,19 @@ describe("CI workflow launch behavior", () => {
     expect(workflow).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
     expect(workflow).toContain("pnpm run e2e");
   });
+
+  it("fails quality on high/critical dependency advisories (Chronicle-aligned)", () => {
+    const workflow = readWorkflow("ci.yml");
+
+    // quality job: install → audit(high+) → lint → typecheck → tests
+    expect(workflow).toMatch(
+      /pnpm install --frozen-lockfile[\s\S]*Dependency audit \(high\+\)[\s\S]*pnpm audit --registry=https:\/\/registry\.npmjs\.org --audit-level=high/
+    );
+    expect(workflow).toContain("pnpm audit --registry=https://registry.npmjs.org --audit-level=high");
+    // Do not silently weaken the gate to critical-only or continue-on-error.
+    expect(workflow).not.toMatch(
+      /Dependency audit \(high\+\)[\s\S]{0,200}continue-on-error:\s*true/
+    );
+    expect(workflow).not.toContain("--audit-level=critical");
+  });
 });
