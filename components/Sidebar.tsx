@@ -145,7 +145,7 @@ export function Sidebar({
         </SheetContent>
       </Sheet>
 
-      <aside className="sticky top-20 hidden h-[calc(100vh-5rem)] w-64 shrink-0 overflow-y-auto border-r border-[var(--paper-line)] bg-[var(--paper-bg)]/88 py-4 text-[var(--paper-ink)] backdrop-blur-xl md:block">
+      <aside className="cp-chrome-blur sticky top-20 hidden h-[calc(100vh-5rem)] w-64 shrink-0 overflow-y-auto border-r border-[var(--paper-line)] bg-[var(--paper-bg)]/88 py-4 text-[var(--paper-ink)] md:block">
         {navLinks}
       </aside>
     </>

@@ -12,7 +12,7 @@ interface MobileNavProps {
 export function MobileNav({ tabs, activeCategory, onSelect }: MobileNavProps) {
   return (
     <nav
-      className="fixed inset-x-3 bottom-2 z-40 overflow-hidden rounded-2xl border border-[var(--paper-line)] bg-[var(--paper-surface)]/90 text-[var(--paper-ink)] shadow-[0_10px_30px_rgba(61,74,90,0.12)] [contain:layout_paint] backdrop-blur-md md:hidden"
+      className="cp-chrome-blur fixed inset-x-3 bottom-2 z-40 overflow-hidden rounded-md border border-[var(--paper-line)] bg-[var(--paper-surface)]/90 text-[var(--paper-ink)] shadow-[0_10px_30px_rgba(61,74,90,0.12)] [contain:layout_paint] md:hidden"
       role="tablist"
       aria-label="移动端导航分类"
     >
@@ -32,7 +32,7 @@ export function MobileNav({ tabs, activeCategory, onSelect }: MobileNavProps) {
               aria-label={tab.label}
               title={tab.label}
               className={cn(
-                "relative flex min-w-[4.75rem] flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 transition-all duration-150",
+                "relative flex min-w-[4.75rem] flex-col items-center gap-0.5 rounded-md px-2 py-1.5 transition-all duration-150",
                 isActive
                   ? "bg-[var(--paper-accent-soft)] text-[var(--paper-accent)]"
                   : "text-[var(--paper-muted)] hover:bg-[var(--paper-accent-soft)] hover:text-[var(--paper-accent)]"

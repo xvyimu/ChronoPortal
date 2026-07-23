@@ -73,7 +73,7 @@ export function SearchExperiencePanel({
     .slice(0, 3) as string[];
 
   return (
-    <div className="nav-glass flex flex-col gap-2.5 rounded-2xl p-2.5 text-[var(--paper-ink)] md:gap-3 md:p-3">
+    <div className="nav-glass flex flex-col gap-2.5 rounded-md p-2.5 text-[var(--paper-ink)] md:gap-3 md:p-3">
       <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
         <span className="inline-flex items-center gap-1.5 text-xs font-mono uppercase text-[var(--paper-muted)]">
           <Sparkles className="size-3.5 text-[var(--paper-accent)]" aria-hidden="true" />

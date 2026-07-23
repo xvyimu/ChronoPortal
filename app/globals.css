@@ -27,10 +27,18 @@
   box-shadow: 0 0 0 3px var(--admin-primary-soft);
 }
 
-/* ===== 视觉层 ===== */
+/* ===== 视觉层 =====
+ * V1b · Atelier A0/A1 structural tokens (2026-07-23)
+ * - 组合 SSOT: portfolio-visual …/atelier-token-ssot.md
+ * - 保留 paper + blue-gray 身份；橙仅 --cta 附加
+ * - Spacing · Atelier legal: 4 / 8 / 16 / 24 / 32
+ *   Prefer these in NEW CSS. Do not invent 13/20/etc.
+ *   Existing layout gaps need not be rewritten this wave.
+ */
 :root {
   color-scheme: light;
-  --radius: 0.75rem;
+  /* Atelier: card/panel 8 · control 4（原 0.75rem/12 过大） */
+  --radius: 8px;
   --font-geist-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-geist-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
@@ -43,6 +51,20 @@
   --paper-line: #d8e0e7;
   --paper-accent: #5f84b2;
   --paper-accent-soft: rgba(95, 132, 178, 0.1);
+
+  /* Atelier structural — additive; brand interaction still --paper-accent / --primary */
+  --cta: #f97316;
+  --cta-ink: #9a3412;
+  --cta-soft: rgba(249, 115, 22, 0.12);
+  --atelier-rail: 3px;
+  --atelier-panel-blur: 12px;
+
+  /* Spacing ladder (new rules only) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
 
   /* 语义色绑定 paper 令牌，避免双轨 */
   --background: var(--paper-bg);
@@ -138,10 +160,12 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --radius-sm: calc(var(--radius) * 0.5);
-  --radius-md: var(--radius);
-  --radius-lg: calc(var(--radius) * 1.5);
-  --radius-xl: calc(var(--radius) * 2);
+  /* Atelier 4/8: fixed px so sm stays control-size after base retarget */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  /* V1b: product surfaces stay 8; do not reintroduce 16–24 as default card radius */
+  --radius-lg: 8px;
+  --radius-xl: 8px;
 }
 
 body {
@@ -158,7 +182,7 @@ body {
 
 .admin-panel {
   border: 1px solid var(--admin-border);
-  border-radius: 12px;
+  border-radius: 8px;
   background: #ffffff;
   box-shadow: var(--admin-shadow);
 }
@@ -169,7 +193,7 @@ body {
   height: 2rem;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
+  border-radius: 4px;
   color: var(--admin-muted);
   transition: background-color 160ms ease, color 160ms ease;
 }
@@ -261,6 +285,10 @@ body {
   --sidebar-accent-foreground: var(--paper-ink);
   --sidebar-border: var(--paper-line);
   --sidebar-ring: var(--paper-accent);
+
+  /* Atelier CTA: shared orange; ink lighter for dark chrome */
+  --cta-ink: #ffedd5;
+  --cta-soft: rgba(249, 115, 22, 0.16);
 }
 
 /* ===== 卡片悬停体系（Restrained：单一 border 反馈） =====
@@ -330,10 +358,41 @@ body {
 
 .nav-glass {
   border: 1px solid var(--paper-line);
-  border-radius: 1rem;
+  border-radius: var(--radius);
   background: color-mix(in srgb, var(--paper-surface) 94%, transparent);
   box-shadow: 0 10px 30px rgba(61, 74, 90, 0.055), inset 0 1px 0 rgba(255, 255, 255, 0.64);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--atelier-panel-blur, 12px));
+  -webkit-backdrop-filter: blur(var(--atelier-panel-blur, 12px));
+}
+
+/* V1b Atelier A1: restrained top rail on shell chrome (product colors, not neon) */
+.cp-chrome-rail {
+  position: relative;
+  overflow: hidden;
+}
+
+.cp-chrome-rail::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  max-height: var(--atelier-rail, 3px);
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    var(--paper-accent) 0%,
+    color-mix(in srgb, var(--paper-accent) 55%, var(--paper-line)) 50%,
+    color-mix(in srgb, var(--paper-accent) 35%, transparent) 100%
+  );
+  opacity: 0.9;
+}
+
+/* Token-capped chrome blur (≤12px) for header / floating shell */
+.cp-chrome-blur {
+  backdrop-filter: blur(var(--atelier-panel-blur, 12px));
+  -webkit-backdrop-filter: blur(var(--atelier-panel-blur, 12px));
 }
 
 .atlas-section-label {

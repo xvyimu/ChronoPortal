@@ -61,8 +61,8 @@ export function SearchBar({
         onKeyDown={onKeyDown}
         className={cn(
           isHero
-            ? "h-14 rounded-full border-[var(--paper-line)] bg-[var(--paper-surface)] py-3 pl-14 pr-28 text-base text-[var(--paper-ink)] shadow-[0_18px_45px_rgba(61,74,90,0.10)] placeholder:text-[var(--paper-faint)] backdrop-blur-xl focus-visible:border-[var(--paper-accent)] focus-visible:ring-[3px] focus-visible:ring-[rgba(95,132,178,0.18)]"
-            : "h-auto rounded-[24px] border-input bg-background/80 py-2.5 pl-10 pr-24 text-sm text-foreground/80 placeholder:text-muted-foreground/40 backdrop-blur-sm focus-visible:border-primary/60 focus-visible:ring-[3px] focus-visible:ring-primary/20"
+            ? "h-14 rounded-full border-[var(--paper-line)] bg-[var(--paper-surface)] py-3 pl-14 pr-28 text-base text-[var(--paper-ink)] shadow-[0_18px_45px_rgba(61,74,90,0.10)] placeholder:text-[var(--paper-faint)] focus-visible:border-[var(--paper-accent)] focus-visible:ring-[3px] focus-visible:ring-[rgba(95,132,178,0.18)]"
+            : "h-auto rounded-md border-input bg-background py-2.5 pl-10 pr-24 text-sm text-foreground/80 placeholder:text-muted-foreground/40 focus-visible:border-primary/60 focus-visible:ring-[3px] focus-visible:ring-primary/20"
         )}
         aria-label="搜索导航站点"
         autoComplete="off"

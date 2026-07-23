@@ -127,7 +127,7 @@ export function HomeHero({
         </div>
 
         <div className="hidden gap-4 text-xs font-mono uppercase leading-relaxed text-[var(--paper-muted)] md:grid md:grid-cols-[180px_minmax(0,1fr)_260px]">
-          <div className="rounded-xl border border-[var(--paper-line)] bg-[var(--paper-surface)]/70 p-3 backdrop-blur">
+          <div className="cp-chrome-blur rounded-md border border-[var(--paper-line)] bg-[var(--paper-surface)]/70 p-3">
             每日精选
           </div>
           <div className="hidden md:block" />
@@ -142,7 +142,7 @@ export function HomeHero({
 
 function Metric({ value, label }: { value: number; label: string }) {
   return (
-    <div className="rounded-xl border border-[var(--paper-line)] bg-[var(--paper-surface)] p-2.5 md:p-3">
+    <div className="rounded-md border border-[var(--paper-line)] bg-[var(--paper-surface)] p-2.5 md:p-3">
       <div className="text-xl font-semibold tabular-nums text-[var(--paper-ink)] md:text-2xl">{value}</div>
       <div className="text-[11px] font-mono uppercase text-[var(--paper-faint)] md:text-xs">{label}</div>
     </div>

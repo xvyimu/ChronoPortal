@@ -53,7 +53,7 @@ function LinkCardComponent({
       {/* 外层 article：主链与按钮为兄弟，避免 <a> 嵌套交互控件 */}
       <article className="group relative">
         <InteractiveSurface
-          className="min-h-[74px] rounded-xl border border-[var(--paper-line)] bg-[var(--paper-surface)] px-3.5 py-3 text-[var(--paper-ink)] shadow-[0_10px_28px_rgba(61,74,90,0.06)] card-hover"
+          className="min-h-[74px] rounded-md border border-[var(--paper-line)] bg-[var(--paper-surface)] px-3.5 py-3 text-[var(--paper-ink)] shadow-[0_10px_28px_rgba(61,74,90,0.06)] card-hover"
           spotlight={false}
         >
           <div className="flex min-h-[46px] items-center gap-3">
