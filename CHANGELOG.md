@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### CI / 协作配套
+- ci: quality job 增加 `pnpm audit --registry=https://registry.npmjs.org --audit-level=high`（与 Chronicle 对齐）
+- docs: `docs/ops/cp-ci-audit-and-preview-prep-2026-07-23.md`（CI 说明 + Preview Stage A 前置 + **生产 CSP 未执行**）
+- chore: 新增 `CODE_OF_CONDUCT.md` · `.editorconfig`
+
 ### 搜索质量优化
 - feat: pgvector 语义搜索基础实现（BAAI/bge-small-zh-v1.5 本地嵌入微服务，端口 8003）
 - feat: BGE query prefix — 查询向量加中文检索前缀，文档向量不加

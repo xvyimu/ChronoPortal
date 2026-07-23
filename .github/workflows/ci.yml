@@ -26,6 +26,11 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # Security: audit dependencies — fail on high/critical (align Chronicle)
+      # Explicit registry.npmjs.org: local/user mirrors (e.g. npmmirror) often lack the audit API.
+      - name: Dependency audit (high+)
+        run: pnpm audit --registry=https://registry.npmjs.org --audit-level=high
+
       - name: ESLint
         run: pnpm run lint
 
