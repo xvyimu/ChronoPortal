@@ -50,7 +50,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="zh-CN" className="h-full antialiased" suppressHydrationWarning>
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <ThemeProvider>
+        <ThemeProvider nonce={nonce}>
           <WebVitals />
           <Providers>
             <AppChrome>{children}</AppChrome>
