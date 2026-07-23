@@ -64,6 +64,28 @@ describe("POST /api/csp-report", () => {
     expect(mocks.captureMessage).not.toHaveBeenCalled();
   });
 
+  it("applies a 60s window with max 60 attempts (not swapped args)", async () => {
+    const { POST } = await importRoute();
+    await POST(
+      new Request("http://localhost/api/csp-report", {
+        method: "POST",
+        headers: { "content-type": "application/csp-report" },
+        body: JSON.stringify({
+          "csp-report": {
+            "violated-directive": "script-src",
+            "blocked-uri": "inline",
+          },
+        }),
+      })
+    );
+
+    expect(mocks.checkDistributedRateLimit).toHaveBeenCalledWith(
+      "csp-report:203.0.113.50",
+      60_000,
+      60
+    );
+  });
+
   it("returns 204 for invalid JSON without throwing", async () => {
     const { POST } = await importRoute();
     const response = await POST(

@@ -23,7 +23,12 @@ type CspReportBody = {
  */
 export async function POST(request: Request) {
   const ip = getClientIp(request);
-  const { allowed } = await checkDistributedRateLimit(`csp-report:${ip}`, 60, 60_000);
+  // windowMs first, then maxAttempts (same order as search/favicon/web-vitals)
+  const { allowed } = await checkDistributedRateLimit(
+    `csp-report:${ip}`,
+    60_000,
+    60
+  );
   if (!allowed) {
     return new NextResponse(null, { status: 204 });
   }

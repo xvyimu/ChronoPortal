@@ -121,6 +121,47 @@ pnpm run probe:headers -- --base-url $BASE --compare-repo --json
 6. 填 runbook §8 执行记录。  
 7. Stage B（`CSP_SCRIPT_UNSAFE_INLINE=0`）**仅 Preview**，且须 Stage A 全绿。
 
+### 2.3.1 Stage A 操作核对表（2026-07-24 加深 · 仍不执行写 env）
+
+| 步 | 动作 | 验收 | 回滚 |
+|----|------|------|------|
+| A0 | 执行机 `curl -sI https://<preview>.vercel.app/` 非 timeout | HTTP 有状态行 | 不通则 **停止**，不写 env |
+| A1 | Dashboard/CLI **仅 Preview** 设 `CSP_DYNAMIC=1` | env 列表可见 Preview；Production 无该项 | 删 Preview 变量 |
+| A2 | Redeploy 该 Preview | `/build-info.json` commit 与 tip 一致 | Redeploy 旧 deployment |
+| A3 | `$BASE` 守卫 ≠ 生产域 | 脚本 `throw` 若等于 `yuanjia1314.ccwu.cc` | — |
+| A4 | 头：`Content-Security-Policy` 含 `nonce-`；阶段 A 可含 `'unsafe-inline'` | `curl -sI` / `probe:headers` | Preview R1：关 `CSP_DYNAMIC` |
+| A5 | HTML script 带匹配 nonce | `curl -s` 含 `nonce=` | 同 R1 |
+| A6 | 功能冒烟 A1–A3（首页/搜索/admin 登录） | 无 enforcing CSP block 红错 | 同 R1 |
+| A7 | （可选）Stage B 仅 Preview `CSP_SCRIPT_UNSAFE_INLINE=0` | A 全绿后才做 | R2：恢复 unsafe-inline |
+
+**Env 名 SSOT（勿写密钥）：**
+
+| 名 | Preview Stage A | Preview Stage B | Production（本预备 **禁止**） |
+|----|-----------------|-----------------|------------------------------|
+| `CSP_DYNAMIC` | `1` | `1` | 不写 |
+| `CSP_SCRIPT_UNSAFE_INLINE` | 默认 on | 可试 `0` | 不写 |
+| `CSP_REPORT_ONLY` | 默认 | 默认 | 不写 |
+
+**探针命令块（复制用）：**
+
+```powershell
+$PROD = "https://yuanjia1314.ccwu.cc"
+$BASE = "https://<preview-deployment>.vercel.app"  # 必填真实 Preview
+if ($BASE -eq $PROD) { throw "Refusing production base." }
+
+# 连通 + CSP 头
+curl.exe -sI --max-time 20 "$BASE/" | findstr /I "HTTP content-security-policy x-nonce"
+if ($LASTEXITCODE -ne 0) { throw "Preview unreachable or headers missing." }
+
+# 仓库对照探针
+pnpm run probe:headers -- --base-url $BASE --compare-repo --json
+
+# 对照：生产可达 ≠ Preview 通
+curl.exe -sS --max-time 15 "$PROD/build-info.json"
+```
+
+**明确：`CP_CSP_prod` 未执行。** 本表与 §3 均不授权 Production env 或默认策略变更。全日审查见 `docs/ops/cp-day-sec-surface-2026-07-24.md`。
+
 ### 2.4 本地替代证据（**不能**代替 Preview E2E）
 
 | 检查 | 命令 |
