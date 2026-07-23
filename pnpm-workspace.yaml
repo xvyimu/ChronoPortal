@@ -3,6 +3,9 @@ packages:
 allowBuilds:
   '@sentry/cli': true
   sharp: true
+minimumReleaseAgeExclude:
+  - lucide-react@1.26.0
+  - shadcn@4.14.0
 overrides:
   postcss: 8.5.15
   # Dependabot highs 2026-07-21 — force patched transitives
