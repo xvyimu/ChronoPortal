@@ -8,6 +8,10 @@ async function getHandler() {
 
 describe("favicon API", () => {
   beforeEach(() => {
+    // Host shells may inject real Upstash creds; force in-memory rate limit so
+    // fetch assertions only observe favicon upstream calls.
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
     vi.stubGlobal("fetch", vi.fn());
   });
 

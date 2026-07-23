@@ -111,11 +111,17 @@ describe("resource library API routes", () => {
     mocks.loggerError.mockReset();
     mocks.getEmbedding.mockReset();
     mocks.generateResourceEmbedding.mockReset();
+    // Host shells may inject real Upstash creds; force in-memory rate limit so
+    // fetch assertions only observe resource-library upstream calls.
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
   });
 
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
   });
 
   it("normalizes browse results and adds a short cache header", async () => {

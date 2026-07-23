@@ -76,12 +76,18 @@ describe("/api/search", () => {
     vi.clearAllMocks();
     delete process.env.EMBED_SERVER_URL;
     delete process.env.EMBED_SERVER_API_KEY;
+    // Host shells may inject real Upstash creds; force in-memory rate limit so
+    // fetch assertions only observe embed upstream calls.
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
     delete process.env.EMBED_SERVER_URL;
     delete process.env.EMBED_SERVER_API_KEY;
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
   });
 
   it("rejects oversized queries before loading search data", async () => {

@@ -166,6 +166,10 @@ describe("Search optimizations (7 optimizations)", () => {
 
     // Set loopback embed server so requests are allowed
     process.env.EMBED_SERVER_URL = "http://127.0.0.1:8003";
+    // Host shells may inject real Upstash creds; force in-memory rate limit so
+    // fetch call counts only observe embed upstream traffic.
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
 
     fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
@@ -174,6 +178,8 @@ describe("Search optimizations (7 optimizations)", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     delete process.env.EMBED_SERVER_URL;
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
   });
 
   // ── #1: BGE Query Prefix ───────────────────────────────────
