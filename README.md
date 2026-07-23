@@ -11,6 +11,17 @@
 > **许可 / 第三方：** [LICENSE](./LICENSE)（MIT）· [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)  
 > 身份卡：[GITHUB_IDENTITY.md](./GITHUB_IDENTITY.md)
 
+## 产品方案与文档地图
+
+| 文档 | 用途 |
+|------|------|
+| [`docs/PRODUCT-LAYERS.md`](./docs/PRODUCT-LAYERS.md) | 产品分层 **L0–L6**（**L0** 身份与边界 · **L4** 验收命令） |
+| [`docs/PROJECT.md`](./docs/PROJECT.md) | 形态与唯一技术栈 **SSOT**（换栈先 ADR） |
+| [`CONTRIBUTING.md`](./CONTRIBUTING.md) | 贡献：Issue / PR 与质量检查 |
+| [`SECURITY.md`](./SECURITY.md) | 安全漏洞报告（勿公开贴细节） |
+
+本地质量门闩与命令表见 PRODUCT-LAYERS **L4**；Agent 续作见 [`docs/AGENT-CONTINUE-2026-07-21.md`](./docs/AGENT-CONTINUE-2026-07-21.md)。
+
 ## 它是什么
 
 精选收录 AI 模型、云服务、开发工具、设计与开源资源的 **导航门户**：
@@ -142,6 +153,9 @@ node scripts/audit-edge-scripts.mjs
 
 | 文档 | 用途 |
 |------|------|
+| [`docs/PRODUCT-LAYERS.md`](./docs/PRODUCT-LAYERS.md) | 产品分层 L0–L6（身份 / 验收 / 路线图） |
+| [`docs/PROJECT.md`](./docs/PROJECT.md) | 形态与唯一技术栈 **SSOT** |
+| [`CONTRIBUTING.md`](./CONTRIBUTING.md) · [`SECURITY.md`](./SECURITY.md) | 贡献协作与安全漏洞报告 |
 | [`docs/AGENT-CONTINUE-2026-07-21.md`](./docs/AGENT-CONTINUE-2026-07-21.md) | Agent 续作 / 陷阱 / 命令 |
 | [`docs/csp-t9-decision-2026-07-22.md`](./docs/csp-t9-decision-2026-07-22.md) | CSP T9 评估：暂不去 unsafe-inline |
 | [`docs/PRODUCTION-RUNBOOK.md`](./docs/PRODUCTION-RUNBOOK.md) | 生产运维 |
