@@ -1,3 +1,4 @@
+import { cache } from "react";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import GitHub from "next-auth/providers/github";
@@ -89,6 +90,12 @@ export const { handlers, auth } = NextAuth({
   },
   trustHost: true,
 });
+
+/**
+ * Admin RSC 同请求 session 读：layout + page 共享一次 auth()。
+ * 不放宽鉴权；middleware / Route Handler 继续用裸 auth() / requireAdmin。
+ */
+export const getAdminSession = cache(async () => auth());
 
 /**
  * 静默捕获 authorize 抛出的 RateLimitExceeded，转成客户端可识别的错误

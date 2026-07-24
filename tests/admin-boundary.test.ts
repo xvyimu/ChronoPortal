@@ -62,5 +62,35 @@ describe("管理后台前后端 seam", () => {
       );
     }
   });
+
+  it("Admin RSC 经 getAdminSession 去重，且仍强制 role=admin", () => {
+    const authSource = readFileSync(
+      join(process.cwd(), "lib", "auth.ts"),
+      "utf8"
+    );
+    expect(authSource).toMatch(/from ["']react["']/);
+    expect(authSource).toContain("cache(");
+    expect(authSource).toContain("export const getAdminSession");
+    expect(authSource).toContain("auth()");
+
+    const rscFiles = [
+      ["layout.tsx"],
+      ["page.tsx"],
+      ["categories", "page.tsx"],
+      ["link-health", "page.tsx"],
+    ];
+
+    for (const segments of rscFiles) {
+      const source = readFileSync(
+        join(process.cwd(), "app", "admin", ...segments),
+        "utf8"
+      );
+      const label = segments.join("/");
+      expect(source, label).toContain("getAdminSession");
+      expect(source, label).not.toMatch(/\bawait auth\s*\(/);
+      expect(source, label).toMatch(/role\s*!==\s*["']admin["']/);
+      expect(source, label).toContain('redirect("/login")');
+    }
+  });
 });
 

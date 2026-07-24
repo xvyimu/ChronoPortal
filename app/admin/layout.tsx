@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowUpRight, Compass } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { getAdminSession } from "@/lib/auth";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AdminQueryProvider } from "@/components/admin/AdminQueryProvider";
 import LogoutButton from "@/components/admin/LogoutButton";
@@ -9,13 +9,14 @@ import LogoutButton from "@/components/admin/LogoutButton";
 /**
  * 管理后台布局：鉴权二次校验 + 侧栏/移动顶栏 + 唯一 main landmark（id=main-content）。
  * AppChrome 在 /admin 下不包 main，避免嵌套 landmark。
+ * session 经 getAdminSession（React.cache）与 page 同请求去重。
  */
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
+  const session = await getAdminSession();
   const role = session?.user?.role;
 
   // 纵深防御：middleware 已拦截，此处二次确认 role
