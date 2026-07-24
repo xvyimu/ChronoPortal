@@ -11,11 +11,11 @@
 
 | 项 | 值 |
 |----|-----|
-| 日序 | Day 0 续 · W1+W2 harvest · **W3+W4+W5 live=3** |
-| tip base | `df11a2f2` · features：W1 `96becf7c` · W2 `98170d9e`（均未合 master） |
-| live | **3** · `cp-links-pool` · `cp-admin-auth-dedupe` · `cp-typecheck-probe-headers` |
-| 已 harvest | scout · W1 · W2 |
-| 下一开 | 任一 DONE 后开 W6/W8（保持 live≤3） |
+| 日序 | Day 0 续 · **W1–W5 harvest** · **W6+W7+W8 live=3** |
+| tip base | `df11a2f2` · features 见 backlog 行 |
+| live | **3** · `cp-revalidate-tags` · `cp-search-payload` · `cp-webpack-lock-docs` |
+| 已 harvest | scout · W1–W5（`6015f650` typecheck0） |
+| 下一开 | W6/W7/W8 腾位 → W9/W10 |
 | INTEGRATE | W12 · 总控只写说明 · **不** merge master |
 
 ---
@@ -26,9 +26,12 @@
 |---|-----------|-------|-----------|------|------|------|
 | **W1** | M-CP-admin-lh-ssr | `cp-admin-lh-ssr` | link-health SSR/`initialData` 预取 · Panel 可 refresh/resolve · ADR-009 | 全量 Admin 重写 · RLS | evidence + vitest **0** · typecheck **2**（既有 probe 债→W5） | **DONE** · branch `xvyimu/cp-admin-lh-ssr` @ **`96becf7c`** · **pushed feature** · wt **rm** |
 | **W2** | M-CP-home-static-client | `cp-home-static-client` | 首页 RSC seed `?cat=`/`?q=` · 去无用 Suspense · url-state 可测 | 换 UI 栈 · 虚拟列表 | vitest **24** exit **0** · typecheck **2**（probe 既有） | **DONE** · `98170d9e` **pushed** · wt **rm** |
-| **W3** | M-CP-links-pool | `cp-links-pool` | 链接池/请求合并（`getApprovedLinks` 等并发去重/缓存边界） | 拆微服务 · Meili | 测或代码路径证明合并 · typecheck | **IN_PROGRESS** |
-| **W4** | M-CP-admin-auth-dedupe | `cp-admin-auth-dedupe` | Admin layout+page **重复 `auth()`** 去重（`cache`/thin getAdminSession） | 改登录产品逻辑 | typecheck + admin 边界测 | **IN_PROGRESS** |
-| **W5** | M-CP-typecheck-probe-headers | `cp-typecheck-probe-headers` | typecheck 债清扫 · `probe:headers` 本地/文档对齐 | 生产头 flip · 盲改平台层 | typecheck 0 · probe 命令 exit 记入 evidence | **IN_PROGRESS** |
+| **W3** | M-CP-links-pool | `cp-links-pool` | `coalesceInFlight` + getApprovedLinks | Meili | vitest **6** exit **0** | **DONE** · **`a3bd6e74`** pushed · rm |
+| **W4** | M-CP-admin-auth-dedupe | `cp-admin-auth-dedupe` | `getAdminSession`=cache(auth) · layout/pages | 改登录逻辑 | vitest admin-boundary **4** exit **0** | **DONE** · **`d6860240`** pushed · rm |
+| **W5** | M-CP-typecheck-probe-headers | `cp-typecheck-probe-headers` | ProbeEnv JSDoc · typecheck0 | 生产头 flip | typecheck **0** · probe 测 6/0 | **DONE** · **`6015f650`** pushed · rm |
+| **W6** | M-CP-revalidate-tags | `cp-revalidate-tags` | revalidate 标签合理化 | 绕 RLS | 契约测 · typecheck | **IN_PROGRESS** · nudged |
+| **W7** | M-CP-search-payload | `cp-search-payload` | Fuse/vector payload/超时降级 | Meili | search vitest · typecheck | **IN_PROGRESS** |
+| **W8** | M-CP-webpack-lock-docs | `cp-webpack-lock-docs` | scripts 锁 --webpack + 文档 | 改 bundler 默认 | scripts 断言 · docs | **IN_PROGRESS** · nudged |
 | **W6** | M-CP-revalidate-tags | `cp-revalidate-tags` | revalidate 标签合理化（Admin 写后路径） | **绕 RLS** · 乱扩公开 revalidate | 契约/边界测 · typecheck | queued |
 | **W7** | M-CP-search-payload | `cp-search-payload` | Fuse/vector 查询体积与超时降级（payload 瘦身/超时路径） | 上 Meili/ES · 无阈值全量拆池 | search 相关 vitest + typecheck | queued |
 | **W8** | M-CP-webpack-lock-docs | `cp-webpack-lock-docs` | scripts/文档 **锁 `--webpack`** · 防 Turbopack 默认漂移 | 默认改 bundler | package scripts 断言测或 docs 双锁 + typecheck | queued |
@@ -76,7 +79,7 @@ W12 总控收口
 | Day0 | W1 **`96becf7c`** harvest · push feature · rm |
 | Day0 | 开 W2 · 后 **`98170d9e`** harvest · push · rm |
 | Day0 | 开 **W3** `cp-links-pool` + **W4** `cp-admin-auth-dedupe` · live=2 · 关 MINGW |
-| Day0 | 7m 巡检：W3/W4 仍无 commit · nudge 收口 · 开 **W5** live=3 |
+| Day0 | 7m：W3/W4 harvest · 开 W6+W8 · W5 DONE **`6015f650`** typecheck0 · 开 W7 · live=3 |
 
 ---
 
