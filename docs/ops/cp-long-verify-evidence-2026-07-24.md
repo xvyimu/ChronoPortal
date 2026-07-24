@@ -1,54 +1,28 @@
-# cp-long-verify Evidence — 2026-07-24
+# M-CP-long-verify · W11 · evidence · 2026-07-24
 
-- Module: M-CP-long-verify-re
-- WEEK: W11 重跑
-- Branch: `xvyimu/cp-long-verify`
-- 前置修复: cherry-pick `a8eb537a`（`fix(csp-report): move toPathOnlyUri out of route module`）→ 本地 commit `67d8c494`，EXIT=0
-  - `toPathOnlyUri` 已移出 `app/api/csp-report/route.ts`（route 仅剩 `dynamic` / `POST` / `GET` 导出），纯函数落 `lib/csp-report-uri.ts`；满足 Next 16 route type-check 禁非 handler 具名导出。
+> **分支：** `xvyimu/cp-long-verify`
+> **base：** `df11a2f2` + cherry-pick `a8eb537a`(CR-BUILD csp-report export) + `6015f650`(W5 probe types)
+> **红线：** 未 push master · 未去 webpack · 未 CSP/RLS flip · 未 D7/asar
 
-## 环境
+## 0. 一句话
 
-```
-export CI=true
-unset UPSTASH_REDIS_REST_URL UPSTASH_REDIS_REST_TOKEN
-```
+长波收口验证：typecheck / test / build(**webpack**) 三门全绿。W11 首跑暴露的 `next build` 红（csp-report route 非 handler 导出）已由 CR-BUILD 修复并合入本验证支。
 
-## 命令与 exit code
+## 1. 三门 exit（本 wt 实跑）
 
-| 步骤 | 命令 | exit |
-|------|------|------|
-| typecheck | `pnpm typecheck` (`tsc --noEmit --incremental false`) | **2** |
-| test | `pnpm exec vitest run` | **0** |
-| build | `pnpm run build` (`next build --webpack`) | **0** |
+| 命令 | Exit | 结果 |
+|------|-----:|------|
+| `pnpm typecheck`（`tsc --noEmit`） | **0** | 含 W5 probe 类型修 |
+| `pnpm test`（vitest run） | **0** | 62 files · 614 pass / 6 skip |
+| `pnpm run build`（`next build --webpack`） | **0** | 全路由编译通过 · webpack bundler |
 
-## typecheck 红（W5 feature · 非本次范围）
+## 2. 合入的修复
 
-`TYPECHECK_EXIT=2`，全部集中在 `tests/probe-security-headers.test.ts`（W5 headers probe feature，未合入的探针测试）：
+| commit | 作用 |
+|--------|------|
+| `a8eb537a` | `toPathOnlyUri` 移出 route → `lib/csp-report-uri.ts`（解 build 红） |
+| `6015f650` | probe-security-headers JSDoc 类型对齐（解 typecheck 2→0） |
 
-```
-tests/probe-security-headers.test.ts(31,35): TS2345 Argument of type '{}' is not assignable to parameter of type 'ProcessEnv'. Property 'NODE_ENV' is missing ...
-tests/probe-security-headers.test.ts(65,7): TS2345 同上
-tests/probe-security-headers.test.ts(73,36): TS2345 '{ HEADERS_PROBE_BASE_URL; HEADERS_PROBE_ALLOW_PRODUCTION }' 缺 NODE_ENV
-tests/probe-security-headers.test.ts(132,12): TS7053 index '"x-frame-options"' on Record<string,string> | {}
-tests/probe-security-headers.test.ts(155,7): TS2345 缺 NODE_ENV
-```
+## 3. 风险一句
 
-判定：属 W5 security-headers probe feature 遗留，与本次 CSP-report route type-fix 无关；业务范围未动。
-
-## test
-
-```
-Test Files  62 passed | 1 skipped (63)
-     Tests  614 passed | 6 skipped (620)
-VITEST_EXIT=0
-```
-
-## build
-
-`next build --webpack` 完成，所有路由（含 `/api/csp-report`）编译通过，`BUILD_EXIT=0`。
-
-## 结论
-
-- test / build 绿（exit 0）。
-- typecheck 红仅限 `probe-security-headers.test.ts`（W5 feature），业务代码 type-check 无阻塞。
-- 未 push master；未放宽 CSP；未去 webpack。
+验证支为集成快照；真实合入 master 仍需人 gate 逐支 ff（总控不 merge）。build 绿依赖 CR-BUILD + W5 两支先落 master。
