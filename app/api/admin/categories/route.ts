@@ -32,6 +32,6 @@ export const POST = withAdminWrite(createCategorySchema, async ({ parsed }) => {
     sort_order: parsed.sort_order,
     parent_id: parsed.parent_id ?? null,
   });
-  revalidatePublicNavContent();
+  revalidatePublicNavContent({ reason: "category" });
   return NextResponse.json({ category });
 });

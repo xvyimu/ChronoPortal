@@ -7,14 +7,14 @@ import { revalidatePublicNavContent } from "@/lib/admin/revalidate-public";
 /** 更新指定 UUID 的管理链接。 */
 export const PUT = withAdminIdWrite(updateLinkSchema, async ({ parsed, id }) => {
   const link = await updateLink(id, parsed);
-  revalidatePublicNavContent({ slug: link.slug });
+  revalidatePublicNavContent({ reason: "link", slug: link.slug });
   return NextResponse.json({ link });
 });
 
 /** 删除指定 UUID 的管理链接。 */
 export const DELETE = withAdminIdDelete(async ({ id }) => {
   await deleteLink(id);
-  // 删除后刷首页/站点地图；slug 未知时仍失效列表页
-  revalidatePublicNavContent();
+  // 删除后刷首页/站点地图；slug 未知时仍失效列表页（不扫 tool 详情）
+  revalidatePublicNavContent({ reason: "link" });
   return NextResponse.json({ success: true });
 });

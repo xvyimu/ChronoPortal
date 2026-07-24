@@ -17,13 +17,13 @@ export const PUT = withAdminIdWrite(updateTagSchema, async ({ parsed, id }) => {
   }
 
   const tag = await updateTag(id, updateInput);
-  revalidatePublicNavContent();
+  revalidatePublicNavContent({ reason: "tag" });
   return NextResponse.json({ tag });
 });
 
 /** 删除指定 UUID 的管理标签。 */
 export const DELETE = withAdminIdDelete(async ({ id }) => {
   await deleteTag(id);
-  revalidatePublicNavContent();
+  revalidatePublicNavContent({ reason: "tag" });
   return NextResponse.json({ success: true });
 });

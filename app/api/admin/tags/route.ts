@@ -13,6 +13,6 @@ export const GET = withAdminGet(async () => {
 /** 创建经过 contract 校验的管理标签。 */
 export const POST = withAdminWrite(createTagSchema, async ({ parsed }) => {
   const tag = await createTag(parsed);
-  revalidatePublicNavContent();
+  revalidatePublicNavContent({ reason: "tag" });
   return NextResponse.json({ tag });
 });

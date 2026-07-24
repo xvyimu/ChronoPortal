@@ -50,6 +50,6 @@ export const POST = withAdminWrite(createLinkSchema, async ({ parsed }) => {
     featured: parsed.featured,
     tag_ids: parsed.tag_ids,
   });
-  revalidatePublicNavContent({ slug: link.slug });
+  revalidatePublicNavContent({ reason: "link", slug: link.slug });
   return NextResponse.json({ link });
 });
