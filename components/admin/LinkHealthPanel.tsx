@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -13,20 +13,33 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import type { LinkHealthFinding } from "@/lib/admin/link-health-types";
 
-type ListResponse = {
-  findings: LinkHealthFinding[];
-  meta: {
-    openCount: number;
-    unavailable?: boolean;
-    detail?: string;
-  };
+type ListMeta = {
+  openCount: number;
+  unavailable?: boolean;
+  detail?: string;
 };
 
+type ListResponse = {
+  findings: LinkHealthFinding[];
+  meta: ListMeta;
+};
+
+interface LinkHealthPanelProps {
+  /** RSC 预取的 open findings（与 GET /api/admin/link-health 同源 contract）。 */
+  initialFindings: LinkHealthFinding[];
+  initialMeta: ListMeta;
+}
+
 /** Client table for open link-health findings with resolve action. */
-export function LinkHealthPanel() {
-  const [findings, setFindings] = useState<LinkHealthFinding[]>([]);
-  const [meta, setMeta] = useState<ListResponse["meta"] | null>(null);
-  const [loading, setLoading] = useState(true);
+export function LinkHealthPanel({
+  initialFindings,
+  initialMeta,
+}: LinkHealthPanelProps) {
+  const [findings, setFindings] =
+    useState<LinkHealthFinding[]>(initialFindings);
+  const [meta, setMeta] = useState<ListMeta>(initialMeta);
+  // 首屏已有 SSR 数据；仅手动刷新时进入 loading。
+  const [loading, setLoading] = useState(false);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -43,24 +56,16 @@ export function LinkHealthPanel() {
             ? String((body as { error?: string }).error)
             : `加载失败 (${res.status})`
         );
-        setFindings([]);
-        setMeta(null);
         return;
       }
       setFindings(body.findings ?? []);
       setMeta(body.meta ?? { openCount: 0 });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "加载失败");
-      setFindings([]);
-      setMeta(null);
     } finally {
       setLoading(false);
     }
   }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
 
   async function resolveFinding(id: string) {
     setResolvingId(id);
@@ -85,11 +90,10 @@ export function LinkHealthPanel() {
       }
       toast.success("已标记为已处理");
       setFindings((prev) => prev.filter((f) => f.id !== id));
-      setMeta((prev) =>
-        prev
-          ? { ...prev, openCount: Math.max(0, (prev.openCount ?? 1) - 1) }
-          : prev
-      );
+      setMeta((prev) => ({
+        ...prev,
+        openCount: Math.max(0, (prev.openCount ?? 1) - 1),
+      }));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "操作失败");
     } finally {
