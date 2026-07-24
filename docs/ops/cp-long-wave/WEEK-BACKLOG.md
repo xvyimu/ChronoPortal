@@ -11,11 +11,12 @@
 
 | 项 | 值 |
 |----|-----|
-| 日序 | Day 0 续 · **W1–W8 harvest** · **W9+W10 live** |
-| tip base | `df11a2f2` · features 见 backlog 行 |
-| live | **2** · `cp-csp-sentry-vitals` · `cp-admin-bundle-split` |
-| 已 harvest | scout · **W1–W8**（含 W7 `ce4c0443`） |
-| 下一开 | W9/W10 DONE → **W11** long-verify · **W12** INTEGRATE |
+| 日序 | Day 0 续 · **W1–W9 harvest** · **W10 + CR-002 + CR-004 live=3** |
+| tip base | `df11a2f2` · features 见 backlog |
+| live | **3** · `cp-admin-bundle-split` · `cp-cr-rate-limit-ops` · `cp-cr-service-role-checklist` |
+| 已 harvest | scout · **W1–W9**（W9 `11520432` NOT_RELAXED） |
+| findings | `FINDINGS-TRIAGE.md` · P0 无 · CR-001 DEFER · CR-002/004 开修 |
+| 下一开 | W10/CR 腾位 → W11 verify · W12 INTEGRATE · CR-005 docs |
 | INTEGRATE | W12 · 总控只写说明 · **不** merge master |
 
 ---
@@ -32,8 +33,10 @@
 | **W6** | M-CP-revalidate-tags | `cp-revalidate-tags` | reason→path 矩阵 · tag 不扫 sitemap | 绕 RLS | vitest **9** exit **0** | **DONE** · **`83ec908d`** pushed · rm |
 | **W7** | M-CP-search-payload | `cp-search-payload` | Fuse limit + semantic cap80 + 2.5s timeout 降级 | Meili | vitest **31** exit **0** | **DONE** · **`ce4c0443`** pushed · rm |
 | **W8** | M-CP-webpack-lock-docs | `cp-webpack-lock-docs` | webpack-scripts-lock 契约测 + docs | 改 bundler 默认 | vitest **2** exit **0** | **DONE** · **`11515f0e`** pushed · rm |
-| **W9** | M-CP-csp-sentry-vitals | `cp-csp-sentry-vitals` | 观测完善 · **不放宽 CSP** | 生产 flip | 相关 vitest · NOT_RELAXED | **IN_PROGRESS** |
-| **W10** | M-CP-admin-bundle-split | `cp-admin-bundle-split` | 重 Admin dynamic import | 功能重写 | typecheck · vitest | **IN_PROGRESS** |
+| **W9** | M-CP-csp-sentry-vitals | `cp-csp-sentry-vitals` | csp-report 脱敏 · web-vitals 可测 · **NOT_RELAXED** | 生产 CSP flip | vitest **30** exit **0** | **DONE** · **`11520432`** pushed · rm |
+| **W10** | M-CP-admin-bundle-split | `cp-admin-bundle-split` | 重 Admin dynamic import | 功能重写 | typecheck · vitest | **IN_PROGRESS** · nudged |
+| **CR-002** | M-CP-cr-rate-limit-ops | `cp-cr-rate-limit-ops` | Upstash/fail-closed **docs only** | 生产 env flip | evidence | **IN_PROGRESS** |
+| **CR-004** | M-CP-cr-service-role-checklist | `cp-cr-service-role-checklist` | service_role session 纪律清单 | 扩 service_role | evidence · 可选测 | **IN_PROGRESS** |
 | **W6** | M-CP-revalidate-tags | `cp-revalidate-tags` | revalidate 标签合理化（Admin 写后路径） | **绕 RLS** · 乱扩公开 revalidate | 契约/边界测 · typecheck | queued |
 | **W7** | M-CP-search-payload | `cp-search-payload` | Fuse/vector 查询体积与超时降级（payload 瘦身/超时路径） | 上 Meili/ES · 无阈值全量拆池 | search 相关 vitest + typecheck | queued |
 | **W8** | M-CP-webpack-lock-docs | `cp-webpack-lock-docs` | scripts/文档 **锁 `--webpack`** · 防 Turbopack 默认漂移 | 默认改 bundler | package scripts 断言测或 docs 双锁 + typecheck | queued |

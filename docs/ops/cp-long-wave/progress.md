@@ -47,8 +47,10 @@
 | cp-revalidate-tags | (removed) | DONE | 0 | **`83ec908d`** |
 | cp-search-payload | (removed) | DONE | 0 | **`ce4c0443`** |
 | cp-webpack-lock-docs | (removed) | DONE | 0 | **`11515f0e`** |
-| **cp-csp-sentry-vitals** | xvyimu/cp-csp-sentry-vitals | in-progress | 1 | **W9 live** |
+| cp-csp-sentry-vitals | (removed) | DONE | 0 | **`11520432`** NOT_RELAXED |
 | **cp-admin-bundle-split** | xvyimu/cp-admin-bundle-split | in-progress | 1 | **W10 live** |
+| **cp-cr-rate-limit-ops** | xvyimu/cp-cr-rate-limit-ops | in-progress | 1 | **CR-002 live** |
+| **cp-cr-service-role-checklist** | xvyimu/cp-cr-service-role-checklist | in-progress | 1 | **CR-004 live** |
 
 ---
 
@@ -101,7 +103,7 @@
 | Phase0 scout | **DONE** |
 | G0 | **DONE**（C′ · 一周续航） |
 | Phase1 ACCEPTANCE | 见 §7 · 随模块 evidence |
-| Phase2 模块 | **W1–W8 DONE** · **W9+W10 live** · 见 `WEEK-BACKLOG.md` |
+| Phase2 模块 | **W1–W9 DONE** · **W10 + CR-002 + CR-004 live=3** · findings 见 `FINDINGS-TRIAGE.md` |
 | Phase3 verify | W11 |
 | Phase4 INTEGRATE | W12 · 只写 `INTEGRATE.md` · 不 merge |
 
@@ -138,7 +140,8 @@
 | T6 | 7m 巡检 | W3/W4 无 commit → nudge · 开 W5 · live=3 满 |
 | T7 | harvest W3/W4 | a3bd6e74 / d6860240 · vitest 0 · push · rm · 开 W6+W8 · nudge W5 |
 | T8 | harvest W5 | **`6015f650`** typecheck0 · push · rm · 开 W7 · live W6+W7+W8 |
-| T9 | harvest W6/W8/W7 | `83ec908d` / `11515f0e` / `ce4c0443` · 开 W9+W10 · live=2 |
+| T9 | harvest W6/W8/W7 | `83ec908d` / `11515f0e` / `ce4c0443` · 开 W9+W10 |
+| T10 | findings 审查驱动 | P0 无 · W9 harvest · 开 `cp-cr-rate-limit-ops` + `cp-cr-service-role-checklist` · live=3 |
 
 ---
 
