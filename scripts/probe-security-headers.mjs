@@ -58,6 +58,28 @@ export const REPO_HEADER_CONTRACT = {
 
 const TRUE_VALUES = new Set(["1", "true", "yes", "on"]);
 
+/**
+ * Injectable env bag for tests and CLI.
+ * Prefer Dict over ProcessEnv so callers can pass partial stubs without NODE_ENV.
+ *
+ * @typedef {NodeJS.Dict<string>} ProbeEnv
+ */
+
+/**
+ * @typedef {{
+ *   ok: boolean,
+ *   blocked: boolean,
+ *   reason?: string | null,
+ *   host: string | null,
+ *   baseUrl: string,
+ *   path: string,
+ *   url?: string,
+ *   status: number | null,
+ *   headers: Record<string, string>,
+ *   compare: { header: string, expected: string, actual: string | null, match: boolean }[],
+ * }} ProbeResult
+ */
+
 function normalize(value) {
   return typeof value === "string" ? value.toLowerCase() : "";
 }
@@ -82,8 +104,8 @@ export function parsePositiveNumber(value, fallback) {
 }
 
 /**
- * @param {string[]} args
- * @param {NodeJS.ProcessEnv} [env]
+ * @param {string[]} [args]
+ * @param {ProbeEnv} [env]
  */
 export function readConfig(args = process.argv.slice(2), env = process.env) {
   if (args.includes("--help") || args.includes("-h")) {
@@ -248,13 +270,14 @@ export function compareToRepoContract(live, contract = REPO_HEADER_CONTRACT) {
 }
 
 /**
- * @param {object} opts
- * @param {string} opts.baseUrl
+ * @param {object} [opts]
+ * @param {string} [opts.baseUrl]
  * @param {string} [opts.path]
  * @param {number} [opts.timeoutMs]
  * @param {boolean} [opts.allowProduction]
  * @param {boolean} [opts.compareRepo]
  * @param {typeof fetch} [opts.fetchImpl]
+ * @returns {Promise<ProbeResult>}
  */
 export async function probeSecurityHeaders({
   baseUrl,
@@ -274,6 +297,7 @@ export async function probeSecurityHeaders({
       baseUrl,
       path,
       status: null,
+      /** @type {Record<string, string>} */
       headers: {},
       compare: [],
     };
@@ -325,6 +349,7 @@ export async function probeSecurityHeaders({
       baseUrl,
       path,
       status: null,
+      /** @type {Record<string, string>} */
       headers: {},
       compare: [],
     };
@@ -403,6 +428,11 @@ Examples:
 `);
 }
 
+/**
+ * @param {string[]} [args]
+ * @param {ProbeEnv} [env]
+ * @returns {Promise<number>}
+ */
 export async function main(args = process.argv.slice(2), env = process.env) {
   const config = readConfig(args, env);
   if (config.help) {
