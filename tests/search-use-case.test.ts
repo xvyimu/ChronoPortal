@@ -271,6 +271,38 @@ describe("executeSearch", () => {
     expect(body.results.length).toBeGreaterThan(0);
   });
 
+  it("degrades to Fuse with semantic_timeout when the semantic adapter times out", async () => {
+    const { SemanticSearchTimeoutError } = await import("@/lib/search/semantic");
+    const loggerWarn = vi.fn<SearchAdapters["logger"]["warn"]>();
+    const adapters = createAdapters({
+      getEmbedding: vi.fn(async () => Array(512).fill(0.1)),
+      searchSemantic: vi.fn(async () => {
+        throw new SemanticSearchTimeoutError(2_500);
+      }),
+      logger: { warn: loggerWarn },
+    });
+
+    const result = await executeSearch({
+      params: makeParams({ q: "openai", semantic: true }),
+      requestId: "req-semantic-timeout",
+      startedAt: 10_000,
+      adapters,
+    });
+    const body = expectSuccessBody(result.body);
+
+    expect(result.status).toBe(200);
+    expect(body.mode).toBe("semantic");
+    expect(body.fallbackReason).toBe("semantic_timeout");
+    expect(body.results.length).toBeGreaterThan(0);
+    expect(loggerWarn).toHaveBeenCalledWith(
+      "Search API semantic timeout; degraded to Fuse",
+      expect.objectContaining({
+        event: "semantic_timeout",
+        requestId: "req-semantic-timeout",
+      })
+    );
+  });
+
   it("starts embedding generation in parallel with loading the search pool", async () => {
     let releasePool!: (value: Awaited<ReturnType<SearchAdapters["getSearchPool"]>>) => void;
     const getSearchPool = vi.fn(() => new Promise<Awaited<ReturnType<SearchAdapters["getSearchPool"]>>>((resolve) => {

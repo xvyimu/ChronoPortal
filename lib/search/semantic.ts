@@ -1,5 +1,6 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { logger } from "@/lib/logger";
+import { withTimeout } from "@/lib/utils";
 import {
   generateEmbedding,
   getEmbeddingCacheEndpoint,
@@ -17,12 +18,43 @@ import type { SearchResult, SemanticRow } from "./types";
  * 2. Supabase 的语义 RPC（service_role 客户端调用；名称由 EMBED_SEMANTIC_RPC 决定）。
  *
  * 任意一处失败都返回空数组，让上层降级为纯 Fuse 排序，
- * 不会把 5xx 抛到路由层。
+ * 不会把 5xx 抛到路由层。超时抛 `SemanticSearchTimeoutError`，
+ * 让 use-case 区分 `semantic_timeout` 与 `semantic_empty`。
  */
 
 const MIN_SEMANTIC_SIMILARITY = 0.35;
 const EMBED_UNAVAILABLE_TTL_MS = 30_000;
 const EMBED_WARNING_THROTTLE_MS = 60_000;
+/** Cap pgvector candidate volume (W7). Category filter still expands, but never past this. */
+export const SEMANTIC_MATCH_COUNT_MAX = 80;
+/** Soft ceiling on RPC wait; timeout → fuse-only degrade, not 5xx. */
+export const SEMANTIC_RPC_TIMEOUT_MS = 2_500;
+
+export class SemanticSearchTimeoutError extends Error {
+  readonly code = "semantic_timeout" as const;
+
+  constructor(ms: number = SEMANTIC_RPC_TIMEOUT_MS) {
+    super(`Semantic RPC timed out after ${ms}ms`);
+    this.name = "SemanticSearchTimeoutError";
+  }
+}
+
+export function isSemanticSearchTimeoutError(error: unknown): error is SemanticSearchTimeoutError {
+  return error instanceof SemanticSearchTimeoutError;
+}
+
+/**
+ * Bound the RPC `match_count` so category-filtered searches do not request
+ * unbounded pgvector payloads. Floor of 20 keeps small limits useful;
+ * category multiplies candidates (×4) then clamps to SEMANTIC_MATCH_COUNT_MAX.
+ */
+export function resolveSemanticMatchCount(limit: number, category?: string): number {
+  const base = Math.max(1, Math.min(Math.trunc(limit) || 1, SEMANTIC_MATCH_COUNT_MAX));
+  if (category && category !== "all") {
+    return Math.min(Math.max(base * 4, 20), SEMANTIC_MATCH_COUNT_MAX);
+  }
+  return Math.min(Math.max(base, 1), SEMANTIC_MATCH_COUNT_MAX);
+}
 
 /** 默认 512-d embed-server RPC；切到 Cloudflare 1024-d 时设 EMBED_SEMANTIC_RPC=search_links_semantic_v2 */
 const DEFAULT_SEMANTIC_RPC = "search_links_semantic";
@@ -136,15 +168,36 @@ export async function searchSemantic(
 ): Promise<SearchResult[]> {
   try {
     const supabase = createServiceRoleClient();
-    const matchCount =
-      category && category !== "all"
-        ? Math.min(Math.max(limit * 10, 50), 200)
-        : limit;
+    const matchCount = resolveSemanticMatchCount(limit, category);
 
-    const { data, error } = await supabase.rpc(getSemanticRpcName(), {
-      query_embedding: embedding,
-      match_count: matchCount,
-    });
+    let data: unknown;
+    let error: { message?: string } | null = null;
+    try {
+      const rpcResult = await withTimeout(
+        supabase.rpc(getSemanticRpcName(), {
+          query_embedding: embedding,
+          match_count: matchCount,
+        }),
+        SEMANTIC_RPC_TIMEOUT_MS,
+        `Semantic RPC timed out after ${SEMANTIC_RPC_TIMEOUT_MS}ms`
+      );
+      data = rpcResult.data;
+      error = rpcResult.error;
+    } catch (timeoutErr) {
+      // Distinguish timeout so the use-case can set fallbackReason=semantic_timeout.
+      if (
+        timeoutErr instanceof Error &&
+        /timed out after/i.test(timeoutErr.message)
+      ) {
+        warnThrottled("semantic:rpc:timeout", "Semantic search RPC timed out", {
+          source: "api-search",
+          matchCount,
+          timeoutMs: SEMANTIC_RPC_TIMEOUT_MS,
+        });
+        throw new SemanticSearchTimeoutError(SEMANTIC_RPC_TIMEOUT_MS);
+      }
+      throw timeoutErr;
+    }
 
     if (error) {
       logger.error("Semantic search RPC failed", { source: "api-search" }, error);
@@ -196,6 +249,7 @@ export async function searchSemantic(
         };
       });
   } catch (e) {
+    if (isSemanticSearchTimeoutError(e)) throw e;
     logger.error("Semantic search failed", { source: "api-search" }, e instanceof Error ? e : undefined);
     return [];
   }

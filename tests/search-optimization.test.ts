@@ -336,7 +336,8 @@ describe("Search optimizations (7 optimizations)", () => {
     expect(response.status).toBe(200);
     expect(rpc).toHaveBeenCalledWith(
       "search_links_semantic",
-      expect.objectContaining({ match_count: 50 })
+      // W7: category expands to max(limit*4, 20) and clamps at 80 (was limit*10/50/200).
+      expect.objectContaining({ match_count: 20 })
     );
   });
 

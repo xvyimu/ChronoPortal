@@ -84,7 +84,10 @@ export const searchApiSuccessSchema = z.object({
   recommendations: z.array(searchNavLinkSchema),
   expandedTerms: z.array(z.string()),
   appliedSynonyms: z.array(z.string()),
-  fallbackReason: z.enum(["short_query", "embedding_unavailable", "semantic_empty"]).nullable().optional(),
+  fallbackReason: z
+    .enum(["short_query", "embedding_unavailable", "semantic_empty", "semantic_timeout"])
+    .nullable()
+    .optional(),
 });
 
 export type SearchApiSuccess = z.infer<typeof searchApiSuccessSchema>;

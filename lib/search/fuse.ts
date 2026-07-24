@@ -158,7 +158,9 @@ export function searchFuseTerms(
 
   for (const term of queryTerms) {
     if (!term) continue;
-    for (const result of fuse.search(term).slice(0, limit)) {
+    // Fuse limit trims the candidate scan early — avoids materializing the full
+    // scored list when the pool is large (W7 payload shrink).
+    for (const result of fuse.search(term, { limit })) {
       const existing = byId.get(result.item.id);
       if (!existing || (result.score ?? 1) < (existing.score ?? 1)) {
         byId.set(result.item.id, result);

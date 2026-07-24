@@ -50,6 +50,7 @@ export type SemanticFallbackReason =
   | "short_query"
   | "embedding_unavailable"
   | "semantic_empty"
+  | "semantic_timeout"
   | null;
 
 export interface SearchSuccessBody {

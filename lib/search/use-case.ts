@@ -9,7 +9,11 @@ import {
 import { getSearchPool, searchFuseTerms, toFuseResults } from "@/lib/search/fuse";
 import { decorateResults, mergeResults } from "@/lib/search/merge";
 import { searchLogContext } from "@/lib/search/params";
-import { getEmbedding, searchSemantic } from "@/lib/search/semantic";
+import {
+  getEmbedding,
+  isSemanticSearchTimeoutError,
+  searchSemantic,
+} from "@/lib/search/semantic";
 import type {
   SearchParams,
   SearchResponseModel,
@@ -104,12 +108,33 @@ export async function executeSearch({
       if (q.length >= MIN_SEMANTIC_QUERY_LENGTH) {
         const embedding = prefetchedEmbedding;
         if (embedding) {
-          semanticResults = await adapters.searchSemantic(embedding, limit, category, linksById);
-          semanticResults = semanticResults.filter((result) => {
-            const link = linksById.get(result.id);
-            return link ? applySearchFilters([link], filters).length > 0 : false;
-          });
-          if (semanticResults.length === 0) fallbackReason = "semantic_empty";
+          try {
+            semanticResults = await adapters.searchSemantic(
+              embedding,
+              limit,
+              category,
+              linksById
+            );
+            semanticResults = semanticResults.filter((result) => {
+              const link = linksById.get(result.id);
+              return link ? applySearchFilters([link], filters).length > 0 : false;
+            });
+            if (semanticResults.length === 0) fallbackReason = "semantic_empty";
+          } catch (semanticError) {
+            // Timeout → fuse-only degrade with an explicit reason; other errors
+            // still surface as empty semantic candidates (existing fail-open).
+            if (isSemanticSearchTimeoutError(semanticError)) {
+              fallbackReason = "semantic_timeout";
+              semanticResults = [];
+              adapters.logger.warn("Search API semantic timeout; degraded to Fuse", {
+                source: "api-search",
+                event: "semantic_timeout",
+                requestId,
+              });
+            } else {
+              throw semanticError;
+            }
+          }
         } else {
           fallbackReason = "embedding_unavailable";
         }
