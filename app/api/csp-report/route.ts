@@ -9,6 +9,8 @@ export const dynamic = "force-dynamic";
 /** Soft cap so a misbehaving browser cannot flood logs. */
 const MAX_BODY_BYTES = 8_192;
 const SAMPLE_EVERY = 20;
+/** Bound log/Sentry URI fields (data: payloads can be huge even path-only). */
+const MAX_URI_CHARS = 200;
 
 type CspReportBody = {
   "csp-report"?: Record<string, unknown>;
@@ -17,22 +19,37 @@ type CspReportBody = {
 
 /**
  * Path-only URI for logs/Sentry: drop query + hash (tokens/PII often ride there).
- * Keywords / non-URL CSP values (inline, eval, data:…) fall back to string strip.
+ * Collapse opaque schemes (data:/blob:) to scheme only; cap length.
+ * Keywords / non-URL CSP values (inline, eval, …) fall back to string strip.
  */
 export function toPathOnlyUri(value: unknown): string {
   if (value == null) return "";
   const raw = String(value).trim();
   if (!raw) return "";
+
+  // data:/blob: bodies are not useful for clustering and can leak embedded content.
+  const schemeMatch = /^([a-z][a-z0-9+.-]*):/i.exec(raw);
+  if (schemeMatch) {
+    const scheme = schemeMatch[1].toLowerCase();
+    if (scheme === "data" || scheme === "blob") {
+      return `${scheme}:`;
+    }
+  }
+
+  let pathOnly: string;
   try {
     const u = new URL(raw);
     u.search = "";
     u.hash = "";
-    return u.href;
+    pathOnly = u.href;
   } catch {
     const noHash = raw.includes("#") ? raw.slice(0, raw.indexOf("#")) : raw;
     const q = noHash.indexOf("?");
-    return q === -1 ? noHash : noHash.slice(0, q);
+    pathOnly = q === -1 ? noHash : noHash.slice(0, q);
   }
+
+  if (pathOnly.length <= MAX_URI_CHARS) return pathOnly;
+  return `${pathOnly.slice(0, MAX_URI_CHARS)}…`;
 }
 
 /**
@@ -90,35 +107,34 @@ export async function POST(request: Request) {
   }
 
   // Sanitize only at emit time (sampling above may still use raw for stability).
+  // Do not emit original-policy: full CSP strings are large, env-specific noise, not needed for clustering.
   const documentUri = toPathOnlyUri(report["document-uri"] ?? report["documentURI"]);
   const blockedUri = toPathOnlyUri(blocked);
   const disposition = String(report["disposition"] ?? "report");
   const context = {
     source: "csp-report",
     documentUri,
-    violatedDirective: directive,
+    violatedDirective: directive.slice(0, 64) || "unknown",
     blockedUri,
-    originalPolicy: report["original-policy"] ?? undefined,
-    disposition,
+    disposition: disposition.slice(0, 32),
   };
 
   logger.warn("CSP report-only violation (sampled)", context);
 
   // Mirror web-vitals: tags for Sentry Issues aggregation; no DB write.
   try {
-    captureMessage(`csp-report: ${directive || "unknown"}`, {
+    captureMessage(`csp-report: ${context.violatedDirective}`, {
       level: "warning",
       tags: {
         source: "csp-report",
-        violatedDirective: directive.slice(0, 64) || "unknown",
-        disposition: disposition.slice(0, 32),
+        violatedDirective: context.violatedDirective,
+        disposition: context.disposition,
       },
       extra: {
         documentUri,
         blockedUri,
-        originalPolicy: report["original-policy"] ?? undefined,
       },
-      fingerprint: ["csp-report", directive || "unknown", blockedUri.slice(0, 120) || "none"],
+      fingerprint: ["csp-report", context.violatedDirective, blockedUri.slice(0, 120) || "none"],
     });
   } catch {
     // Never fail the browser report endpoint because of Sentry.

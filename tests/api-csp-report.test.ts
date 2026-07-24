@@ -184,6 +184,14 @@ describe("POST /api/csp-report", () => {
     );
     expect(toPathOnlyUri("inline")).toBe("inline");
     expect(toPathOnlyUri("https://evil.example/x?a=1#h")).toBe("https://evil.example/x");
+    expect(toPathOnlyUri("data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==")).toBe(
+      "data:"
+    );
+    expect(toPathOnlyUri("blob:https://example.com/uuid-here")).toBe("blob:");
+    const longPath = `https://example.com/${"a".repeat(300)}`;
+    const capped = toPathOnlyUri(longPath);
+    expect(capped.endsWith("…")).toBe(true);
+    expect(capped.length).toBe(201); // 200 + ellipsis
 
     let logged = false;
     for (let i = 0; i < 40; i += 1) {
@@ -199,6 +207,7 @@ describe("POST /api/csp-report", () => {
               "violated-directive": "script-src",
               // vary blocked-uri so sampling eventually hits
               "blocked-uri": `https://evil.example/x?a=1#h-${i}`,
+              "original-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.example",
             },
           }),
         })
@@ -209,19 +218,65 @@ describe("POST /api/csp-report", () => {
         const context = mocks.loggerWarn.mock.calls[0]?.[1] as {
           documentUri?: string;
           blockedUri?: string;
+          originalPolicy?: unknown;
         };
         expect(context.documentUri).toBe("https://example.com/page");
         expect(context.blockedUri).toBe("https://evil.example/x");
         expect(context.documentUri).not.toMatch(/[?#]/);
         expect(context.blockedUri).not.toMatch(/[?#]/);
+        expect(context).not.toHaveProperty("originalPolicy");
 
         const sentryExtra = mocks.captureMessage.mock.calls[0]?.[1] as {
-          extra?: { documentUri?: string; blockedUri?: string };
+          extra?: { documentUri?: string; blockedUri?: string; originalPolicy?: unknown };
           fingerprint?: string[];
         };
         expect(sentryExtra.extra?.documentUri).toBe("https://example.com/page");
         expect(sentryExtra.extra?.blockedUri).toBe("https://evil.example/x");
+        expect(sentryExtra.extra).not.toHaveProperty("originalPolicy");
         expect(sentryExtra.fingerprint?.[2]).toBe("https://evil.example/x");
+        break;
+      }
+    }
+    expect(logged).toBe(true);
+  });
+
+  it("collapses data: blocked-uri and never emits original-policy", async () => {
+    const { POST } = await importRoute();
+    let logged = false;
+    for (let i = 0; i < 40; i += 1) {
+      mocks.loggerWarn.mockClear();
+      mocks.captureMessage.mockClear();
+      // vary directive so sampling eventually hits (blocked-uri collapses to "data:")
+      const response = await POST(
+        new Request("http://localhost/api/csp-report", {
+          method: "POST",
+          headers: { "content-type": "application/csp-report" },
+          body: JSON.stringify({
+            "csp-report": {
+              "document-uri": "https://example.com/app?session=abc",
+              "violated-directive": `script-src-elem-${i}`,
+              "blocked-uri": "data:application/javascript,alert(1)",
+              "original-policy": "script-src 'self'",
+            },
+          }),
+        })
+      );
+      expect(response.status).toBe(204);
+      if (mocks.loggerWarn.mock.calls.length > 0) {
+        logged = true;
+        const context = mocks.loggerWarn.mock.calls[0]?.[1] as {
+          documentUri?: string;
+          blockedUri?: string;
+          originalPolicy?: unknown;
+        };
+        expect(context.documentUri).toBe("https://example.com/app");
+        expect(context.blockedUri).toBe("data:");
+        expect(context).not.toHaveProperty("originalPolicy");
+        const sentryExtra = mocks.captureMessage.mock.calls[0]?.[1] as {
+          extra?: { blockedUri?: string; originalPolicy?: unknown };
+        };
+        expect(sentryExtra.extra?.blockedUri).toBe("data:");
+        expect(sentryExtra.extra).not.toHaveProperty("originalPolicy");
         break;
       }
     }
