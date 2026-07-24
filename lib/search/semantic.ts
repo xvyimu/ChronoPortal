@@ -200,7 +200,11 @@ export async function searchSemantic(
     }
 
     if (error) {
-      logger.error("Semantic search RPC failed", { source: "api-search" }, error);
+      logger.error(
+        "Semantic search RPC failed",
+        { source: "api-search", rpcMessage: error.message },
+        error instanceof Error ? error : undefined
+      );
       return [];
     }
 
