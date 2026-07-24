@@ -14,10 +14,10 @@
 | id | 主题 | 处置 | wt / 备注 |
 |----|------|------|-----------|
 | **CP-CR-001** | 生产 CSP unsafe-inline residual | **DEFER 人 gate** · 不派生产 flip | 已有 T9 文档；W9 已做 NOT_RELAXED 观测加固 `11520432` |
-| **CP-CR-002** | 无 Upstash → 进程内限流 | **开修** docs/ops 清单 | **`cp-cr-rate-limit-ops`** |
-| **CP-CR-003** | 登录限流 DB 路径 ops 确认 | **并入** rate-limit-ops 勾选 | 同上 |
-| **CP-CR-004** | service_role 应用层纪律 | **开修** 清单 + 可选测 | **`cp-cr-service-role-checklist`** |
-| **CP-CR-005** | 公开 submit CSRF/脚本面 | **queued** docs 威胁模型 | 下一批 `cp-cr-csrf-submit-docs` |
+| **CP-CR-002** | 无 Upstash → 进程内限流 | **DONE** docs | **`ddb6d664`** `cp-cr-rate-limit-ops` rm |
+| **CP-CR-003** | 登录限流 DB 路径 ops 确认 | **DONE** 并入 CR-002 | 同上 |
+| **CP-CR-004** | service_role 应用层纪律 | **DONE** 清单 | **`faab2a7b`** `cp-cr-service-role-checklist` rm |
+| **CP-CR-005** | 公开 submit CSRF/脚本面 | **开修** docs 威胁模型 | **`cp-cr-csrf-submit-docs`** live |
 | **CP-CR-006** | Netlify CSP 漂移 | **queued** P2 | `cp-cr-netlify-drift` |
 
 ## P2
