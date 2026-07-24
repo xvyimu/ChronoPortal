@@ -41,8 +41,9 @@
 | cp-scout-lw | (removed) | DONE | 0 | **已 rm** · 分支保留 `xvyimu/cp-scout-lw` @ `cd18f539` |
 | cp-admin-lh-ssr | (removed) | DONE | 0 | **`96becf7c`** pushed |
 | cp-home-static-client | (removed) | DONE | 0 | **`98170d9e`** pushed |
-| **cp-links-pool** | xvyimu/cp-links-pool | in-progress | 1 | **W3 live** |
-| **cp-admin-auth-dedupe** | xvyimu/cp-admin-auth-dedupe | in-progress | 1 | **W4 live** |
+| **cp-links-pool** | xvyimu/cp-links-pool | in-progress | 1 | **W3 live** · nudged finish |
+| **cp-admin-auth-dedupe** | xvyimu/cp-admin-auth-dedupe | in-progress | 1 | **W4 live** · implementing cache |
+| **cp-typecheck-probe-headers** | xvyimu/cp-typecheck-probe-headers | in-progress | 1 | **W5 live** |
 
 ---
 
@@ -95,7 +96,7 @@
 | Phase0 scout | **DONE** |
 | G0 | **DONE**（C′ · 一周续航） |
 | Phase1 ACCEPTANCE | 见 §7 · 随模块 evidence |
-| Phase2 模块 | **W1+W2 DONE** · **W3+W4 live** · 见 `WEEK-BACKLOG.md` |
+| Phase2 模块 | **W1+W2 DONE** · **W3+W4+W5 live=3** · 见 `WEEK-BACKLOG.md` |
 | Phase3 verify | W11 |
 | Phase4 INTEGRATE | W12 · 只写 `INTEGRATE.md` · 不 merge |
 
@@ -129,6 +130,7 @@
 | T4 | W1 harvest | **`96becf7c`** · push · rm |
 | T4 | W2 | create → **`98170d9e`** · vitest24/0 · push · rm |
 | T5 | create W3+W4 | `cp-links-pool` + `cp-admin-auth-dedupe` · live=2 · base `df11a2f2` |
+| T6 | 7m 巡检 | W3/W4 无 commit → nudge · 开 W5 · live=3 满 |
 
 ---
 
