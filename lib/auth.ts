@@ -1,4 +1,5 @@
 import NextAuth from "next-auth";
+import { cache } from "react";
 import Credentials from "next-auth/providers/credentials";
 import GitHub from "next-auth/providers/github";
 import { checkRateLimit, recordAttempt } from "@/lib/rate-limit";
@@ -17,7 +18,7 @@ const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 // 恒定时间延迟，防止时序攻击
 const LOGIN_DELAY_MS = 800;
 
-export const { handlers, auth } = NextAuth({
+const { handlers, auth: rawAuth } = NextAuth({
   providers: [
     Credentials({
       credentials: { password: { label: "密码", type: "password" } },
@@ -89,6 +90,9 @@ export const { handlers, auth } = NextAuth({
   },
   trustHost: true,
 });
+
+export const auth = cache(rawAuth);
+export { handlers };
 
 /**
  * 静默捕获 authorize 抛出的 RateLimitExceeded，转成客户端可识别的错误
