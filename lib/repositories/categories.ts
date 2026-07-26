@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { createClient } from "@/lib/supabase/server";
+import { createStaticClient } from "@/lib/supabase/server";
 import type { AdminCategoryUpdateInput } from "@/lib/admin/contracts";
 import type { Category } from "@/lib/types";
 import { logger } from "@/lib/logger";
@@ -82,7 +82,9 @@ async function getCategoriesImpl(
   input?: SupabaseServerClient | RepositoryQueryOptions
 ): Promise<Category[]> {
   const options = resolveQueryOptions(input);
-  const supabase = options.client ?? await createClient();
+  // 公开分类走无 cookie 静态客户端（anon key + RLS），与 links 读路径一致，
+  // 避免 cookies() 把首页/提交页标记为动态、破坏 ISR（债 D-01）。
+  const supabase = options.client ?? createStaticClient();
   return selectCategoriesWithLegacyFallback(supabase, options.signal);
 }
 
