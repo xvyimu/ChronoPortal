@@ -705,11 +705,27 @@ describe("repositories · Admin 链接 CRUD", () => {
     expect(db.callsFor("nav_links").some((call) => call.args[0] === "update")).toBe(false);
   });
 
-  it("deleteLink 成功", async () => {
+  it("deleteLink 成功且返回 slug", async () => {
+    const db = freshMocks();
+    db.setResponse("nav_links", { data: { slug: "chatgpt" }, error: null });
+    await expect(deleteLink("lnk-1")).resolves.toEqual({ slug: "chatgpt" });
+    expectAdminClientOnly();
+  });
+
+  it("deleteLink 删除前先查 slug", async () => {
+    const db = freshMocks();
+    db.setResponse("nav_links", { data: { slug: "chatgpt" }, error: null });
+    await deleteLink("lnk-1");
+    const calls = db.callsFor("nav_links").filter(c => c.args[0] === "select" || c.args[0] === "delete");
+    expect(calls.length).toBeGreaterThanOrEqual(2);
+    expect(calls[0].args[0]).toBe("select");
+    expect(calls[1].args[0]).toBe("delete");
+  });
+
+  it("deleteLink slug 缺失时返回 null", async () => {
     const db = freshMocks();
     db.setResponse("nav_links", { data: null, error: null });
-    await expect(deleteLink("lnk-1")).resolves.toBeUndefined();
-    expectAdminClientOnly();
+    await expect(deleteLink("lnk-1")).resolves.toEqual({ slug: null });
   });
 });
 

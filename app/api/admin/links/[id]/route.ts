@@ -11,10 +11,9 @@ export const PUT = withAdminIdWrite(updateLinkSchema, async ({ parsed, id }) => 
   return NextResponse.json({ link });
 });
 
-/** 删除指定 UUID 的管理链接。 */
+/** 删除指定 UUID 的管理链接，返回 slug 以失效详情页 ISR。 */
 export const DELETE = withAdminIdDelete(async ({ id }) => {
-  await deleteLink(id);
-  // 删除后刷首页/站点地图；slug 未知时仍失效列表页
-  revalidatePublicNavContent();
+  const { slug } = await deleteLink(id);
+  revalidatePublicNavContent({ slug });
   return NextResponse.json({ success: true });
 });

@@ -208,12 +208,32 @@ export async function updateLink(id: string, input: AdminLinkUpdateInput): Promi
 
 /**
  * 删除链接（admin）。
+ * 删除前先获取 slug，供路由 handler 做详情页 ISR 失效。
  */
-export async function deleteLink(id: string): Promise<void> {
+export async function deleteLink(id: string): Promise<{ slug: string | null }> {
   const supabase = createAdminClient();
-  const { error } = await supabase.from("nav_links").delete().eq("id", id);
-  if (error) {
-    logger.error("Admin: Failed to delete link", { source: "repositories", id }, error);
+
+  // 先查 slug，删除后无法读取
+  const { data: link, error: fetchError } = await supabase
+    .from("nav_links")
+    .select("slug")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (fetchError) {
+    logger.error(
+      "Admin: Failed to fetch link slug before deletion",
+      { source: "repositories", id },
+      fetchError
+    );
+    throw new Error("Failed to fetch link");
+  }
+
+  const { error: deleteError } = await supabase.from("nav_links").delete().eq("id", id);
+  if (deleteError) {
+    logger.error("Admin: Failed to delete link", { source: "repositories", id }, deleteError);
     throw new Error("Failed to delete link");
   }
+
+  return { slug: link?.slug ?? null };
 }
