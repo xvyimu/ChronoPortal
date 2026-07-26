@@ -6,6 +6,14 @@ async function importProbeModule(): Promise<ProbeModule> {
   return import("../scripts/probe-security-headers.mjs");
 }
 
+/**
+ * Next 的类型增强把 ProcessEnv.NODE_ENV 变为必填；
+ * 测试里只关心探针读取的键，用窄断言构造 env 桩。
+ */
+function stubEnv(env: Record<string, string> = {}): NodeJS.ProcessEnv {
+  return env as NodeJS.ProcessEnv;
+}
+
 function headerResponse(
   status: number,
   headers: Record<string, string>
@@ -28,7 +36,7 @@ describe("scripts/probe-security-headers", () => {
       BLOCKED_PRODUCTION_HOSTS,
     } = await importProbeModule();
 
-    const config = readConfig([], {});
+    const config = readConfig([], stubEnv());
     expect(config.help).toBe(false);
     expect(config.baseUrl).toBe(DEFAULT_BASE_URL);
     expect(config.allowProduction).toBe(false);
@@ -62,7 +70,7 @@ describe("scripts/probe-security-headers", () => {
         "--compare-repo",
         "--json",
       ],
-      {}
+      stubEnv()
     );
     expect(fromArgs.baseUrl).toBe("https://preview.example.vercel.app");
     expect(fromArgs.path).toBe("/tool/figma");
@@ -70,10 +78,10 @@ describe("scripts/probe-security-headers", () => {
     expect(fromArgs.compareRepo).toBe(true);
     expect(fromArgs.json).toBe(true);
 
-    const fromEnv = readConfig([], {
+    const fromEnv = readConfig([], stubEnv({
       HEADERS_PROBE_BASE_URL: "http://127.0.0.1:4000",
       HEADERS_PROBE_ALLOW_PRODUCTION: "1",
-    });
+    }));
     expect(fromEnv.baseUrl).toBe("http://127.0.0.1:4000");
     expect(fromEnv.allowProduction).toBe(true);
   });
@@ -129,7 +137,8 @@ describe("scripts/probe-security-headers", () => {
     expect(result.ok).toBe(true);
     expect(result.blocked).toBe(false);
     expect(result.status).toBe(200);
-    expect(result.headers["x-frame-options"]).toBe("DENY");
+    const liveHeaders = result.headers as Record<string, string>;
+    expect(liveHeaders["x-frame-options"]).toBe("DENY");
     expect(result.compare.every((row) => row.match)).toBe(true);
     expect(fetchImpl).toHaveBeenCalledOnce();
   });
@@ -152,7 +161,7 @@ describe("scripts/probe-security-headers", () => {
     const { main } = await importProbeModule();
     const exit = await main(
       ["--base-url", "https://yuanjia1314.ccwu.cc", "--json"],
-      {}
+      stubEnv()
     );
     expect(exit).toBe(1);
   });
