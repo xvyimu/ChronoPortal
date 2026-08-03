@@ -20,7 +20,7 @@
     "e2e:headed": "playwright test --headed",
     "perf:admin": "node scripts/run-admin-playwright.mjs --performance",
     "analyze": "node scripts/analyze.mjs",
-    "audit:security": "pnpm audit --registry=https://registry.npmjs.org --audit-level moderate",
+    "audit:security": "pnpm audit --prod --registry=https://registry.npmjs.org --audit-level moderate",
     "bulk:add": "node scripts/bulk-add.mjs",
     "resource:ingest": "node scripts/resource-ingest/run.mjs",
     "resource:ingest:dry-run": "node scripts/resource-ingest/run.mjs --source devto --limit 20",

@@ -28,8 +28,19 @@ jobs:
 
       # Security: audit dependencies — fail on high/critical (align Chronicle)
       # Explicit registry.npmjs.org: local/user mirrors (e.g. npmmirror) often lack the audit API.
-      - name: Dependency audit (high+)
-        run: pnpm audit --registry=https://registry.npmjs.org --audit-level=high
+      #
+      # Scoped to --prod (production deps only), same as Chronicle. Rationale:
+      # GHSA-mh99-v99m-4gvg (brace-expansion, high) marks the whole 1.x line
+      # vulnerable and names 1.1.17 as the fix, but 1.1.17 was never published
+      # (404; maintenance-v1 tops out at 1.1.16). The only consumer is the ESLint
+      # toolchain (eslint -> @eslint/config-array -> minimatch@3), which cannot take
+      # brace-expansion@5 at all — minimatch@3 calls it as a function and v5 is
+      # named-export only. So the residual alert is dev-only AND unfixable upstream.
+      # Production scope is clean (verified exit 0 at both high and moderate);
+      # the only brace-expansion reaching prod is 5.0.8 via @sentry/nextjs.
+      # Revisit if brace-expansion 1.1.17+ ever ships. See pnpm-workspace.yaml overrides.
+      - name: Dependency audit (production deps, high+)
+        run: pnpm audit --prod --registry=https://registry.npmjs.org --audit-level=high
 
       - name: ESLint
         run: pnpm run lint

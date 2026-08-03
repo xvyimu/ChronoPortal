@@ -59,6 +59,9 @@ export function LinkHealthPanel() {
   }, []);
 
   useEffect(() => {
+    // Mount-time fetch: `load()` sets its own loading flag before awaiting.
+    // Same pattern (and same disable) as Header/Sidebar/ReviewSection etc.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
 

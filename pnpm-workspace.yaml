@@ -7,14 +7,41 @@ minimumReleaseAgeExclude:
   - lucide-react@1.26.0
   - shadcn@4.14.0
 overrides:
-  postcss: 8.5.15
+  # ⚠️ SECURITY OVERRIDE POLICY — read before editing.
+  # Use a LOWER BOUND (`>=<first_patched> <<next_major>`), never a bare exact version.
+  # An exact pin rots: once the advisory range advances past it, the override flips
+  # from "the fix" to "holding the package below the patch line", and `pnpm audit`
+  # stays quiet because the override is itself what pinned it. (This repo shipped
+  # exactly that bug: `postcss: 8.5.15` was written as a fix on 2026-07-21 and had
+  # silently become the thing keeping postcss vulnerable by 2026-08-03.)
+  # Only exception: a line upstream never patched — see brace-expansion@1 below.
+  # Guarded by tests/ci-workflow.test.ts "keeps security overrides on lower-bound ranges".
+  #
+  # GHSA-r28c-9q8g-f849 (postcss, high) — vulnerable <=8.5.17, first patched 8.5.18
+  postcss: '>=8.5.18 <9'
   # Dependabot highs 2026-07-21 — force patched transitives
-  # GHSA-52cp-r559-cp3m (js-yaml), GHSA-3jxr-9vmj-r5cp (brace-expansion)
-  js-yaml: 4.3.0
-  brace-expansion: 5.0.7
-  # Dependabot / GHSA 2026-07-23
-  # GHSA-f88m-g3jw-g9cj (sharp), GHSA-4c8g-83qw-93j6 + GHSA-v2hh-gcrm-f6hx (fast-uri),
-  # GHSA-frvp-7c67-39w9 (@hono/node-server)
-  sharp: 0.35.3
-  fast-uri: 3.1.4
-  '@hono/node-server': 2.0.11
+  # GHSA-52cp-r559-cp3m (js-yaml) — first patched 4.3.0
+  js-yaml: '>=4.3.0 <5'
+  # GHSA-mh99-v99m-4gvg (brace-expansion, high DoS) — vulnerable >=4.0.0 <5.0.8.
+  # MUST stay major-split. A blanket `brace-expansion: 5.x` override breaks the
+  # ESLint toolchain: minimatch@3 does `require('brace-expansion')()` (old CJS
+  # default export) but v5 exports named only ->
+  #   TypeError: expand is not a function  at minimatch@3.1.5/minimatch.js:271
+  # (chain: eslint@9 -> @eslint/config-array -> minimatch@3.1.5)
+  # Natural ranges: minimatch@3 ^1.1.7 · minimatch@9 ^2.0.2 · minimatch@10 ^5.0.5
+  # Do NOT collapse these back into one unversioned key.
+  'brace-expansion@1': 1.1.16 # EXACT PIN, intentional: maintenance-v1 tip. Advisory names
+  #                             1.1.17 as patched but it was never published (registry 404),
+  #                             and minimatch@3 cannot take v5 (see above) — no fix exists.
+  #                             DEFER; dev-only (`pnpm audit --prod` exits 0).
+  'brace-expansion@2': '>=2.1.3 <3' # maintenance-v2 line
+  'brace-expansion@5': '>=5.0.8 <6' # first patched on the latest line
+  # Dependabot / GHSA 2026-07-23 — lower bounds per the policy above.
+  # GHSA-f88m-g3jw-g9cj (sharp) — first patched 0.35.3 (also a direct dep)
+  sharp: '>=0.35.3 <0.36'
+  # GHSA-4c8g-83qw-93j6 + GHSA-v2hh-gcrm-f6hx (fast-uri) — first patched 3.1.4.
+  # Kept on the 3.x line: it is a direct dep pinned to 3.1.4 in package.json and
+  # 4.x is a major bump, out of scope for a security pass. Revisit deliberately.
+  fast-uri: '>=3.1.4 <4'
+  # GHSA-frvp-7c67-39w9 (@hono/node-server) — first patched 2.0.11
+  '@hono/node-server': '>=2.0.11 <3'

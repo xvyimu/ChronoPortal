@@ -22,7 +22,7 @@
  */
 
 import { createClient } from "@supabase/supabase-js";
-import { readFileSync, writeFileSync } from "fs";
+import { writeFileSync } from "fs";
 import { dirname, join, isAbsolute, resolve } from "path";
 import { fileURLToPath, pathToFileURL } from "url";
 import { buildLinkHealthReport } from "./link-health-report-shape.mjs";
