@@ -45,3 +45,10 @@ overrides:
   fast-uri: '>=3.1.4 <4'
   # GHSA-frvp-7c67-39w9 (@hono/node-server) — first patched 2.0.11
   '@hono/node-server': '>=2.0.11 <3'
+  # GHSA-mwp4-54f8-5fhr (ip-address, high) — leading-zero octets decoded as decimal
+  # while resolvers read them as octal => SSRF / trust-boundary bypass.
+  # vulnerable <=10.3.0, first patched 10.3.1. Pulled in transitively via
+  # express-rate-limit. Note Dependabot only surfaced the two mediums here
+  # (GHSA-4xrf-jv44-h6hh -> 10.2.2, GHSA-22jq-vg5j-6vgg -> 10.2.1); the high needs
+  # 10.3.1, so the bound is set from the advisory DB, not from the alert list.
+  ip-address: '>=10.3.1 <11'
