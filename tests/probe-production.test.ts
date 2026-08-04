@@ -301,8 +301,136 @@ describe("scripts/probe-production", () => {
     expect(() => assertProbePassed(results)).toThrow("Production probe failed");
   });
 
-  it("accepts distributedRateLimit health status ok or skipped and fails on error", async () => {
-    const { validateHealthPayload } = await importProbeModule();
+  it("downgrades a Cloudflare edge 403 to SKIP but still fails an origin-issued 403", async () => {
+    const { runProductionProbe, assertProbePassed, summarizeResults, classifyForbidden } =
+      await importProbeModule();
+    const baseUrl = "https://nav-site.example";
+
+    // Edge deny: `server: cloudflare`, no origin marker -> request never hit the app.
+    expect(classifyForbidden(new Headers({ server: "cloudflare" }))).toBe("edge");
+    // Origin deny: Vercel answered, so the 403 is the app's own -> a real outage.
+    expect(
+      classifyForbidden(new Headers({ server: "cloudflare", "x-vercel-id": "bom1::iad1::abc" }))
+    ).toBe("origin");
+
+    const edgeBlocked = await runProductionProbe({
+      config: {
+        baseUrl,
+        timeoutMs: 1000,
+        expectEmbeddingSkipped: false,
+        requireEmbedding: false,
+        expectedCommit: "",
+        retries: 0,
+        retryDelayMs: 1,
+      },
+      endpoints: [
+        { name: "home", path: "/", contentType: /text\/html/i, wafTolerant: true },
+        { name: "robots", path: "/robots.txt", contentType: /text\/plain/i },
+      ],
+      fetchImpl: makeFetch({
+        [`${baseUrl}/`]: textResponse("<html>blocked</html>", "text/html", 403, {
+          server: "cloudflare",
+        }),
+        [`${baseUrl}/robots.txt`]: textResponse("User-agent: *", "text/plain"),
+      }),
+      waitImpl: async () => {},
+    });
+
+    expect(edgeBlocked[0]?.ok).toBe(true);
+    expect(edgeBlocked[0]?.skipped).toBe(true);
+    expect(summarizeResults(edgeBlocked)[0]).toContain("[SKIP] home 403");
+    // robots really answered, so the run is conclusive and passes.
+    expect(() => assertProbePassed(edgeBlocked)).not.toThrow();
+
+    const originBlocked = await runProductionProbe({
+      config: {
+        baseUrl,
+        timeoutMs: 1000,
+        expectEmbeddingSkipped: false,
+        requireEmbedding: false,
+        expectedCommit: "",
+        retries: 0,
+        retryDelayMs: 1,
+      },
+      endpoints: [{ name: "home", path: "/", contentType: /text\/html/i, wafTolerant: true }],
+      fetchImpl: makeFetch({
+        [`${baseUrl}/`]: textResponse("<html>forbidden</html>", "text/html", 403, {
+          server: "cloudflare",
+          "x-vercel-id": "bom1::iad1::abc",
+        }),
+      }),
+      waitImpl: async () => {},
+    });
+
+    expect(originBlocked[0]?.ok).toBe(false);
+    expect(originBlocked[0]?.detail).toContain("issued by origin");
+    expect(() => assertProbePassed(originBlocked)).toThrow("Production probe failed");
+  });
+
+  it("refuses to report all-green when every endpoint was blocked at the edge", async () => {
+    const { runProductionProbe, assertProbePassed } = await importProbeModule();
+    const baseUrl = "https://nav-site.example";
+
+    const results = await runProductionProbe({
+      config: {
+        baseUrl,
+        timeoutMs: 1000,
+        expectEmbeddingSkipped: false,
+        requireEmbedding: false,
+        expectedCommit: "",
+        retries: 0,
+        retryDelayMs: 1,
+      },
+      endpoints: [{ name: "home", path: "/", contentType: /text\/html/i, wafTolerant: true }],
+      fetchImpl: makeFetch({
+        [`${baseUrl}/`]: textResponse("<html>blocked</html>", "text/html", 403, {
+          server: "cloudflare",
+        }),
+      }),
+      waitImpl: async () => {},
+    });
+
+    expect(results.every((result) => result.skipped)).toBe(true);
+    expect(() => assertProbePassed(results)).toThrow("inconclusive");
+  });
+
+  it("never tolerates a 403 on the health endpoint even behind Cloudflare", async () => {
+    const { runProductionProbe, assertProbePassed } = await importProbeModule();
+    const baseUrl = "https://nav-site.example";
+
+    const results = await runProductionProbe({
+      config: {
+        baseUrl,
+        timeoutMs: 1000,
+        expectEmbeddingSkipped: false,
+        requireEmbedding: false,
+        expectedCommit: "",
+        retries: 0,
+        retryDelayMs: 1,
+      },
+      endpoints: [
+        {
+          name: "health",
+          path: "/api/health",
+          contentType: /application\/json/i,
+          json: "health",
+          requireNoStore: true,
+        },
+      ],
+      fetchImpl: makeFetch({
+        [`${baseUrl}/api/health`]: textResponse("blocked", "text/html", 403, {
+          server: "cloudflare",
+        }),
+      }),
+      waitImpl: async () => {},
+    });
+
+    expect(results[0]?.ok).toBe(false);
+    expect(results[0]?.detail).toContain("HTTP 403");
+    expect(() => assertProbePassed(results)).toThrow("Production probe failed");
+  });
+
+  it("accepts distributedRateLimit health status ok or skipped and fails on error", async () => {    const { validateHealthPayload } = await importProbeModule();
 
     expect(
       validateHealthPayload({

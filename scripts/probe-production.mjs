@@ -19,12 +19,16 @@ const NO_STORE_PATTERN = /(?:^|,)\s*no-store\b/i;
  * @property {"sitemap"} [text]
  * @property {boolean} [requireNoStore]
  * @property {boolean} [cacheBust]
+ * @property {boolean} [wafTolerant]
  * @property {RegExp|string} [cacheControl]
  */
 
 /** @type {ProbeEndpoint[]} */
 const ENDPOINTS = [
-  { name: "home", path: "/", contentType: /text\/html/i },
+  // wafTolerant: Cloudflare denies GitHub Actions egress ranges on the HTML routes.
+  // Deliberately NOT set on /api/health or /api/search — those carry the real
+  // signal, and a 403 there must always fail the gate.
+  { name: "home", path: "/", contentType: /text\/html/i, wafTolerant: true },
   {
     name: "health",
     path: "/api/health",
@@ -42,7 +46,7 @@ const ENDPOINTS = [
     requireNoStore: true,
     cacheBust: true,
   },
-  { name: "tool-detail", path: "/tool/figma", contentType: /text\/html/i },
+  { name: "tool-detail", path: "/tool/figma", contentType: /text\/html/i, wafTolerant: true },
   { name: "sitemap", path: "/sitemap.xml", contentType: /(application|text)\/xml/i, text: "sitemap" },
   { name: "robots", path: "/robots.txt", contentType: /text\/plain/i },
 ];
@@ -242,6 +246,32 @@ function errorMessage(error) {
   return error instanceof Error ? error.message : String(error);
 }
 
+/**
+ * Cloudflare blocks GitHub Actions egress ranges with a 403 challenge/deny page.
+ * The origin is fine — the same URL returns 200 from any other network — so failing
+ * the gate on it files a fake outage issue every 6h and trains everyone to ignore it.
+ *
+ * We must NOT blanket-ignore 403: an app-level 403 (auth regression, misconfigured
+ * middleware) is a real outage. Distinguish by who answered:
+ *   - Cloudflare edge deny  -> `server: cloudflare` AND no origin header
+ *     (`x-vercel-id`/`x-matched-path`/`x-nextjs-*`). The request never reached the app.
+ *   - Origin-issued 403     -> carries an origin header, or an HTML/JSON app body.
+ * Only the first is downgraded, and only for endpoints marked wafTolerant.
+ */
+export function classifyForbidden(headers) {
+  const server = normalize(getHeader(headers, "server"));
+  const originMarkers = [
+    getHeader(headers, "x-vercel-id"),
+    getHeader(headers, "x-matched-path"),
+    getHeader(headers, "x-nextjs-cache"),
+    getHeader(headers, "x-nextjs-prerender"),
+  ].filter(Boolean);
+
+  if (originMarkers.length > 0) return "origin";
+  if (server.includes("cloudflare")) return "edge";
+  return "unknown";
+}
+
 function normalizeCommit(value) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
@@ -418,9 +448,35 @@ async function probeEndpointOnce(endpoint, {
     const contentType = getHeader(response.headers, "content-type");
     const cacheControl = getHeader(response.headers, "cache-control");
     const failures = [];
+    let wafBlocked = false;
 
     if (!response.ok) {
-      failures.push(`HTTP ${response.status}`);
+      if (response.status === 403 && endpoint.wafTolerant) {
+        const origin = classifyForbidden(response.headers);
+        if (origin === "edge") {
+          // Edge denied us before the origin saw the request: nothing was learned
+          // about app health, so skip the remaining body/header assertions rather
+          // than reporting them as failures against a challenge page.
+          wafBlocked = true;
+        } else {
+          failures.push(`HTTP 403 issued by ${origin} (not an edge block)`);
+        }
+      } else {
+        failures.push(`HTTP ${response.status}`);
+      }
+    }
+
+    if (wafBlocked) {
+      return {
+        name: endpoint.name,
+        url,
+        status: response.status,
+        ok: true,
+        skipped: true,
+        detail:
+          "skipped: Cloudflare edge blocked this client (403 before origin); app health not asserted",
+        attempts: 1,
+      };
     }
 
     if (endpoint.contentType && !endpoint.contentType.test(contentType)) {
@@ -549,7 +605,7 @@ export async function runProductionProbe({
 
 export function summarizeResults(results) {
   return results.map((result) => {
-    const mark = result.ok ? "PASS" : "FAIL";
+    const mark = result.skipped ? "SKIP" : result.ok ? "PASS" : "FAIL";
     const attempts = result.attempts > 1 ? ` attempts=${result.attempts}` : "";
     return `[${mark}] ${result.name} ${result.status || "ERR"} ${result.detail}${attempts}`;
   });
@@ -557,11 +613,21 @@ export function summarizeResults(results) {
 
 export function assertProbePassed(results) {
   const failures = results.filter((result) => !result.ok);
-  if (failures.length === 0) return;
+  if (failures.length > 0) {
+    throw new Error(
+      `Production probe failed: ${failures.map((result) => `${result.name}: ${result.detail}`).join("; ")}`
+    );
+  }
 
-  throw new Error(
-    `Production probe failed: ${failures.map((result) => `${result.name}: ${result.detail}`).join("; ")}`
-  );
+  // Guard against a silent all-green: if the edge blocked every endpoint, we
+  // asserted nothing about the app. Passing here would mean a total outage looks
+  // identical to a healthy run. At least one endpoint must have really answered.
+  const asserted = results.filter((result) => !result.skipped);
+  if (results.length > 0 && asserted.length === 0) {
+    throw new Error(
+      "Production probe inconclusive: every endpoint was blocked at the edge; no app health was asserted"
+    );
+  }
 }
 
 export async function main({ env = process.env, args = process.argv.slice(2), fetchImpl = fetch, logger = console } = {}) {

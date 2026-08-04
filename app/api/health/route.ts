@@ -19,7 +19,11 @@ import {
 } from "@/lib/search/embed-provider";
 
 const EMBED_HEALTH_TIMEOUT_MS = 8000;
-const RESOURCE_LIBRARY_HEALTH_TIMEOUT_MS = 1500;
+// 1500ms 覆盖不了 Vercel 冷启动：实测 uptime<5s 时该 RPC 往返 ~1285ms（热态 230-800ms），
+// 余量仅 ~200ms，冷启动即超时。超时会被 supabase-js 转成 error 对象（不是抛异常），
+// 于是落进 `if (error)` 分支报 "RPC unavailable"，看起来像凭证失效——实际是慢，不是坏。
+// 见 docs/ops/cp-smoke-gate-2026-08-04.md。
+const RESOURCE_LIBRARY_HEALTH_TIMEOUT_MS = 4000;
 
 type HealthCheck = {
   status: "ok" | "error" | "skipped";
@@ -134,6 +138,14 @@ async function checkEmbeddingHealth(): Promise<HealthCheck> {
   }
 }
 
+function isAbortTimeoutError(error: { message?: string; code?: string } | null): boolean {
+  if (!error) return false;
+  // supabase-js surfaces an aborted fetch as an error OBJECT (not a throw), with an
+  // empty PostgREST code — a real RPC fault always carries a code (42883, PGRST202, 401…).
+  if (error.code) return false;
+  return /timeout|aborted/i.test(error.message ?? "");
+}
+
 async function checkResourceLibrarySearchHealth(): Promise<HealthCheck> {
   const start = Date.now();
   const anonKey = getResourceLibraryAnonKey();
@@ -155,6 +167,21 @@ async function checkResourceLibrarySearchHealth(): Promise<HealthCheck> {
       .abortSignal(AbortSignal.timeout(RESOURCE_LIBRARY_HEALTH_TIMEOUT_MS));
 
     if (error) {
+      // Slow != broken. A timeout means we could not determine health, so report
+      // `skipped` rather than `error` — otherwise a cold start pages on-call for a
+      // healthy dependency. Genuine faults carry a code and still fail the gate.
+      if (isAbortTimeoutError(error)) {
+        logger.warn("Resource library search health probe timed out", {
+          source: "api-health",
+          timeout_ms: RESOURCE_LIBRARY_HEALTH_TIMEOUT_MS,
+        });
+        return {
+          status: "skipped",
+          latency_ms: Date.now() - start,
+          detail: `public resource search RPC probe timed out after ${RESOURCE_LIBRARY_HEALTH_TIMEOUT_MS}ms`,
+        };
+      }
+
       logger.warn("Resource library search health RPC unavailable", {
         source: "api-health",
         code: error.code,
