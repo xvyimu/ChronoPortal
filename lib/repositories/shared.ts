@@ -61,6 +61,28 @@ export interface RawLinkRow {
   [key: string]: unknown;
 }
 
+/**
+ * 把 Supabase 查询返回的行数组收窄为 RawLinkRow[]。
+ *
+ * 为什么需要这个而不是直接 `as RawLinkRow[]`：本仓未生成 Supabase 的
+ * `Database` 类型，`.select(...)` 的返回被推断成宽松形状，与 RawLinkRow
+ * 没有足够重叠，单步 `as` 会被 TS 拒绝。此前各调用点用 `as unknown as`
+ * 绕过 —— 那等于关掉全部检查。
+ *
+ * 这里把断言收敛到一处并加运行时形状校验：非数组直接返回空（与既有
+ * `data ?? []` 的降级语义一致），逐行只认带 string id 的对象，
+ * 脏行被丢弃而不是带着 undefined id 流进 mapLinkRow。
+ */
+export function toRawLinkRows(data: unknown): RawLinkRow[] {
+  if (!Array.isArray(data)) return [];
+  return data.filter(
+    (row): row is RawLinkRow =>
+      typeof row === "object" &&
+      row !== null &&
+      typeof (row as { id?: unknown }).id === "string"
+  );
+}
+
 const PUBLIC_LINK_FIELDS = [
   "id",
   "title",

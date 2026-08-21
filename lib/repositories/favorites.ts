@@ -3,7 +3,7 @@ import { logger } from "@/lib/logger";
 import {
   mapLinkRow,
   PUBLIC_LINK_SELECT,
-  type RawLinkRow,
+  toRawLinkRows,
 } from "@/lib/repositories/shared";
 import type { NavLink } from "@/lib/types";
 
@@ -57,7 +57,7 @@ export async function getUserFavoriteLinks(userId: string): Promise<NavLink[]> {
   }
 
   const byId = new Map(
-    ((data ?? []) as unknown as RawLinkRow[]).map((row) => {
+    toRawLinkRows(data).map((row) => {
       const link = mapLinkRow(row);
       return [link.id, link] as const;
     })

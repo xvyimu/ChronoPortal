@@ -24,6 +24,10 @@ const EMBED_HEALTH_TIMEOUT_MS = 8000;
 // 于是落进 `if (error)` 分支报 "RPC unavailable"，看起来像凭证失效——实际是慢，不是坏。
 // 见 docs/ops/cp-smoke-gate-2026-08-04.md。
 const RESOURCE_LIBRARY_HEALTH_TIMEOUT_MS = 4000;
+// 主库探针必须有上限：无 abortSignal 时实测出现过 7037ms 的无界等待，
+// 健康检查本身成了慢查询。4000ms 与 resource-library 探针同档
+// （已知冷启动往返 ~1285ms，留 3 倍余量）。
+const DATABASE_HEALTH_TIMEOUT_MS = 4000;
 
 type HealthCheck = {
   status: "ok" | "error" | "skipped";
@@ -223,15 +227,35 @@ export async function GET() {
     const supabase = await createClient();
     const { count, error } = await supabase
       .from("nav_categories")
-      .select("id", { count: "exact", head: true });
+      .select("id", { count: "exact", head: true })
+      .abortSignal(AbortSignal.timeout(DATABASE_HEALTH_TIMEOUT_MS));
 
     if (error) {
-      checks.database = {
-        status: "error",
-        latency_ms: Date.now() - dbStart,
-        detail: "database query failed"
-      };
-      healthy = false;
+      // 慢 ≠ 坏。超时只说明「测不出来」，报 skipped 不 fail gate，
+      // 否则冷启动会为一个健康的依赖叫醒 on-call。真故障带 code，仍然拦。
+      // 与下方 checkResourceLibrarySearchHealth 同一判定口径。
+      if (isAbortTimeoutError(error)) {
+        logger.warn("Database health probe timed out", {
+          source: "api-health",
+          timeout_ms: DATABASE_HEALTH_TIMEOUT_MS,
+        });
+        checks.database = {
+          status: "skipped",
+          latency_ms: Date.now() - dbStart,
+          detail: `database probe timed out after ${DATABASE_HEALTH_TIMEOUT_MS}ms`,
+        };
+      } else {
+        logger.warn("Database health query failed", {
+          source: "api-health",
+          code: error.code,
+        });
+        checks.database = {
+          status: "error",
+          latency_ms: Date.now() - dbStart,
+          detail: "database query failed",
+        };
+        healthy = false;
+      }
     } else {
       checks.database = {
         status: "ok",

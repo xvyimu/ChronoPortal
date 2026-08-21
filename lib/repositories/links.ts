@@ -7,6 +7,7 @@ import {
   mapLinkRow,
   PUBLIC_LINK_SELECT,
   PUBLIC_LINK_SELECT_INNER_CATEGORY,
+  toRawLinkRows,
   type RawLinkRow,
   type SupabaseServerClient,
 } from "./shared";
@@ -67,7 +68,7 @@ async function getApprovedLinksImpl(options?: GetApprovedLinksOpts): Promise<Nav
 
       const result = await attachTagsToLinks(
         supabase,
-        ((data ?? []) as unknown as RawLinkRow[]).map(mapLinkRow),
+        toRawLinkRows(data).map(mapLinkRow),
         options?.signal
       );
 
@@ -213,6 +214,16 @@ interface PublicToolRpcRow extends RawLinkRow {
   total_count?: number | string | null;
 }
 
+/**
+ * 把 list_public_tools RPC 的返回收窄为 PublicToolRpcRow[]。
+ *
+ * PublicToolRpcRow 继承 RawLinkRow（含 `[key: string]: unknown` 索引签名），
+ * 故 toRawLinkRows 的守卫已覆盖必需的 id 校验，额外字段是可选的。
+ */
+function toPublicToolRpcRows(data: unknown): PublicToolRpcRow[] {
+  return toRawLinkRows(data) as PublicToolRpcRow[];
+}
+
 function isMissingToolsRpc(error: { code?: string; message?: string }): boolean {
   return (
     error.code === "PGRST202" ||
@@ -252,7 +263,7 @@ export async function queryApprovedLinksForApi(
   });
 
   if (!error) {
-    const rows = (data ?? []) as unknown as PublicToolRpcRow[];
+    const rows = toPublicToolRpcRows(data);
     const totalValue = rows[0]?.total_count ?? 0;
     const total = Number(totalValue);
     return {

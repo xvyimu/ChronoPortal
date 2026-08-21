@@ -7,7 +7,8 @@ import {
   resolveExpectedDim,
 } from "./embed-provider";
 import type { NavLink } from "@/lib/types";
-import type { SearchResult, SemanticRow } from "./types";
+import { toSemanticRows } from "./types";
+import type { SearchResult } from "./types";
 
 /**
  * 嵌入向量 + pgvector 语义搜索
@@ -151,7 +152,7 @@ export async function searchSemantic(
       return [];
     }
 
-    let rows = data as unknown as SemanticRow[];
+    let rows = toSemanticRows(data);
 
     rows = rows
       .filter((r) => !category || category === "all" || r.category_slug === category)

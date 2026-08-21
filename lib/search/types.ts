@@ -100,6 +100,28 @@ export interface SemanticRow {
   click_count: number;
 }
 
+/**
+ * 把语义 RPC 的返回收窄为 SemanticRow[]。
+ *
+ * 未生成 Supabase `Database` 类型时 `.rpc()` 返回宽松形状，单步 `as` 会被 TS
+ * 拒绝，调用点此前用 `as unknown as` 绕过。这里收敛为一处并加形状校验：
+ * 下游会直接读 `similarity` / `click_count` 做算术（boost 计算），
+ * 缺字段会静默算出 NaN 并污染排序，故这两个字段必须是 number。
+ */
+export function toSemanticRows(data: unknown): SemanticRow[] {
+  if (!Array.isArray(data)) return [];
+  return data.filter((row): row is SemanticRow => {
+    if (typeof row !== "object" || row === null) return false;
+    const r = row as Partial<SemanticRow>;
+    return (
+      typeof r.id === "string" &&
+      typeof r.similarity === "number" &&
+      Number.isFinite(r.similarity) &&
+      typeof r.click_count === "number"
+    );
+  });
+}
+
 /** 用于 fuse 模块间的缓存结构 */
 export interface FuseCache {
   fuse: Fuse<NavLink>;

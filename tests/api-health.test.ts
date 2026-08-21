@@ -1,13 +1,37 @@
 ﻿import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const supabaseSelect = vi.fn();
+const supabaseAbortSignal = vi.fn();
 const loggerWarn = vi.fn();
 const resourceLibraryCreateClient = vi.fn();
+
+/**
+ * `select()` 返回 PostgrestFilterBuilder —— 既可直接 await，也可先链
+ * `.abortSignal(...)` 再 await。生产代码走后者（database 探针有 4s 上限），
+ * 故 mock 必须同时满足两种形态：`supabaseSelect.mockResolvedValue(...)`
+ * 继续决定最终结果，`abortSignal` 只记录调用并返回自身。
+ */
+function createSelectBuilder(...args: unknown[]) {
+  const pending = supabaseSelect(...args);
+  const builder = {
+    abortSignal(signal: AbortSignal) {
+      supabaseAbortSignal(signal);
+      return builder;
+    },
+    then(
+      onFulfilled?: (value: unknown) => unknown,
+      onRejected?: (reason: unknown) => unknown
+    ) {
+      return Promise.resolve(pending).then(onFulfilled, onRejected);
+    },
+  };
+  return builder;
+}
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(async () => ({
     from: vi.fn(() => ({
-      select: supabaseSelect,
+      select: vi.fn((...args: unknown[]) => createSelectBuilder(...args)),
     })),
   })),
 }));
@@ -44,6 +68,7 @@ describe("/api/health", () => {
     delete process.env.UPSTASH_REDIS_REST_TOKEN;
     delete process.env.DISTRIBUTED_RATE_LIMIT_FAIL_CLOSED;
     supabaseSelect.mockResolvedValue({ count: 3, error: null });
+    supabaseAbortSignal.mockClear();
   });
 
   afterEach(() => {
@@ -347,5 +372,67 @@ describe("/api/health", () => {
     expect(body.checks.resourceLibrarySearch.status).toBe("skipped");
     expect(body.checks.resourceLibrarySearch.detail).toBe("RESOURCE_LIBRARY_ANON_KEY not configured");
     expect(resourceLibraryCreateClient).not.toHaveBeenCalled();
+  });
+
+  it("bounds the database probe with an abort signal", async () => {
+    const { GET } = await import("@/app/api/health/route");
+    await GET();
+
+    // 无 abortSignal 时实测出现过 7037ms 无界等待；上限必须真的挂上去。
+    expect(supabaseAbortSignal).toHaveBeenCalledWith(expect.any(AbortSignal));
+  });
+
+  it("reports database as skipped (not error) when the probe times out", async () => {
+    // supabase-js 把中止的 fetch 作为 error 对象返回（不是 throw），且 code 为空。
+    supabaseSelect.mockResolvedValue({
+      count: null,
+      error: { message: "AbortError: The operation was aborted due to timeout" },
+    });
+
+    const { GET } = await import("@/app/api/health/route");
+    const response = await GET();
+    const body = await response.json();
+
+    // 慢 ≠ 坏：超时只说明测不出来，不该为健康依赖的冷启动叫醒 on-call。
+    expect(body.checks.database.status).toBe("skipped");
+    expect(body.checks.database.detail).toMatch(/timed out after \d+ms/);
+    expect(body.status).toBe("healthy");
+    expect(response.status).toBe(200);
+    expect(loggerWarn).toHaveBeenCalledWith(
+      "Database health probe timed out",
+      expect.objectContaining({ source: "api-health" })
+    );
+  });
+
+  it("still fails the gate when the database returns a real PostgREST fault", async () => {
+    // 真故障必带 code（42883 / PGRST202 / 401…），不能被超时豁免吞掉。
+    supabaseSelect.mockResolvedValue({
+      count: null,
+      error: { message: "permission denied for table nav_categories", code: "42501" },
+    });
+
+    const { GET } = await import("@/app/api/health/route");
+    const response = await GET();
+    const body = await response.json();
+
+    expect(body.checks.database.status).toBe("error");
+    expect(body.checks.database.detail).toBe("database query failed");
+    expect(body.status).not.toBe("healthy");
+    expect(response.status).not.toBe(200);
+  });
+
+  it("does not mistake a coded error whose message mentions timeout for a probe timeout", async () => {
+    // 边界：message 含 "timeout" 但带 code —— 仍是真故障。
+    supabaseSelect.mockResolvedValue({
+      count: null,
+      error: { message: "statement timeout", code: "57014" },
+    });
+
+    const { GET } = await import("@/app/api/health/route");
+    const response = await GET();
+    const body = await response.json();
+
+    expect(body.checks.database.status).toBe("error");
+    expect(body.status).not.toBe("healthy");
   });
 });

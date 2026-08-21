@@ -92,7 +92,14 @@ function readLinksPage(body: unknown): AdminLinksPage {
   ) {
     throw new AdminApiError("服务器返回了无效的链接分页数据", 502);
   }
-  return body as unknown as AdminLinksPage;
+  // 逐字段构造而非整体断言：上面的守卫已窄化了这四个字段，
+  // 直接 `as AdminLinksPage` 不需要经过 unknown。
+  return {
+    links: body.links as AdminLinksPage["links"],
+    total: body.total,
+    page: body.page,
+    pageSize: body.pageSize,
+  };
 }
 
 /** 校验删除响应，防止 HTTP 200 但业务未成功。 */
