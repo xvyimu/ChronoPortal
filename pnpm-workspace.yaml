@@ -39,10 +39,17 @@ overrides:
   # Dependabot / GHSA 2026-07-23 — lower bounds per the policy above.
   # GHSA-f88m-g3jw-g9cj (sharp) — first patched 0.35.3 (also a direct dep)
   sharp: '>=0.35.3 <0.36'
-  # GHSA-4c8g-83qw-93j6 + GHSA-v2hh-gcrm-f6hx (fast-uri) — first patched 3.1.4.
-  # Kept on the 3.x line: it is a direct dep pinned to 3.1.4 in package.json and
-  # 4.x is a major bump, out of scope for a security pass. Revisit deliberately.
-  fast-uri: '>=3.1.4 <4'
+  # GHSA-4c8g-83qw-93j6 + GHSA-v2hh-gcrm-f6hx (fast-uri).
+  # 3.x 线的首个修复版是 **3.1.4**（4.x 线是 4.1.1），也是 3.1.x 的最高版本。
+  #
+  # 2026-08-22：精确钉 3.1.4，不写 '>=3.1.4 <4'。工作区曾出现钉到 3.1.5 的改动，
+  # 而该版本在 npm registry 上不存在（`npm view fast-uri@3.1.5` → 404）。
+  # 开区间上界会让 pnpm 保留 lock 里已有的更高解析（3.1.5 同样满足 >=3.1.4），
+  # 幽灵条目清不掉；而 3.1.4 之上暂无真实版本，范围写法此刻没有收益。
+  # 本仓「用范围避免 stale pin」的通则在此有意让位，待 3.1.5 真正发布再放开。
+  #
+  # 留在 3.x 线：它是 ajv 的传递依赖，4.x 是 major bump，不属安全 pass 范围。
+  fast-uri: '3.1.4'
   # GHSA-frvp-7c67-39w9 (@hono/node-server) — first patched 2.0.11
   '@hono/node-server': '>=2.0.11 <3'
   # GHSA-mwp4-54f8-5fhr (ip-address, high) — leading-zero octets decoded as decimal
@@ -54,3 +61,6 @@ overrides:
   # 10.2.1); the high needs 10.3.1, so the bound comes from the advisory DB,
   # not from the alert list.
   ip-address: '>=10.3.1 <11'
+  # GHSA-7p8r-x3mc-p8w7 (undici) — first patched 7.29.0.
+  # Transitive deps from @dotenvx/dotenvx@1, jsdom@29, shadcn@4 were stuck at 7.28.0.
+  undici: '>=7.29.0 <8'
