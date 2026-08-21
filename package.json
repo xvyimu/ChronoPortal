@@ -39,7 +39,8 @@
     "probe:headers": "node scripts/probe-security-headers.mjs",
     "probe:lighthouse": "node scripts/probe-lighthouse-production.mjs",
     "docs:openapi": "node scripts/generate-openapi.mjs",
-    "typecheck": "tsc --noEmit --incremental false"
+    "typecheck": "tsc --noEmit --incremental false",
+    "prepare": "husky"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.19",
@@ -71,6 +72,8 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@commitlint/cli": "19.8.1",
+    "@commitlint/config-conventional": "19.8.1",
     "@hono/node-server": "2.0.11",
     "@next/bundle-analyzer": "^16.2.9",
     "@playwright/test": "^1.61.0",
@@ -83,6 +86,7 @@
     "@vitest/coverage-v8": "^4.1.9",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
+    "husky": "^9.1.7",
     "jsdom": "^29.1.1",
     "shadcn": "4.14.0",
     "tailwindcss": "^4.3.3",
