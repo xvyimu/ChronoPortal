@@ -1,0 +1,17 @@
+# .worktreeinclude — Orca 建新 worktree 时，从这个文件（主 checkout 根）读出要一并复制的
+# gitignore 路径。跨工具约定（orca #7549）。
+#
+# 规则：每行一个字面路径，相对仓库根、锚定根目录；`#` 注释与空行会被跳过；
+#       不支持 glob（* ?）与取反（!）；只在主 checkout 里存在**且**被 gitignore 时才会复制。
+#       所以下面暂时不存在的条目是无副作用的占位，等你建了就会自动带上。
+#
+# 本仓 setup 脚本（orca.yaml: pnpm install）不碰 env；不带过去的话新 worktree 起不了站。
+
+# .gitignore: .env*
+.env.local
+
+# .gitignore: 「local embed / tunnel / env migrate secrets & logs (never commit)」
+.admin-password-hash.local
+.embed-api-key.local
+.embed-tunnel-url.local
+.vercel-env-migrate.local.json
