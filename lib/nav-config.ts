@@ -4,7 +4,7 @@
  * 集中管理分类标签、排行榜标签等显示映射。
  * 新增分类/排行榜源时在此添加即可，无需修改组件逻辑。
  *
- * @see DESIGN-DOC.md 分类体系章节
+ * @see docs/design/DESIGN-DOC.md 分类体系章节
  */
 
 /** 分类 slug → 导航 Tab 显示名称（纯文本，图标由 category-icons 提供） */

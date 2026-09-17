@@ -15,7 +15,7 @@
 > - `docs/PROGRESS.md` **§〇**
 > - `docs/release-manifest-2026-07-18.md`
 > - `docs/PRODUCTION-RUNBOOK.md`
-> - 设计说明（非进度）：`DESIGN-DOC.md`（部署已校准为 Vercel）
+> - 设计说明（非进度）：`docs/design/DESIGN-DOC.md`（部署已校准为 Vercel）
 >
 > 冲突时：PROGRESS §〇 + release-manifest + 生产探针 ＞ 本文。
 

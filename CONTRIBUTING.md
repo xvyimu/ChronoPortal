@@ -75,6 +75,6 @@ overflow-x-auto 被限制在 4 个分类，移除 slice 后支持横向滚动。
 
 ## 架构参考
 
-- 项目架构详见 `DESIGN-DOC.md`
+- 项目架构详见 `docs/design/DESIGN-DOC.md`
 - 架构决策记录见 `docs/adr-*.md`
 - 进度追踪见 `docs/PROGRESS.md`
