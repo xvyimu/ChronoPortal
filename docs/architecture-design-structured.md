@@ -134,7 +134,7 @@ nav-site 谱系文档化；Supabase 项目经迁移记录演进；shadcn 续用�
 
 ## 9. 相关文档
 
-`PROJECT.md` · `ops/cp-deps-dismiss-evidence-2026-07-28.md` · `AGENT-CONTINUE-*.md` · `adr-*`
+`PROJECT.md` · `ops/cp-deps-dismiss-evidence-2026-07-28.md` · `HANDOFF.md` · `adr-*`
 
 ---
 

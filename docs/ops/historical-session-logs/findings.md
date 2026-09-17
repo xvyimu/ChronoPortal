@@ -28,14 +28,14 @@
 ## 遇到的问题
 | 问题 | 解决方案 |
 |------|---------|
-| 最新 handoff 查询返回较旧 Claude Code 状态 | 以当前 git 状态、`CLAUDE-HANDOFF.md` v11 和 `docs/PROGRESS.md` Phase 26 为准 |
+| 最新 handoff 查询返回较旧 Claude Code 状态 | 以当前 git 状态、`docs/archive/cp-claude-handoff-v11-2026-07-04.md` v11 和 `docs/PROGRESS.md` Phase 26 为准 |
 | 第一次 RED 测试失败于 `import.meta.url` 不是 file URL | 改用 `join(process.cwd(), "...")` 读取源码文件后，失败原因变为预期的静态 sonner import |
 
 ## 资源
 - `docs/perf/findings.md`
 - `docs/perf/baseline-2026-06-29.md`
 - `docs/superpowers/specs/2026-06-29-performance-optimization-design.md`
-- `CLAUDE-HANDOFF.md`
+- `docs/archive/cp-claude-handoff-v11-2026-07-04.md`
 
 ## 视觉/浏览器发现
 - 本轮尚未执行新的浏览器检查。

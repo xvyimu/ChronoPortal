@@ -5,7 +5,7 @@ import { test, expect } from "@playwright/test";
  *
  * 基准在 Windows 本机生成并提交；GitHub Actions（Linux）跳过，因为字体/抗锯齿渲染
  * 在不同 OS 上会产生假阳性差异。如需启用 CI 视觉回归，需在 Linux 环境
- * 重新生成基准（参见 CLAUDE-HANDOFF.md）。
+ * 重新生成基准（参见 docs/archive/cp-claude-handoff-v11-2026-07-04.md）。
  *
  * 更新基准：pnpm exec playwright test e2e/visual.spec.ts --update-snapshots
  */

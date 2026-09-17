@@ -19,4 +19,4 @@ GitHub 身份一律用 **ChronoPortal**；npm package 名可仍为 `nav-site`。
 - 第三方片段见 [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)（如 React Bits FadeContent 适配）。  
 - MIT `LICENSE` 不得删除；新增第三方代码须补进 THIRD_PARTY 或等价清单。
 
-续作：`docs/AGENT-CONTINUE-2026-07-21.md` · 对外说明：`README.md`。  
+续作：`docs/HANDOFF.md` · 对外说明：`README.md`。  
