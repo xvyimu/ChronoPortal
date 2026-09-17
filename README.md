@@ -2,7 +2,7 @@
 
 **GitHub：** [xvyimu/ChronoPortal](https://github.com/xvyimu/ChronoPortal)  
 **产品显示名：** 综合导航站 / 公益 API 导航  
-**本地路径 / package 名：** `D:\ChronoPortal` · npm `"name": "nav-site"`（private，**不是** GitHub 身份）  
+**本地路径 / package 名：** `D:\projects\ChronoPortal` · npm `"name": "nav-site"`（private，**不是** GitHub 身份）  
 **线上：** https://yuanjia1314.ccwu.cc  
 **许可：** [MIT](./LICENSE) · Copyright (c) 2026 xvyimu  
 

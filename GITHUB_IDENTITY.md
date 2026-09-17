@@ -6,7 +6,7 @@
 | **Former name** | `xvyimu/nav-site` |
 | **Fork network** | N/A（自有仓改名） |
 | **Product name** | 综合导航站 / 公益 API 导航 |
-| **Local path / npm** | `D:\ChronoPortal`（入口 `D:\projects\ChronoPortal`）· package `"name": "nav-site"`（private） |
+| **Local path / npm** | `D:\projects\ChronoPortal`（入口 `D:\projects\ChronoPortal`）· package `"name": "nav-site"`（private） |
 | **Production** | https://yuanjia1314.ccwu.cc |
 | **Runtime tip** | 以线上 `/build-info.json` 为准（2026-07-22 曾对齐 `a1e5c7f6`） |
 | **License** | MIT · Copyright (c) 2026 xvyimu · [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md) |

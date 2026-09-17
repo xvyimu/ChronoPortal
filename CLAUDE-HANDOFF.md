@@ -2,7 +2,7 @@
 
 ## 项目接手：综合导航站 (nav-site)
 
-项目位于 `D:\nav-site`，开发端口 3264（`pnpm dev`）。
+项目位于 `D:\projects\ChronoPortal`，开发端口 3264（`pnpm dev`）。
 部署地址：https://yuanjia1314.ccwu.cc
 
 ## 技术栈

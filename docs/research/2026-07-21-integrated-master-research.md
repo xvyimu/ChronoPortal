@@ -1,7 +1,7 @@
 # nav-site 整合研究报告：进度对齐 · 同类经验 · 架构优化 · 验收闭环
 
 > 文档版本：v1.0 · 2026-07-21  
-> 项目路径：`D:\nav-site`  
+> 项目路径：`D:\projects\ChronoPortal`  
 > 生产入口：`https://yuanjia1314.ccwu.cc`  
 > 生产运行时 HEAD（实时探针 2026-07-20/21）：**`ee5a047b29e030afc60e75e57b0be913e6b2fd00`** · deploy `dpl_6GCemEkco5zaRGxxzx7Y6bRccorj`  
 > 文档权威优先级：`docs/PROGRESS.md` §〇 + `docs/release-manifest-2026-07-18.md` ＞ 历史 Phase / 旧审计 / 根目录会话日志  

@@ -2,7 +2,7 @@
 
 > **测绘日：** 2026-07-22  
 > **仓路径：** worktree `cp-1` ≡ 产品 `ChronoPortal`（npm 包名历史 `nav-site`）  
-> **真路径参考：** `D:\ChronoPortal` / 本 worktree  
+> **真路径参考：** `D:\projects\ChronoPortal` / 本 worktree  
 > **生产入口：** `https://yuanjia1314.ccwu.cc`  
 > **性质：** **只读测绘**；不改业务代码、不 commit、不 push  
 > **总规划 SSOT：** `D:\orca\docs\architecture-stack-refactor-master-2026-07-22.md`  

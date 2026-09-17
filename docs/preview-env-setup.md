@@ -15,11 +15,11 @@
 ## 2. 同步命令
 
 ```powershell
-powershell -NoProfile -File D:\nav-site\scripts\sync-preview-env.ps1
+powershell -NoProfile -File D:\projects\ChronoPortal\scripts\sync-preview-env.ps1
 node scripts/set-preview-admin-hash.mjs
 # 可选单独补 embed key：
 # 从 .embed-api-key.local 写入 Preview（勿用 User EMBEDDING_API_KEY，可能是别的产品）
-vercel env add EMBED_SERVER_API_KEY preview --scope aijiai520 --yes --force --sensitive --value (Get-Content D:\nav-site\.embed-api-key.local -Raw).Trim()
+vercel env add EMBED_SERVER_API_KEY preview --scope aijiai520 --yes --force --sensitive --value (Get-Content D:\projects\ChronoPortal\.embed-api-key.local -Raw).Trim()
 vercel redeploy <preview-url> --scope aijiai520
 ```
 

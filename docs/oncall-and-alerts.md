@@ -36,7 +36,7 @@
 ## 3. 发布后 1h 清单（主值守）
 
 ```powershell
-cd D:\nav-site
+cd D:\projects\ChronoPortal
 pnpm run verify:production -- --base-url https://yuanjia1314.ccwu.cc --expect-commit (git rev-parse HEAD)
 # 或固定期望：
 # pnpm run verify:production -- --base-url https://yuanjia1314.ccwu.cc --expect-commit ee5a047b29e030afc60e75e57b0be913e6b2fd00
@@ -60,7 +60,7 @@ pnpm run verify:production -- --base-url https://yuanjia1314.ccwu.cc --expect-co
 ## 5. Embed 常开（本机路径）
 
 ```powershell
-powershell -NoProfile -File D:\nav-site\scripts\bootstrap-embed-always-on.ps1
+powershell -NoProfile -File D:\projects\ChronoPortal\scripts\bootstrap-embed-always-on.ps1
 # 或分步：
 # scripts\ensure-embed-stack.ps1
 # scripts\install-embed-autostart.ps1

@@ -34,25 +34,25 @@ Vercel production (nav-site-kappa.vercel.app)
 
 ```powershell
 # 推荐：幂等一次拉起
-powershell -NoProfile -File D:/nav-site/scripts/ensure-embed-stack.ps1
+powershell -NoProfile -File D:/projects/ChronoPortal/scripts/ensure-embed-stack.ps1
 
 # 或分步
 # 1) 原生 embed
-powershell -NoProfile -File D:/nav-site/scripts/start-embed-native.ps1
+powershell -NoProfile -File D:/projects/ChronoPortal/scripts/start-embed-native.ps1
 # 2) Named Tunnel（会先探 origin，down 则自动拉 native）
-powershell -NoProfile -File D:/nav-site/scripts/start-embed-tunnel.ps1
+powershell -NoProfile -File D:/projects/ChronoPortal/scripts/start-embed-tunnel.ps1
 
 # 停
-powershell -NoProfile -File D:/nav-site/scripts/stop-embed-tunnel.ps1
-powershell -NoProfile -File D:/nav-site/scripts/stop-embed-native.ps1
+powershell -NoProfile -File D:/projects/ChronoPortal/scripts/stop-embed-tunnel.ps1
+powershell -NoProfile -File D:/projects/ChronoPortal/scripts/stop-embed-native.ps1
 ```
 
 **登录自启（当前用户）：**
 
 ```powershell
-powershell -NoProfile -File D:/nav-site/scripts/install-embed-autostart.ps1
+powershell -NoProfile -File D:/projects/ChronoPortal/scripts/install-embed-autostart.ps1
 # 任务名 nav-site-embed-stack · AtLogOn + 90s · 日志 .embed-autostart.log
-powershell -NoProfile -File D:/nav-site/scripts/uninstall-embed-autostart.ps1
+powershell -NoProfile -File D:/projects/ChronoPortal/scripts/uninstall-embed-autostart.ps1
 ```
 
 验收：
@@ -128,7 +128,7 @@ python scripts/backfill-embeddings.py --provider cloudflare --apply --batch-size
 一键：
 
 ```powershell
-powershell -NoProfile -File D:\nav-site\scripts\bootstrap-embed-always-on.ps1
+powershell -NoProfile -File D:\projects\ChronoPortal\scripts\bootstrap-embed-always-on.ps1
 ```
 
 ### 明确不在本轮自动执行
@@ -197,10 +197,10 @@ fly deploy -c fly.embed.toml
 | `%USERPROFILE%\.cloudflared\config-nav-site-embed.yml` | tunnel ingress → 18003 |
 | `%USERPROFILE%\.cloudflared\7acf685a-….json` | tunnel credentials（密钥） |
 | `%USERPROFILE%\.cloudflared\cert.pem` | origin cert（login 产物） |
-| `D:/nav-site/.embed-api-key.local` | Bearer key |
-| `D:/nav-site/.embed-tunnel-url.local` | 自定义域 URL |
-| `D:/nav-site/.embed-proxy-url.local` | 生产 Worker 入口（gitignore） |
-| `D:/nav-site/workers/nav-site-embed-proxy.js` | Worker 源码（重部署用） |
+| `D:/projects/ChronoPortal/.embed-api-key.local` | Bearer key |
+| `D:/projects/ChronoPortal/.embed-tunnel-url.local` | 自定义域 URL |
+| `D:/projects/ChronoPortal/.embed-proxy-url.local` | 生产 Worker 入口（gitignore） |
+| `D:/projects/ChronoPortal/workers/nav-site-embed-proxy.js` | Worker 源码（重部署用） |
 
 重装 cloudflared 登录后：
 
@@ -215,7 +215,7 @@ cloudflared tunnel login
 重部署 Worker（需 wrangler OAuth / `workers:write`）：
 
 ```powershell
-powershell -NoProfile -File D:/nav-site/scripts/deploy-embed-proxy-worker.ps1
+powershell -NoProfile -File D:/projects/ChronoPortal/scripts/deploy-embed-proxy-worker.ps1
 ```
 
 ## 脆弱点
