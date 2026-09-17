@@ -100,7 +100,7 @@ Command: `pnpm audit --registry=https://registry.npmjs.org --audit-level moderat
 - `docs/ops/csp-dynamic-preview-stage-a-blocker-2026-07-23.md`
 - `docs/ops/w3-csp-prod-gate-dossier.md`
 - `docs/ops/w3-rls-prod-matrix-prep.md`
-- `docs/adr-007-next-auth-v5-strategy.md`
+- `docs/adr/0010-next-auth-v5-strategy.md`
 - `docs/ops/w1-arch-upgrade-chronoportal-claude.md`
 - `docs/ops/w2-arch-upgrade-chronoportal-claude.md`
 - `docs/ops/w3-arch-upgrade-chronoportal-claude.md`

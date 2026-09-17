@@ -281,8 +281,8 @@ export default function AdminCategoriesPage() {
 6. `CLAUDE.md` — 开发约定（引用 AGENTS.md）
 7. `AGENTS.md` — Next.js 16 通用规则（必读，API 可能与训练数据不同）
 8. `PROJECT-AUDIT.md` — 51 项安全审计追踪
-9. `docs/adr-001-dual-db-merge.md` — 双库合并决策
-10. `docs/adr-002-authjs-migration.md` — Auth.js 迁移决策
+9. `docs/adr/0001-dual-db-merge.md` — 双库合并决策
+10. `docs/adr/0002-authjs-migration.md` — Auth.js 迁移决策
 
 ## 已知问题
 

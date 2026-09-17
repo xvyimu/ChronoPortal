@@ -73,4 +73,4 @@
 1. 形态/栈以本文为准；Next 大版本 API 以本仓 `node_modules/next/dist/docs/` 为准（见 AGENTS 警告块）。  
 2. 不擅自去掉 `--webpack`、不放宽生产 CSP 默认策略而不经 `docs/csp-*` 决策。  
 3. 换栈/换形态 → ADR（`docs/adr-*`）+ 更新本文 → 再实现。  
-4. 领域边界：`adr-003` / `adr-006` 等 repository 模块约定。
+4. 领域边界：`adr/003` / `adr/006` 等 repository 模块约定。

@@ -19,7 +19,7 @@
    - **环境阻断书** + 本地 DYNAMIC 契约证据：  
      `docs/ops/csp-dynamic-preview-stage-a-blocker-2026-07-23.md`
 2. **next-auth 5 beta 决策 ADR**  
-   - `docs/adr-007-next-auth-v5-strategy.md`  
+   - `docs/adr/0010-next-auth-v5-strategy.md`  
    - **决策：风险接受，继续 pin `5.0.0-beta.31`**（npm 无 stable 5.x；`latest=4.24.15`，`beta=5.0.0-beta.32`）。迁移路径有触发条件。
 3. **headers DRIFT 平台层处置建议**（W1 已溯源）  
    - `docs/ops/headers-drift-platform-remediation-2026-07.md`  
@@ -67,7 +67,7 @@ Working theory unchanged: **CF and/or Vercel rewrite**, not Next source on `46e7
 | Path | Kind |
 | --- | --- |
 | `docs/ops/csp-dynamic-preview-stage-a-blocker-2026-07-23.md` | **new** |
-| `docs/adr-007-next-auth-v5-strategy.md` | **new** |
+| `docs/adr/0010-next-auth-v5-strategy.md` | **new** |
 | `docs/ops/headers-drift-platform-remediation-2026-07.md` | **new** |
 | `docs/ops/stack-matrix-2026-07.md` | **updated** (W2 columns) |
 | `docs/ops/headers-drift-trace-2026-07.md` | **updated** (W2 pointer) |

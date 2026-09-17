@@ -114,7 +114,7 @@ P1 Preview 对比：**仍不可达** → 不得盲目改 CF/Vercel。
 | `docs/ops/w3-rls-prod-matrix-prep.md` | **new** |
 | `docs/ops/headers-prod-change-request-template.md` | **new** |
 | `docs/ops/stack-matrix-2026-07.md` | **updated** (W3 columns) |
-| `docs/adr-007-next-auth-v5-strategy.md` | **updated** (W3 跟进段) |
+| `docs/adr/0010-next-auth-v5-strategy.md` | **updated** (W3 跟进段) |
 | `docs/ops/w3-arch-upgrade-chronoportal-claude.md` | **this report** |
 
 No application runtime code. No production env. No CF console. No push.

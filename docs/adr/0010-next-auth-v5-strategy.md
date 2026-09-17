@@ -5,7 +5,7 @@
 | 日期 | 2026-07-23 |
 | 状态 | **已决策** |
 | 波次 | portfolio W2 · ChronoPortal |
-| 前序 | `docs/adr-002-authjs-migration.md`（已迁到 `next-auth@5.0.0-beta.31`） |
+| 前序 | `docs/adr/0002-authjs-migration.md`（已迁到 `next-auth@5.0.0-beta.31`） |
 | 范围 | 策略与迁移路径；**本 ADR 不 bump 依赖、不改生产 env** |
 
 ## 背景
@@ -115,7 +115,7 @@ ADR-002 曾写「监控 v5 正式版后升级」。W2 需书面选择：
 
 ## 相关
 
-- `docs/adr-002-authjs-migration.md`
+- `docs/adr/0002-authjs-migration.md`
 - `docs/ops/stack-matrix-2026-07.md`
 - `docs/ops/w2-arch-upgrade-chronoportal-claude.md`
 - `docs/ops/w3-arch-upgrade-chronoportal-claude.md`

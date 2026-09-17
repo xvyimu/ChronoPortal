@@ -218,7 +218,7 @@ flowchart TD
 | 文档 | 责任 | 更新时机 | 禁止内容 |
 |---|---|---|---|
 | 本文 | 当前优化范围、依赖、阶段和门禁 | scope 或阶段改变时 | 未验证生产结论 |
-| `docs/adr-009-admin-frontend-backend-interface.md` | 长期架构决策与取舍 | 决策被替代时新增 ADR 并标记 superseded | 临时任务进度 |
+| `docs/adr/0009-admin-frontend-backend-interface.md` | 长期架构决策与取舍 | 决策被替代时新增 ADR 并标记 superseded | 临时任务进度 |
 | `docs/LAUNCH-CHECKLIST.md` | 发布人员的短检查单 | 发布流程稳定后 | 长篇故障说明 |
 | `docs/PRODUCTION-RUNBOOK.md` | 运维步骤、故障处理和回滚 | 平台、环境或迁移契约变化时 | secret 值 |
 | `docs/PROGRESS.md` | 已核验里程碑 | 候选或生产事实确认后 | 把工作树状态写成已上线 |
@@ -339,7 +339,7 @@ rtk pnpm run verify:launch-readiness -- --skip-network
 - [Preview 环境](./preview-env-setup.md)
 - [值守与告警](./oncall-and-alerts.md)
 - [Chrome 抽检证据](./perf/chrome-review-2026-07-18/README.md)
-- [管理后台前后端 interface ADR](./adr-009-admin-frontend-backend-interface.md)
+- [管理后台前后端 interface ADR](./adr/0009-admin-frontend-backend-interface.md)
 - [管理后台优化收尾报告](./admin-optimization-closeout-2026-07-17.md)
 - [全栈审计](./full-stack-audit-2026-07-17.md)
 - [发布检查清单](./LAUNCH-CHECKLIST.md)

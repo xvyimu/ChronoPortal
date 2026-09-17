@@ -31,7 +31,7 @@
 Strong。它是维护成本最大的长期结构问题，但一次性拆会影响面过大。
 
 **ADR**
-见 `docs/adr-003-data-access-domain-modules.md`。
+见 `docs/adr/0003-data-access-domain-modules.md`。
 
 ## 候选 B：搜索编排 adapter seam 显式化
 
@@ -58,7 +58,7 @@ Strong。它是维护成本最大的长期结构问题，但一次性拆会影�
 Worth exploring。搜索近期刚完成 RRF 与阈值调整，应等质量基线稳定后再动。
 
 **ADR**
-见 `docs/adr-004-search-adapter-seam.md`。
+见 `docs/adr/0004-search-adapter-seam.md`。
 
 ## 候选 C：Netlify 部署等待 module 加深
 
@@ -83,7 +83,7 @@ Worth exploring。搜索近期刚完成 RRF 与阈值调整，应等质量基线
 Strong。本轮直接执行。
 
 **ADR**
-见 `docs/adr-005-netlify-deploy-wait-module.md`。
+见 `docs/adr/0005-netlify-deploy-wait-module.md`。
 
 ## 取舍矩阵
 

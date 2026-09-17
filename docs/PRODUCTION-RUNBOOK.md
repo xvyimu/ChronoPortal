@@ -197,7 +197,7 @@ https://nav-site-kappa.vercel.app/api/health
 
 本地开发也可直接 `EMBED_SERVER_URL=http://127.0.0.1:18003`。
 
-详见 `docs/embed-fly-deploy.md` · `docs/adr-008-remote-embed-endpoint.md`（ADR-008 描述路径 A 远程端点契约）。
+详见 `docs/embed-fly-deploy.md` · `docs/adr/0008-remote-embed-endpoint.md`（ADR-008 描述路径 A 远程端点契约）。
 
 ### 回填 / 重建 `embedding_1024`（路径 B）
 
