@@ -1,3 +1,11 @@
+---
+status: accepted
+date: 2026-06-24
+decision-makers: [xvyimu]
+consulted: []
+informed: []
+---
+
 # ADR-002: Auth.js canary → next-auth v5 beta 迁移评估
 
 > 日期：2026-06-24

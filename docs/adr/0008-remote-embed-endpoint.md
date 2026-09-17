@@ -1,3 +1,11 @@
+---
+status: accepted
+date: 2026-07-11
+decision-makers: [xvyimu]
+consulted: []
+informed: []
+---
+
 # ADR-008: 远程 Embedding 端点（HTTPS + API Key）
 
 > 状态：Accepted  

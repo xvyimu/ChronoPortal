@@ -1,3 +1,11 @@
+---
+status: accepted
+date: 2026-06-23
+decision-makers: [xvyimu]
+consulted: []
+informed: []
+---
+
 # ADR-001: 双库合并可行性评估
 
 ## 状态

@@ -1,3 +1,11 @@
+---
+status: accepted
+date: 2026-07-06
+decision-makers: [xvyimu]
+consulted: []
+informed: []
+---
+
 # ADR-007: Navigation state and information architecture modules
 
 Status: Accepted

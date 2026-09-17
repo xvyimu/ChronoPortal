@@ -1,3 +1,11 @@
+---
+status: accepted
+date: 2026-07-05
+decision-makers: [xvyimu]
+consulted: []
+informed: []
+---
+
 # ADR-004: 搜索编排显式化 adapter seam
 
 Status: Accepted

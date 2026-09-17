@@ -1,3 +1,11 @@
+---
+status: accepted
+date: 2026-07-18
+decision-makers: [xvyimu]
+consulted: []
+informed: []
+---
+
 # ADR-009: 管理后台前后端 interface 分离
 
 Status: Accepted

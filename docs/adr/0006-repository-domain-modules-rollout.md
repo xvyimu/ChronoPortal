@@ -1,3 +1,11 @@
+---
+status: accepted
+date: 2026-07-06
+decision-makers: [xvyimu]
+consulted: []
+informed: []
+---
+
 # ADR-006: Repository domain modules rollout
 
 Status: Accepted
