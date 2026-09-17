@@ -1,6 +1,6 @@
 # ChronoPortal · 产品分层方案（PRODUCT-LAYERS）
 
-> **组合总纲：** `D:\orca\.planning\portfolio-product-docs-program-2026-07-23\PORTFOLIO-PRODUCT-PROGRAM.md`  
+> **组合总纲：** `D:\orca\docs\PORTFOLIO.md`  
 > **形态与栈 SSOT：** [`PROJECT.md`](./PROJECT.md)  
 > **tip：** `f9d3d38b`
 
