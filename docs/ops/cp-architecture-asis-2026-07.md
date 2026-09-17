@@ -1,12 +1,20 @@
 # ChronoPortal · 架构现状测绘（As-Is）
 
+> ⚠️ **状态：HISTORICAL（2026-09-17 归档）。** 本文件是 **2026-07-22** 时点的只读架构测绘，
+> 描述当时的代码状态，**不是当前要求**。已从 `docs/` 根迁至 `docs/ops/`。
+>
+> **技术栈权威：** 本仓 [`docs/PROJECT.md`](../PROJECT.md)。
+> **本节原先写的「目标栈 SSOT：C · Python · Go · TS+Vue3+NaiveUI」已作废** ——
+> 该目标栈出自 `D:\orca\docs\architecture-stack-refactor-master-2026-07-22.md`（六仓口径，已废止），
+> 与本仓现行栈（Next 16 + React 19 + Supabase）直接冲突。**不要据此选型。**
+
 > **测绘日：** 2026-07-22  
 > **仓路径：** worktree `cp-1` ≡ 产品 `ChronoPortal`（npm 包名历史 `nav-site`）  
 > **真路径参考：** `D:\projects\ChronoPortal` / 本 worktree  
 > **生产入口：** `https://yuanjia1314.ccwu.cc`  
 > **性质：** **只读测绘**；不改业务代码、不 commit、不 push  
-> **总规划 SSOT：** `D:\orca\docs\architecture-stack-refactor-master-2026-07-22.md`  
-> **目标栈 SSOT：** C · Python · Go · TS+Vue3+NaiveUI · 嵌入式副线 · Git/Shell/SQL  
+> ~~**总规划 SSOT：** `D:\orca\docs\architecture-stack-refactor-master-2026-07-22.md`~~ ← **已废止**
+> ~~**目标栈 SSOT：** C · Python · Go · TS+Vue3+NaiveUI · 嵌入式副线 · Git/Shell/SQL~~ ← **已作废**，见顶部横幅
 
 ---
 
