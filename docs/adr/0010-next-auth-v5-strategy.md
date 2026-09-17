@@ -1,3 +1,11 @@
+---
+status: accepted
+date: 2026-07-23
+decision-makers: [xvyimu]
+consulted: []
+informed: []
+---
+
 # ADR-007: next-auth v5 beta 收口策略
 
 | 字段 | 值 |

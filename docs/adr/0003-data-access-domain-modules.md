@@ -1,3 +1,11 @@
+---
+status: proposed
+date: 2026-07-05
+decision-makers: [xvyimu]
+consulted: []
+informed: []
+---
+
 # ADR-003: 数据访问按域拆出 deep modules
 
 Status: Proposed

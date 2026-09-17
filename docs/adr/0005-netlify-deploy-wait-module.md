@@ -1,3 +1,11 @@
+---
+status: accepted
+date: 2026-07-05
+decision-makers: [xvyimu]
+consulted: []
+informed: []
+---
+
 # ADR-005: Netlify 部署等待脚本加深为可测试 module
 
 Status: Accepted
