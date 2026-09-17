@@ -55,7 +55,7 @@
 | 测试 | Vitest · Playwright | |
 | 部署 | **Vercel**（生产单轨） | CF Rocket Loader off（CSP） |
 
-目录与续作：根 README · [`AGENT-CONTINUE-2026-07-21.md`](./AGENT-CONTINUE-2026-07-21.md) · 根 [`AGENTS.md`](../AGENTS.md) / [`CLAUDE.md`](../CLAUDE.md)。
+目录与续作：根 README · [`HANDOFF.md`](./HANDOFF.md) · 根 [`AGENTS.md`](../AGENTS.md) / [`CLAUDE.md`](../CLAUDE.md)。
 
 ---
 

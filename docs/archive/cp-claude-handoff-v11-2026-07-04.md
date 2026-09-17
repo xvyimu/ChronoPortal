@@ -1,5 +1,12 @@
 # Claude Code 项目接手提示词（v11 — 2026-07-04）
 
+> ⚠️ **状态：HISTORICAL（2026-09-17 归档）。** 本文件是 **2026-07-04** 时点的接手提示词（v11），
+> 已由 [`docs/HANDOFF.md`](../HANDOFF.md) 取代。
+>
+> **其「环境注意事项」一节仍有效，已并入现 HANDOFF 的 §2**（NTFS reparse point 导致必须 `--webpack` ·
+> git push 代理绕过 · pre-commit hook 需 `--no-verify` · `.mcp.json` 有意指向开发库）。
+> 其余章节（v11/v10/v8 版本历史、Phase 2 计划）是历史记录，**不要据此接手**。
+
 ## 项目接手：综合导航站 (nav-site)
 
 项目位于 `D:\projects\ChronoPortal`，开发端口 3264（`pnpm dev`）。

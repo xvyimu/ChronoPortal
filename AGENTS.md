@@ -16,7 +16,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ## 先读
 
 1. **[`docs/PROJECT.md`](./docs/PROJECT.md)** — **形态与栈 SSOT**（Web 导航门户 + Next/Supabase 唯一栈）  
-2. 续作：[`docs/AGENT-CONTINUE-2026-07-21.md`](./docs/AGENT-CONTINUE-2026-07-21.md)  
+2. 续作：[`docs/HANDOFF.md`](./HANDOFF.md)  
 3. 根 [`README.md`](./README.md) · 身份 [`GITHUB_IDENTITY.md`](./GITHUB_IDENTITY.md)  
 4. 全局门闩：形态/栈未入档 → 禁业务编码（`~/.claude/CLAUDE.md` §8）
 

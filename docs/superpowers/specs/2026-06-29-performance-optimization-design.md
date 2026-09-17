@@ -3,7 +3,7 @@
 > **日期**：2026-06-29
 > **状态**：设计已批准，待实施
 > **方案**：测量驱动审计（A） + 假设驱动深挖（C） 混合
-> **关联文档**：`PROJECT-AUDIT.md` §8.6、`docs/PROGRESS.md` §九、`CLAUDE-HANDOFF.md`
+> **关联文档**：`PROJECT-AUDIT.md` §8.6、`docs/PROGRESS.md` §九、`docs/archive/cp-claude-handoff-v11-2026-07-04.md`
 
 ---
 
@@ -81,7 +81,7 @@
 - **不重构现有架构**：刚完成 9 阶段重构，需稳定期
 - **每个改动必须可量化**：无数据 = 不修复
 - **测量基建与 E2E 测试解耦**：避免相互干扰
-- **保留 webpack 模式**：NTFS reparse point 限制（见 CLAUDE-HANDOFF.md）
+- **保留 webpack 模式**：NTFS reparse point 限制（见 docs/archive/cp-claude-handoff-v11-2026-07-04.md）
 - **遵循 Next.js 16 API**：使用 `useReportWebVitals` hook，不引入 `web-vitals` 第三方库
 
 ---

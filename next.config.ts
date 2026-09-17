@@ -55,7 +55,7 @@ const nextConfig: NextConfig = {
   // NOTE: Turbopack is disabled due to NTFS reparse point issue in node_modules.
   // 30 top-level package directories have leftover pnpm junction reparse points
   // that Turbopack cannot traverse. Use `next build --webpack` and `next dev --webpack`.
-  // See CLAUDE-HANDOFF.md for details.
+  // See docs/archive/cp-claude-handoff-v11-2026-07-04.md for details.
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },

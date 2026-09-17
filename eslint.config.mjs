@@ -8,7 +8,7 @@ const eslintConfig = defineConfig([
   // Override default ignores of eslint-config-next.
   // NOTE: globalIgnores() replaces the package's default ignores, so we must
   // re-declare node_modules here, plus the NTFS reparse point ghost dirs that
-  // cannot be deleted (see CLAUDE-HANDOFF.md "NTFS Reparse Point 问题").
+  // cannot be deleted (see docs/archive/cp-claude-handoff-v11-2026-07-04.md "NTFS Reparse Point 问题").
   globalIgnores([
     // Default ignores of eslint-config-next:
     "node_modules/**",

@@ -41,7 +41,7 @@ test.describe("首页", () => {
 
 		// 先填入部分字符再绑定响应等待，避免错过 200ms 防抖后的请求。
 		// 使用 Promise.all 确保监听在 fill 触发请求之前就绪，且不 catch：
-		// 请求未到达即视为失败（CLAUDE-HANDOFF 已知问题 #2 的修复方案）。
+		// 请求未到达即视为失败（已归档的 v11 接手文档里的已知问题 #2（见 docs/archive/cp-claude-handoff-v11-2026-07-04.md） 的修复方案）。
 
 		const response = await page.request.get("/api/search?q=openai&semantic=false");
 		expect(response.status()).toBe(200);

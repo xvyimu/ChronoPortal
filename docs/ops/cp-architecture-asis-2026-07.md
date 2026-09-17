@@ -248,7 +248,7 @@ ChronoPortal/
 | 静态化导航 | 失动态搜索/登录/Admin | 中 | 可选远期；非当前 |
 | 继续 Next 上「微重构堆栈」 | 与产品线战略抢带宽 | 中 | **冻结无 SSOT 目标的微重构** |
 
-**残留技术债（L2 内可修，不升格为栈迁移）：** 密钥串库陷阱文档化、CSP 生产金丝雀观察、favorites DB 级硬化、支付预留死代码等 — 见 `docs/AGENT-CONTINUE-2026-07-21.md`。
+**残留技术债（L2 内可修，不升格为栈迁移）：** 密钥串库陷阱文档化、CSP 生产金丝雀观察、favorites DB 级硬化、支付预留死代码等 — 见 `docs/HANDOFF.md`。
 
 ---
 
@@ -295,7 +295,7 @@ ChronoPortal/
 | 008 | 远程 embed 端点 |
 | 009 | Admin 前后端接口边界 |
 
-架构不变式摘要（`docs/AGENT-CONTINUE-2026-07-21.md`）：单 Next 部署；RSC 直连 repository；Admin 不绕 boundary；搜索薄 route + use-case。
+架构不变式摘要（`docs/HANDOFF.md`）：单 Next 部署；RSC 直连 repository；Admin 不绕 boundary；搜索薄 route + use-case。
 
 ---
 
