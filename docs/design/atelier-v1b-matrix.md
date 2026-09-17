@@ -11,7 +11,7 @@
 
 ## Design Read
 
-> 导航图谱门户 · Paper + 蓝灰 accent（`#5f84b2`）· 保留 paper 品牌身份 · 对齐 Atelier **半径 / chrome blur / 间距纪律 / 克制顶轨**，非 MindSync shell 克隆。
+> 导航图谱门户 · Paper + 蓝灰 accent（`#5f84b2`）· 保留 paper 品牌身份 · 对齐 Atelier **半径 / chrome blur / 间距纪律 / 克制顶轨**，非堆叠式 shell 克隆。
 
 | Dial     | 值                                    |
 | -------- | ------------------------------------- |
