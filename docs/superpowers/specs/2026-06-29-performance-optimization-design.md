@@ -3,7 +3,7 @@
 > **日期**：2026-06-29
 > **状态**：设计已批准，待实施
 > **方案**：测量驱动审计（A） + 假设驱动深挖（C） 混合
-> **关联文档**：`PROJECT-AUDIT.md` §8.6、`docs/PROGRESS.md` §九、`docs/archive/cp-claude-handoff-v11-2026-07-04.md`
+> **关联文档**：`docs/archive/cp-project-audit-2026-06.md` §8.6、`docs/PROGRESS.md` §九、`docs/archive/cp-claude-handoff-v11-2026-07-04.md`
 
 ---
 
