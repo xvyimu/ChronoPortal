@@ -20,7 +20,7 @@
 | [`CONTRIBUTING.md`](./CONTRIBUTING.md) | 贡献：Issue / PR 与质量检查 |
 | [`SECURITY.md`](./SECURITY.md) | 安全漏洞报告（勿公开贴细节） |
 
-本地质量门闩与命令表见 PRODUCT-LAYERS **L4**；Agent 续作见 [`docs/HANDOFF.md`](./HANDOFF.md)。
+本地质量门闩与命令表见 PRODUCT-LAYERS **L4**；Agent 续作见 [`docs/HANDOFF.md`](./docs/HANDOFF.md)。
 
 ## 它是什么
 
@@ -45,7 +45,7 @@
 | 测试 | 正式 Vitest **55** 文件 + e2e 保留；无 ad-hoc 探针/备份 |
 | typecheck | `pnpm typecheck` 干净 |
 
-Agent 续作 SSOT：[`docs/HANDOFF.md`](./HANDOFF.md)。
+Agent 续作 SSOT：[`docs/HANDOFF.md`](./docs/HANDOFF.md)。
 
 ## 技术栈
 
@@ -156,7 +156,7 @@ node scripts/audit-edge-scripts.mjs
 | [`docs/PRODUCT-LAYERS.md`](./docs/PRODUCT-LAYERS.md) | 产品分层 L0–L6（身份 / 验收 / 路线图） |
 | [`docs/PROJECT.md`](./docs/PROJECT.md) | 形态与唯一技术栈 **SSOT** |
 | [`CONTRIBUTING.md`](./CONTRIBUTING.md) · [`SECURITY.md`](./SECURITY.md) | 贡献协作与安全漏洞报告 |
-| [`docs/HANDOFF.md`](./HANDOFF.md) | Agent 续作 / 陷阱 / 命令 |
+| [`docs/HANDOFF.md`](./docs/HANDOFF.md) | Agent 续作 / 陷阱 / 命令 |
 | [`docs/csp-t9-decision-2026-07-22.md`](./docs/csp-t9-decision-2026-07-22.md) | CSP T9 评估：暂不去 unsafe-inline |
 | [`docs/PRODUCTION-RUNBOOK.md`](./docs/PRODUCTION-RUNBOOK.md) | 生产运维 |
 | [`GITHUB_IDENTITY.md`](./GITHUB_IDENTITY.md) | GitHub 身份 |
