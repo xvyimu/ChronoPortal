@@ -259,7 +259,7 @@
 
 #### 12.3 Auth.js canary → next-auth v5 迁移
 
-**ADR-002**：`docs/adr-002-authjs-migration.md`
+**ADR-002**：`docs/adr/0002-authjs-migration.md`
 
 - `@auth/core` + `@auth/nextjs` (canary `0.0.0-380f8d56`) → `next-auth@5.0.0-beta.31`
 - 导入路径：`@auth/nextjs` → `next-auth`，`@auth/core/providers/credentials` → `next-auth/providers/credentials`
@@ -546,7 +546,7 @@
 │   ├── types.ts           # TypeScript 类型定义
 │   └── ...
 ├── docs/                   # 文档
-│   ├── adr-001-dual-db-merge.md  # 架构决策记录
+│   ├── adr/0001-dual-db-merge.md  # 架构决策记录
 │   └── PROGRESS.md        # 本文档
 ├── tests/                  # 单元测试
 ├── e2e/                    # E2E 测试

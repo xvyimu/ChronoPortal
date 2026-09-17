@@ -18,7 +18,7 @@ nav-site 已经完成搜索质量、视觉重构、上线门禁、生产探针�
 本方案基于只读扫描以下内容形成：
 
 - 项目文档：`README.md`、`PRODUCT.md`、`docs/PROGRESS.md`、`docs/LAUNCH-CHECKLIST.md`
-- 已有 ADR：`docs/adr-003-data-access-domain-modules.md`、`docs/adr-004-search-adapter-seam.md`、`docs/adr-005-netlify-deploy-wait-module.md`
+- 已有 ADR：`docs/adr/0003-data-access-domain-modules.md`、`docs/adr/0004-search-adapter-seam.md`、`docs/adr/0005-netlify-deploy-wait-module.md`
 - 核心代码：`lib/repositories.ts`、`lib/search/*`、`components/useLinksFilter.ts`、`app/page.tsx`、`components/Navigation.tsx`
 - API 与验证：`app/api/*`、`lib/schemas.ts`、`.github/workflows/ci.yml`、`scripts/check-launch-readiness.mjs`
 
@@ -185,11 +185,11 @@ interface SearchAdapters {
 
 建议新增或更新：
 
-- `docs/adr-006-repository-domain-modules-rollout.md`
+- `docs/adr/0006-repository-domain-modules-rollout.md`
   - 记录 facade 保留策略、拆分顺序、权限语义、测试迁移策略
-- 更新 `docs/adr-004-search-adapter-seam.md`
+- 更新 `docs/adr/0004-search-adapter-seam.md`
   - 补充最终 `SearchAdapters` interface、默认 adapter、测试 adapter 形状
-- `docs/adr-007-navigation-state-and-information-architecture.md`
+- `docs/adr/0007-navigation-state-and-information-architecture.md`
   - 记录 URL 状态、分类层级、标签组合、SEO 可索引范围
 
 ## 8. 不建议现在做

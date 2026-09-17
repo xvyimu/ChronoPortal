@@ -11,7 +11,16 @@
 
 | ADR | 状态 | 决策 | 日期 |
 | --- | --- | --- | --- |
-| [{{NNNN}}](./{{NNNN}}-{{slug}}.md) | {{status}} | {{一句话}} | {{YYYY-MM-DD}} |
+| [0001](./0001-dual-db-merge.md) | accepted | 双库合并可行性评估 | 2026-06-23 |
+| [0002](./0002-authjs-migration.md) | accepted | Auth.js canary → next-auth v5 beta 迁移评估 | 2026-06-24 |
+| [0003](./0003-data-access-domain-modules.md) | proposed | 数据访问按域拆出 deep modules | 2026-07-05 |
+| [0004](./0004-search-adapter-seam.md) | accepted | 搜索编排显式化 adapter seam | 2026-07-05 |
+| [0005](./0005-netlify-deploy-wait-module.md) | accepted | Netlify 部署等待脚本加深为可测试 module | 2026-07-05 |
+| [0006](./0006-repository-domain-modules-rollout.md) | accepted | Repository domain modules rollout | 2026-07-06 |
+| [0007](./0007-navigation-state-and-information-architecture.md) | accepted | Navigation state and information architecture modules | 2026-07-06 |
+| [0008](./0008-remote-embed-endpoint.md) | accepted | 远程 Embedding 端点（HTTPS + API Key） | 2026-07-11 |
+| [0009](./0009-admin-frontend-backend-interface.md) | accepted | 管理后台前后端 interface 分离 | 2026-07-18 |
+| [0010](./0010-next-auth-v5-strategy.md) | accepted | next-auth v5 beta 收口策略 | 2026-07-23 |
 
 ---
 

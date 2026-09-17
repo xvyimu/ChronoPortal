@@ -3,7 +3,7 @@
 > 只读地图 · 2026-07-27 · wt `cp-finish`  
 > 目的：把 **nav 语义**（1024-d CF / 512-d embed-server）与 **resource 资源库**（固定 512-d）的
 > provider / 维度 / RPC / env 分叉画在一张表上。**改配置需 ops**，本文默认只出图。  
-> 相关：`adr-004`（search adapter seam）· `adr-008`（远程 embed 端点）
+> 相关：`adr/004`（search adapter seam）· `adr/008`（远程 embed 端点）
 
 ---
 

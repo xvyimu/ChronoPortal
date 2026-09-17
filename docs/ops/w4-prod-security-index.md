@@ -24,7 +24,7 @@
 | 生产 CSP 行为 | 静态默认 · **无** DYNAMIC nonce | 与 `readCspFlags` 默认 off 一致 |
 | 生产 RLS | inventory 已知 · **未**收紧 | `model_rankings` public 写仍为高风险书面项 |
 | Headers | **DRIFT** 仍在 | XFO SAMEORIGIN vs DENY · Referrer same-origin vs strict-origin-when-cross-origin |
-| next-auth | pin `5.0.0-beta.31` · 风险接受 | [ADR-007](../adr-007-next-auth-v5-strategy.md) |
+| next-auth | pin `5.0.0-beta.31` · 风险接受 | [ADR-007](../adr/0010-next-auth-v5-strategy.md) |
 
 ---
 
@@ -55,7 +55,7 @@
 | [`headers-drift-trace-2026-07.md`](./headers-drift-trace-2026-07.md) | DRIFT 溯源 |
 | [`headers-drift-platform-remediation-2026-07.md`](./headers-drift-platform-remediation-2026-07.md) | 平台处置建议 |
 | [`headers-prod-change-request-template.md`](./headers-prod-change-request-template.md) | 生产变更申请单模板 |
-| [`../adr-007-next-auth-v5-strategy.md`](../adr-007-next-auth-v5-strategy.md) | next-auth v5 beta **风险接受**（无 stable 5 不 bump） |
+| [`../adr/0010-next-auth-v5-strategy.md`](../adr/0010-next-auth-v5-strategy.md) | next-auth v5 beta **风险接受**（无 stable 5 不 bump） |
 
 ### 2.4 波次报告
 
