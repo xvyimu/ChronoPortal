@@ -1,3 +1,9 @@
 # Orca worktree setup — pnpm. Do not run `pnpm setup` / setup-env here (interactive).
+# env 由 .worktreeinclude 从主 checkout 带过来（.env.local 等是 gitignore 的）。
+
+# setup 跑完再起 agent。默认值 start-immediately 会让两者并排跑 ——
+# agent 在 pnpm install 还没结束时就开始 build/test，必然失败。
+setupAgentStartupPolicy: wait-for-setup
+
 scripts:
   setup: pnpm install
