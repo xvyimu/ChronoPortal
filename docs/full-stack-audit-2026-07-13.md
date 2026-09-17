@@ -1,6 +1,6 @@
 # nav-site 全栈审查与优化报告
 
-**项目：** `D:\nav-site`  
+**项目：** `D:\projects\ChronoPortal`  
 **线上：** https://yuanjia1314.ccwu.cc · 备用 `nav-site-kappa.vercel.app`  
 **基线 HEAD：** `6a16d732`（Sprint C：scrypt / Netlify skip / 云 embed 文档）  
 **审查日：** 2026-07-13  
@@ -442,7 +442,7 @@
 ## 7. 验证命令速查
 
 ```powershell
-cd D:\nav-site
+cd D:\projects\ChronoPortal
 pnpm test
 pnpm typecheck
 pnpm lint

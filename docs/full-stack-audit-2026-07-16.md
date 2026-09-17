@@ -2,7 +2,7 @@
 
 | 项 | 值 |
 |----|-----|
-| 项目 | `D:\nav-site` |
+| 项目 | `D:\projects\ChronoPortal` |
 | 线上 | https://yuanjia1314.ccwu.cc · 备用 `nav-site-kappa.vercel.app` |
 | 基线 HEAD | `96e58a20`（探针 CDN no-store 适配） |
 | 线上 build-info | `56941d27`（Cache/CDN no-store 头） |
@@ -413,7 +413,7 @@ Browser → Vercel (Next 16 App Router)
 ### 验证总闸
 
 ```powershell
-cd D:\nav-site
+cd D:\projects\ChronoPortal
 pnpm run lint
 pnpm run typecheck
 pnpm test

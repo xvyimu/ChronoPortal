@@ -17,7 +17,7 @@
 | **额外（build 门闩）** | Next 16 route 类型收紧后 `next build --webpack` 因 `csp-report/route.ts` named export `toPathOnlyUri` 失败 —— 抽 helper 到 `lib/csp-report-uri.ts`，语义零变更 | **完成** | `0c45ccfe` |
 | D-02 links-pool | 只读 | 未动（保持 P0 精简，不做 fuse pool / RPC 重构） |
 | D-03 admin auth 去重 | 未动 | 无 admin smoke 环境，避免碰鉴权语义 |
-| D-07 CSP prod flip | **明确不做** | 遵守 `~/CLAUDE.md` §5 / 任务 no-list |
+| D-07 CSP prod flip | **明确不做** | 遵守 `~/.claude/CLAUDE.md` §5 / 任务 no-list |
 
 ---
 

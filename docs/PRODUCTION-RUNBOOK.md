@@ -58,11 +58,11 @@ Vercel/本机 → Worker 反代（可选）
 
 ```powershell
 # 幂等拉起 native + tunnel
-powershell -NoProfile -File D:/nav-site/scripts/ensure-embed-stack.ps1
+powershell -NoProfile -File D:/projects/ChronoPortal/scripts/ensure-embed-stack.ps1
 
 # 停
-powershell -NoProfile -File D:/nav-site/scripts/stop-embed-tunnel.ps1
-powershell -NoProfile -File D:/nav-site/scripts/stop-embed-native.ps1
+powershell -NoProfile -File D:/projects/ChronoPortal/scripts/stop-embed-tunnel.ps1
+powershell -NoProfile -File D:/projects/ChronoPortal/scripts/stop-embed-native.ps1
 ```
 
 | 探针（路径 A） | 期望 |

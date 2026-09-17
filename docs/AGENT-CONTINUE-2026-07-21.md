@@ -8,7 +8,7 @@
 
 | 项 | 值 |
 |----|-----|
-| CWD | `D:\ChronoPortal` ≡ `D:\nav-site` |
+| CWD | `D:\projects\ChronoPortal` ≡ `D:\projects\ChronoPortal` |
 | 生产 runtime | **`46e71ec3`** · deploy `dpl_rGFZxkqt…` |
 | origin/master tip | **`34b1fc1a`+**（docs hygiene 可能更新 tip） |
 | 生产入口 | `https://yuanjia1314.ccwu.cc` |

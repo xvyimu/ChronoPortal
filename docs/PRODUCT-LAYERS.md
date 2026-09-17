@@ -28,7 +28,7 @@
 
 | 项 | 内容 |
 |----|------|
-| 路径 | `D:\ChronoPortal` · 入口 `D:\projects\ChronoPortal` |
+| 路径 | `D:\projects\ChronoPortal` · 入口 `D:\projects\ChronoPortal` |
 | 本地 | `pnpm dev` · 端口 **3264** · **必须** `--webpack` |
 | 生产 | Vercel · 域名见 PROJECT |
 | 数据 | Supabase · RLS · 写路径经 repository/domain |

@@ -30,7 +30,7 @@
 6. 等 1–2 分钟后本机验证：
 
 ```powershell
-cd D:\ChronoPortal
+cd D:\projects\ChronoPortal
 node scripts/audit-edge-scripts.mjs
 # 期望: mangledScriptTypeCount = 0, rocketLoaderHints = false
 ```
@@ -46,7 +46,7 @@ node scripts/audit-edge-scripts.mjs
 
 ```powershell
 $env:CLOUDFLARE_API_TOKEN = '<zone-edit-token>'
-cd D:\ChronoPortal
+cd D:\projects\ChronoPortal
 node scripts/cf-disable-rocket-loader.mjs --dry-run   # 先看会改什么
 node scripts/cf-disable-rocket-loader.mjs             # 关闭 rocket_loader + minify.js 并尝试 purge
 node scripts/audit-edge-scripts.mjs

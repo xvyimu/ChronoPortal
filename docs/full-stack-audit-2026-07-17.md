@@ -14,7 +14,7 @@
 - `pnpm typecheck`：通过。
 - `pnpm run lint`：通过，0 error、0 warning。
 - `pnpm run audit:security`：未发现 moderate 及以上已知依赖漏洞。
-- 覆盖率：Statements 60.55%、Branches 53.10%、Functions 57.90%、Lines 61.74%。当前阈值仍为 lines/statements 50、functions/branches 40，见 [vitest.config.ts](/D:/nav-site/vitest.config.ts:20)。
+- 覆盖率：Statements 60.55%、Branches 53.10%、Functions 57.90%、Lines 61.74%。当前阈值仍为 lines/statements 50、functions/branches 40，见 [vitest.config.ts](/D:/projects/ChronoPortal/vitest.config.ts:20)。
 - `pnpm run build`：通过；移除 `next/font/google` 构建期下载后，失效本地代理不再阻断构建，`/tool/[slug]` 被识别为 SSG。
 - 修复前生产健康探针：首页、`/api/health`、`/api/search`、`/sitemap.xml`、`/robots.txt`、`build-info.json` 通过，`/tool/figma` 返回 HTTP 500；详情页根因已在本轮修复，仍需部署最新 HEAD 后做最终生产验证。
 
@@ -26,7 +26,7 @@
 
 ### F-01 生产工具详情页触发动态 Cookie，导致 ISR 页面 500（P0，本轮已修复）
 
-- 问题描述： [app/tool/[slug]/page.tsx](/D:/nav-site/app/tool/[slug]/page.tsx:114) 调用 `getCategories()`；[lib/repositories/categories.ts](/D:/nav-site/lib/repositories/categories.ts:16) 在未注入 client 时调用 `createClient()`，而 [lib/supabase/server.ts](/D:/nav-site/lib/supabase/server.ts:6) 读取 `cookies()`。该调用链把本应静态/ISR 的详情页变成运行时动态渲染，生产日志已出现 `Page changed from static to dynamic at runtime`，`/tool/figma` 已验证 HTTP 500。
+- 问题描述： [app/tool/[slug]/page.tsx](/D:/projects/ChronoPortal/app/tool/[slug]/page.tsx:114) 调用 `getCategories()`；[lib/repositories/categories.ts](/D:/projects/ChronoPortal/lib/repositories/categories.ts:16) 在未注入 client 时调用 `createClient()`，而 [lib/supabase/server.ts](/D:/projects/ChronoPortal/lib/supabase/server.ts:6) 读取 `cookies()`。该调用链把本应静态/ISR 的详情页变成运行时动态渲染，生产日志已出现 `Page changed from static to dynamic at runtime`，`/tool/figma` 已验证 HTTP 500。
 - 影响评估：P0；工具详情页不可用，且同类 slug 可能批量受影响。搜索和首页不一定受影响，但发布后的 smoke 会持续失败。
 - 推荐操作步骤：本轮已在详情页显式注入 `createStaticClient()`，并新增静态 client 回归测试；剩余步骤是部署最新 HEAD，并运行 `pnpm run verify:production -- --no-proxy --base-url https://yuanjia1314.ccwu.cc --expect-commit <HEAD>`。
 - 验证方式：生产请求 `/tool/figma` 应为 200；Vercel 日志不再出现 dynamic-to-static/cookies 错误；详情页关键内容和 metadata 均可生成。
@@ -34,7 +34,7 @@
 
 ### F-02 Favorites effect 中同步 setState 阻断 lint（P1，本轮已修复）
 
-- 问题描述： [app/favorites/FavoritesView.tsx](/D:/nav-site/app/favorites/FavoritesView.tsx:25) 的 effect 在请求开始前同步执行 `setLinks([])`、`setLoading(false)`；React ESLint `react-hooks/set-state-in-effect` 报错。
+- 问题描述： [app/favorites/FavoritesView.tsx](/D:/projects/ChronoPortal/app/favorites/FavoritesView.tsx:25) 的 effect 在请求开始前同步执行 `setLinks([])`、`setLoading(false)`；React ESLint `react-hooks/set-state-in-effect` 报错。
 - 影响评估：P1；CI quality job 失败，后续合并无法获得可靠门禁。同步清空还可能造成 UI 闪烁。
 - 推荐操作步骤：本轮已改为由 favorites 请求 key 派生 loading，effect 不再同步 setState；保留现有 `isNavLink` 过滤、取消标记和 `/api/favorites?detail=links` 契约测试。
 - 验证方式：`pnpm run lint` 无 error；favorites 首次加载、登出、网络失败、快速切换账户均有组件测试。
@@ -42,7 +42,7 @@
 
 ### F-03 `useServerSearch` effect 缺少 `links` 依赖（P1，本轮已修复）
 
-- 问题描述： [components/navigation/useServerSearch.ts](/D:/nav-site/components/navigation/useServerSearch.ts:58) 使用 `links` 构建 facets/suggestions，但依赖数组未包含稳定的 `links` 引用，当前 ESLint 已报警。
+- 问题描述： [components/navigation/useServerSearch.ts](/D:/projects/ChronoPortal/components/navigation/useServerSearch.ts:58) 使用 `links` 构建 facets/suggestions，但依赖数组未包含稳定的 `links` 引用，当前 ESLint 已报警。
 - 影响评估：P1；导航数据更新后可能继续显示旧 facet/建议，属于低频但可见的数据一致性问题。
 - 推荐操作步骤：本轮已补齐 `links` 依赖并通过 lint/测试；后续若监控发现 links 更新导致额外远程请求，再把本地 facet 计算拆成独立 `useMemo`。
 - 验证方式：lint clean；测试先渲染旧 links，再传入新 links，断言 facets/suggestions 更新。
@@ -69,7 +69,7 @@
 
 ### F-06 搜索响应使用大量类型断言（P2）
 
-- 问题描述： [components/navigation/useServerSearch.ts](/D:/nav-site/components/navigation/useServerSearch.ts:136) 将 API 响应先转成 `Record<string, unknown>` 再多处 `as` 映射，运行时字段契约未集中校验。
+- 问题描述： [components/navigation/useServerSearch.ts](/D:/projects/ChronoPortal/components/navigation/useServerSearch.ts:136) 将 API 响应先转成 `Record<string, unknown>` 再多处 `as` 映射，运行时字段契约未集中校验。
 - 影响评估：后端字段改名时可能静默产生空标题、错误分类或运行时异常。
 - 推荐操作步骤：使用共享 Zod response schema，在 fetch 边界 `safeParse`；失败时记录 request id 并展示可恢复错误；从 schema 推导 TypeScript 类型。
 - 验证方式：对缺字段、错误类型、未知字段和正常响应做单元测试；typecheck 通过。
@@ -95,7 +95,7 @@
 
 ### B-01 公开评分统计 GET 回退 service_role（P0）
 
-- 问题描述： [app/api/resource-ratings/route.ts](/D:/nav-site/app/api/resource-ratings/route.ts:145) 先调用公开统计 RPC，失败后在 [同文件](/D:/nav-site/app/api/resource-ratings/route.ts:174) 使用 `createResourceLibraryServiceClient()` 直接查询 `ratings`。这是公开 GET 路由，却以跨项目 service role 作为回退。
+- 问题描述： [app/api/resource-ratings/route.ts](/D:/projects/ChronoPortal/app/api/resource-ratings/route.ts:145) 先调用公开统计 RPC，失败后在 [同文件](/D:/projects/ChronoPortal/app/api/resource-ratings/route.ts:174) 使用 `createResourceLibraryServiceClient()` 直接查询 `ratings`。这是公开 GET 路由，却以跨项目 service role 作为回退。
 - 影响评估：P0/P1；RPC 配置、权限或网络异常时，公开请求会触发高权限数据库读取，扩大密钥泄露/误配置的爆炸半径，并掩盖公开 RPC 的可用性问题。
 - 推荐操作步骤：
   1. 生产环境删除 service-role 回退，公开统计只允许受限 aggregate RPC；RPC 不可用时返回 503 并告警。
@@ -106,7 +106,7 @@
 
 ### B-02 分布式限流 Redis 故障时 fail-open 到进程内桶（P1）
 
-- 问题描述： [lib/rate-limit-distributed.ts](/D:/nav-site/lib/rate-limit-distributed.ts:83) 在 Upstash 不可用时回退 memory，并明确记录 `fail-open`；Vercel 多实例下每个实例各自计数。
+- 问题描述： [lib/rate-limit-distributed.ts](/D:/projects/ChronoPortal/lib/rate-limit-distributed.ts:83) 在 Upstash 不可用时回退 memory，并明确记录 `fail-open`；Vercel 多实例下每个实例各自计数。
 - 影响评估：推断，需生产观测确认；高成本搜索、工具列表和敏感写操作的实际配额可能按实例数放大，Redis 故障时也失去统一保护。
 - 推荐操作步骤：
   1. 为公开只读接口保留有限 memory fallback，为 semantic search、评分、favorites、认证/提交等入口在生产改为 fail-closed 或更低的固定保护上限。
@@ -117,7 +117,7 @@
 
 ### B-03 Repository 显式列投影与查询扇出（P2）
 
-- 问题描述： [lib/repositories/categories.ts](/D:/nav-site/lib/repositories/categories.ts:20) 及 [lib/repositories/tags.ts](/D:/nav-site/lib/repositories/tags.ts:139) 的 admin 查询使用 `select("*")`；`attachTagsToLinks` 先查关联表再查 tags（[lib/repositories/tags.ts](/D:/nav-site/lib/repositories/tags.ts:37)），详情页还会并行触发分类、related 等多次查询。
+- 问题描述： [lib/repositories/categories.ts](/D:/projects/ChronoPortal/lib/repositories/categories.ts:20) 及 [lib/repositories/tags.ts](/D:/projects/ChronoPortal/lib/repositories/tags.ts:139) 的 admin 查询使用 `select("*")`；`attachTagsToLinks` 先查关联表再查 tags（[lib/repositories/tags.ts](/D:/projects/ChronoPortal/lib/repositories/tags.ts:37)），详情页还会并行触发分类、related 等多次查询。
 - 影响评估：`select("*")` 会随 schema 演进扩大 payload/泄露字段；两次查询和详情扇出增加 p95，当前不是严重 N+1，但数据量增长后会放大。
 - 推荐操作步骤：
   1. 将公开/admin 返回字段改为显式投影，并为 admin DTO 单独定义类型。
@@ -149,7 +149,7 @@
 
 ### A-01 搜索架构从进程内全量 Fuse 逐步迁移（P1）
 
-- 问题描述： [lib/search/fuse.ts](/D:/nav-site/lib/search/fuse.ts) 仍把 approved links/tags 全量载入进程并以 60 秒缓存；in-flight promise 只解决并发 stampede，不改变 O(N) 内存和构建成本。
+- 问题描述： [lib/search/fuse.ts](/D:/projects/ChronoPortal/lib/search/fuse.ts) 仍把 approved links/tags 全量载入进程并以 60 秒缓存；in-flight promise 只解决并发 stampede，不改变 O(N) 内存和构建成本。
 - 影响评估：数据规模增长后冷启动、p95 和内存随 N 增长；Vercel serverless 多实例还会重复建索引。
 - 推荐操作步骤：先用 PostgreSQL FTS/RPC 返回分页候选，再对小候选集使用 Fuse 做模糊排序；记录 query、候选数、p50/p95、缓存命中率；数据达到阈值后再评估 Meilisearch/专用索引，不提前引入全量 BEM/ES。
 - 验证方式：用 1k/10k/100k fixture 压测，比较冷启动、p95、内存和费用；设置明确迁移阈值。
@@ -157,7 +157,7 @@
 
 ### A-02 Embedding 服务需要高可用主轨（P1）
 
-- 问题描述： [lib/search/embed-provider.ts](/D:/nav-site/lib/search/embed-provider.ts:27) 默认回退 `http://127.0.0.1:8003`；生产 runbook 仍依赖本机 BGE + Named Tunnel（[docs/PRODUCTION-RUNBOOK.md](/D:/nav-site/docs/PRODUCTION-RUNBOOK.md:171)）。本机关闭或隧道失效时语义搜索降级，而 health 默认可能仍 healthy。
+- 问题描述： [lib/search/embed-provider.ts](/D:/projects/ChronoPortal/lib/search/embed-provider.ts:27) 默认回退 `http://127.0.0.1:8003`；生产 runbook 仍依赖本机 BGE + Named Tunnel（[docs/PRODUCTION-RUNBOOK.md](/D:/projects/ChronoPortal/docs/PRODUCTION-RUNBOOK.md:171)）。本机关闭或隧道失效时语义搜索降级，而 health 默认可能仍 healthy。
 - 影响评估：当前为架构单点故障；ARCH-1 尚未完成，影响语义搜索可用性和故障可见性。
 - 推荐操作步骤：
   1. 无 Cloudflare/VPS 账号和密钥时只完成文档、health/probe 开关，不伪造密钥。
@@ -168,7 +168,7 @@
 
 ### A-03 Launch readiness 的 embedding 期望状态需由配置驱动（P1）
 
-- 问题描述： [scripts/check-launch-readiness.mjs](/D:/nav-site/scripts/check-launch-readiness.mjs:152) 与 `:164` 对不同路径固定 `expectEmbeddingSkipped`，而生产 runbook 同时允许 embedding `ok`。当生产启用 embedding 时，检查语义可能与真实配置不一致。
+- 问题描述： [scripts/check-launch-readiness.mjs](/D:/projects/ChronoPortal/scripts/check-launch-readiness.mjs:152) 与 `:164` 对不同路径固定 `expectEmbeddingSkipped`，而生产 runbook 同时允许 embedding `ok`。当生产启用 embedding 时，检查语义可能与真实配置不一致。
 - 影响评估：发布门禁可能误报或漏报，导致错误上线/回滚决策。
 - 推荐操作步骤：根据 `EMBED_PROVIDER`、`HEALTH_REQUIRE_EMBEDDING` 计算 expected state；提供互斥参数 `--require-embedding` / `--expect-embedding-skipped`，并在输出中打印实际配置摘要（不打印密钥）。
 - 验证方式：分别用 local、embed-server、cloudflare 和缺 key 配置运行 readiness，断言四种结果与文档一致。
@@ -178,7 +178,7 @@
 
 ### C-01 CSP 使用 unsafe-inline（P1）
 
-- 问题描述： [next.config.ts](/D:/nav-site/next.config.ts:40) 的 production CSP 含 `script-src 'unsafe-inline'`，`:45` 的 `style-src` 也含 `unsafe-inline`。
+- 问题描述： [next.config.ts](/D:/projects/ChronoPortal/next.config.ts:40) 的 production CSP 含 `script-src 'unsafe-inline'`，`:45` 的 `style-src` 也含 `unsafe-inline`。
 - 影响评估：削弱 XSS 防护；Next、Sentry、Analytics 等运行时资源又要求兼容，直接删除可能造成页面回归。
 - 推荐操作步骤：先以 Report-Only 收集违规来源；为脚本迁移 nonce/hash，限制 `connect-src`、`img-src`、`frame-src` 到实际域名；再分阶段 enforce。第三方域名变更需通过代码评审更新白名单。
 - 验证方式：CSP Evaluator/浏览器控制台无未知违规；安全回归确认内联脚本注入被阻止，页面、Sentry、Analytics 正常。
@@ -186,7 +186,7 @@
 
 ### C-02 next/font/google 使构建依赖外网字体（P1，本轮已修复）
 
-- 问题描述：审查时 [app/layout.tsx](/D:/nav-site/app/layout.tsx:1) 使用 `next/font/google`，本机代理失效时 `pnpm run build` 因下载 Geist/Geist Mono 失败；该依赖已在本轮移除。
+- 问题描述：审查时 [app/layout.tsx](/D:/projects/ChronoPortal/app/layout.tsx:1) 使用 `next/font/google`，本机代理失效时 `pnpm run build` 因下载 Geist/Geist Mono 失败；该依赖已在本轮移除。
 - 影响评估：构建可复现性和供应链稳定性下降；CI/Vercel 若外网或代理异常会直接阻断发布。
 - 推荐操作步骤：本轮已移除 `next/font/google`，使用 CSS 系统字体栈，构建阶段不再下载 Google Fonts；如未来需要固定视觉字形，再引入已核对许可证的 `next/font/local` 文件。
 - 验证方式：失效代理仍存在时 `pnpm run build` 已通过；后续用 Lighthouse 验证 CLS 和字体回退体验。
@@ -194,7 +194,7 @@
 
 ### C-03 CI 重复构建，Emergency Netlify 权限偏宽（P1）
 
-- 问题描述： [ci.yml](/D:/nav-site/.github/workflows/ci.yml:48) 的 build 产物与 [lighthouse.yml](/D:/nav-site/.github/workflows/lighthouse.yml:31) 分别安装/构建；Emergency Netlify job 声明 `contents: write` 并使用 `--force-with-lease`（[ci.yml](/D:/nav-site/.github/workflows/ci.yml:150)）。
+- 问题描述： [ci.yml](/D:/projects/ChronoPortal/.github/workflows/ci.yml:48) 的 build 产物与 [lighthouse.yml](/D:/projects/ChronoPortal/.github/workflows/lighthouse.yml:31) 分别安装/构建；Emergency Netlify job 声明 `contents: write` 并使用 `--force-with-lease`（[ci.yml](/D:/projects/ChronoPortal/.github/workflows/ci.yml:150)）。
 - 影响评估：重复构建增加 CI 时间和依赖下载；紧急镜像权限扩大误推分支的影响面。生产主轨已是 Vercel，Netlify 仅应为 emergency。
 - 推荐操作步骤：
   1. 在同一 workflow 内复用 lockfile 缓存和 build artifact；跨 workflow 则固定可验证的 artifact/release。
@@ -205,7 +205,7 @@
 
 ### C-04 API 文档与实际域名、限流和字段契约漂移（P1）
 
-- 问题描述： [app/api-docs/page.tsx](/D:/nav-site/app/api-docs/page.tsx:84) 仍使用 `nav-site.netlify.app`；`:268` 声称 `/api/tools`、`/api/search` 无限制；reviews 示例用 `linkId`，代码契约为 `link_id`；tools response 示例也与当前 `tools/name/category` 形态不一致。
+- 问题描述： [app/api-docs/page.tsx](/D:/projects/ChronoPortal/app/api-docs/page.tsx:84) 仍使用 `nav-site.netlify.app`；`:268` 声称 `/api/tools`、`/api/search` 无限制；reviews 示例用 `linkId`，代码契约为 `link_id`；tools response 示例也与当前 `tools/name/category` 形态不一致。
 - 影响评估：调用方会得到错误 URL、参数或限流预期，增加支持成本并可能触发误用。
 - 推荐操作步骤：建立共享 Zod/OpenAPI schema，从 route handler 测试和 schema 生成文档；至少先同步 Vercel 域名、真实参数、错误码、分页和限流头；在 CI 加契约测试防止文档回退。
 - 验证方式：文档中的每个 curl 在 staging/生产 smoke 可执行；schema diff 在 API 变更时阻断未更新文档的 PR。

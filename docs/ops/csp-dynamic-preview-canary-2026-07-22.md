@@ -49,7 +49,7 @@ Vercel Dashboard **或** CLI（示例；按实际 project/scope 调整）：
 
 ```powershell
 # 确认当前默认：生产/仓库默认 CSP_DYNAMIC 为 off，不要改 Production
-cd D:\ChronoPortal
+cd D:\projects\ChronoPortal
 
 # 推荐 Dashboard：Environment Variables → Preview → 新增
 #   CSP_DYNAMIC = 1
