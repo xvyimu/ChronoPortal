@@ -14,7 +14,7 @@
 | 做 | 不做 |
 |----|------|
 | CSP / Admin 鉴权 / Supabase·RLS / 依赖审计的**现状与缺口** | 整站换栈、旗舰级重写 |
-| P0–P2 可落地项与验收命令 | 抢 TransitHub 模块二范围 |
+| P0–P2 可落地项与验收命令 | 其它产品的范围 |
 | 小步文档/清单 commit | 默认 `git push`、DB 破坏性迁移、密钥外发 |
 
 关联文档（已有、勿重复造轮）：
@@ -265,7 +265,6 @@ pnpm run verify:production -- --no-proxy --base-url https://yuanjia1314.ccwu.cc
 1. **维持 Next** — 架构决策已批；Better-wins 须有证据，本清单本身不是换栈授权。  
 2. 安全小修可开 `feature/*`；文档/清单可小步 commit，**不默认 push**。  
 3. 涉及生产 env、DNS、DB 迁移、CF token：走 `docs/PRODUCTION-RUNBOOK.md`，先确认影响。  
-4. 与 TransitHub 抢资源时 **TH 优先**。
 
 ---
 
