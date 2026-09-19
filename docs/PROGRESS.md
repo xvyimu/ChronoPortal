@@ -1,7 +1,7 @@
 # 综合导航站 — 项目进度文档
 
 > 最后更新：2026-07-21 · 版本 v18.4（§九 待办与 DESIGN-DOC 部署口径校准；SSOT 仍为本节 §〇）
-> 项目路径：`d:\nav-site` · 开发端口：3264
+> 项目路径：`D:\projects\ChronoPortal` · 开发端口：3264
 > **生产运行时 HEAD**：`ee5a047b` · 主域 `https://yuanjia1314.ccwu.cc` · deploy 以 Vercel 当前 Production 为准
 
 ## 〇、2026-07-18 全日收口（权威入口）
