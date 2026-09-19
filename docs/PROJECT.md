@@ -3,7 +3,7 @@
 > **产品显示名：** 综合导航站 / 公益 API 导航 · **GitHub：** [xvyimu/ChronoPortal](https://github.com/xvyimu/ChronoPortal)  
 > **本地：** `D:\projects\ChronoPortal`（入口 `D:\projects\ChronoPortal`）· npm private name 仍可能为 `nav-site`  
 > **生产：** https://yuanjia1314.ccwu.cc  
-> 全局门闩：`~/.claude/CLAUDE.md` §8 · `~/.claude/specs/principle.md`「形态与技术栈」。  
+> 全局门闩：`~/.claude/specs/principle.md`「形态与技术栈」。  
 > **本文件 = 本产品形态与唯一技术栈权威。** 换形态/换栈：先 ADR → 改本文 → 再代码。小修不重选型。
 
 ---
