@@ -40,6 +40,8 @@
     "probe:lighthouse": "node scripts/probe-lighthouse-production.mjs",
     "docs:openapi": "node scripts/generate-openapi.mjs",
     "typecheck": "tsc --noEmit --incremental false",
+    "check:docs": "node scripts/check-doc-links.mjs",
+    "test:docs": "node --test scripts/check-doc-links.test.mjs",
     "prepare": "husky"
   },
   "dependencies": {

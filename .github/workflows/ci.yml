@@ -48,6 +48,12 @@ jobs:
       - name: TypeScript 类型检查
         run: pnpm run typecheck
 
+      - name: 文档链接检查
+        run: pnpm run check:docs
+
+      - name: 文档链接检查器自测
+        run: pnpm run test:docs
+
       - name: 单元测试 + 覆盖率
         run: pnpm run test:coverage
         env:
