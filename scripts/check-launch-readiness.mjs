@@ -6,7 +6,7 @@ import { runProductionProbe } from "./probe-production.mjs";
 
 const execFile = promisify(execFileCallback);
 const DEFAULT_BASE_URL = "https://yuanjia1314.ccwu.cc";
-const DEFAULT_ALLOWED_DIRTY_PATHS = [".planning/"];
+const DEFAULT_ALLOWED_DIRTY_PATHS = [];
 
 function readArgValue(args, name) {
   const inline = args.find((arg) => arg.startsWith(`${name}=`));

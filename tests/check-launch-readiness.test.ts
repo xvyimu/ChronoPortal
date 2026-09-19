@@ -31,17 +31,17 @@ describe("scripts/check-launch-readiness", () => {
     });
   });
 
-  it("parses branch ahead state and ignores allowed local planning files", async () => {
+  it("parses branch ahead state and tracks dirty paths not on the allow list", async () => {
     const { parseGitStatus } = await importReadinessModule();
 
     expect(
       parseGitStatus(
         [
           "## master...origin/master [ahead 1]",
-          "?? .planning/",
+          "?? .scratch/",
           " M scripts/check-launch-readiness.mjs",
         ].join("\n"),
-        [".planning/"]
+        [".scratch/"]
       )
     ).toEqual({
       branch: "master",
@@ -90,7 +90,7 @@ describe("scripts/check-launch-readiness", () => {
       }
 
       return {
-        stdout: ["## master...origin/master", "?? .planning/"].join("\n"),
+        stdout: ["## master...origin/master", "?? .scratch/"].join("\n"),
       };
     });
 
@@ -102,7 +102,7 @@ describe("scripts/check-launch-readiness", () => {
         skipNetwork: true,
         requireEmbedding: false,
         expectEmbeddingSkipped: false,
-        allowedDirtyPaths: [".planning/"],
+        allowedDirtyPaths: [".scratch/"],
         distributedRateLimitConfig: {
           name: "distributed-rate-limit-config",
           ok: true,
