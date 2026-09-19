@@ -39,17 +39,19 @@ overrides:
   # Dependabot / GHSA 2026-07-23 — lower bounds per the policy above.
   # GHSA-f88m-g3jw-g9cj (sharp) — first patched 0.35.3 (also a direct dep)
   sharp: '>=0.35.3 <0.36'
-  # GHSA-4c8g-83qw-93j6 + GHSA-v2hh-gcrm-f6hx (fast-uri).
-  # 3.x 线的首个修复版是 **3.1.4**（4.x 线是 4.1.1），也是 3.1.x 的最高版本。
+  # GHSA-4c8g-83qw-93j6 + GHSA-v2hh-gcrm-f6hx（fast-uri），外加 2026-09-02 那批
+  # 四条（GHSA-5jgf-p345-68v8 / fph4-wmhf-6fwf / f65p-4m7j-42xc / jqff-g426-hqxp），
+  # 把 3.x 线的首个修复版一路推到 **3.1.6**。原写的 3.1.4 是 2026-07-21 那批的
+  # 修复版，已过期 —— 本文件开头 policy 警告的「精确钉变 stale pin」正是这个形态。
   #
-  # 2026-08-22：精确钉 3.1.4，不写 '>=3.1.4 <4'。工作区曾出现钉到 3.1.5 的改动，
-  # 而该版本在 npm registry 上不存在（`npm view fast-uri@3.1.5` → 404）。
-  # 开区间上界会让 pnpm 保留 lock 里已有的更高解析（3.1.5 同样满足 >=3.1.4），
-  # 幽灵条目清不掉；而 3.1.4 之上暂无真实版本，范围写法此刻没有收益。
-  # 本仓「用范围避免 stale pin」的通则在此有意让位，待 3.1.5 真正发布再放开。
+  # 恢复 lower-bound 写法（policy 要求），下限 = 当前 advisory 的 first-patched。
+  # 分支原注释把 3.1.5 写成「npm registry 上不存在」，实测存在：
+  #   npm view fast-uri@3.1.5 → 3.1.5 · tarball HTTP 200
+  # 那个 404 是 pnpm 走 registry.npmmirror.com 的同步滞后（`pnpm config get registry`
+  # 可见），不是包不存在；3.1.7 / 3.1.8 也早已发布。
   #
-  # 留在 3.x 线：它是 ajv 的传递依赖，4.x 是 major bump，不属安全 pass 范围。
-  fast-uri: '3.1.4'
+  # 留在 3.x 线：ajv@8 声明的范围是 ^3.0.1，4.x 是 major bump，不属本次范围。
+  fast-uri: '>=3.1.6 <4'
   # GHSA-frvp-7c67-39w9 (@hono/node-server) — first patched 2.0.11
   '@hono/node-server': '>=2.0.11 <3'
   # GHSA-mwp4-54f8-5fhr (ip-address, high) — leading-zero octets decoded as decimal

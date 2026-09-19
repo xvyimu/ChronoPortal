@@ -24,15 +24,20 @@
 表中「当前版本」列仍是 2026-08-05 的仓库快照（next 此后已发 16.3.1、react-query
 5.101.4、supabase-js 2.112.3），作为基线记录保留，不改。
 
-**顺带核实过一处 `fast-uri` 疑点**：工作区曾出现把 `fast-uri` 钉到 **3.1.5** 的
-未提交改动，而该版本在 npm registry 上不存在（`npm view fast-uri@3.1.5` → 404，
-3.1.x 最高 3.1.4）。已入库的 HEAD 一直是正确的 `3.1.4`（package.json、
-`pnpm-workspace.yaml` override、lock 三处一致），**该错误从未提交，CI 未受影响**。
-GHSA-v2hh-gcrm-f6hx 在 3.x 线的修复版就是 3.1.4，现状正确。
+**顺带核实过一处 `fast-uri` 疑点（2026-08-22 记录，2026-09-21 订正）**：原文写
+「工作区曾出现把 `fast-uri` 钉到 3.1.5 的未提交改动，而该版本在 npm registry 上
+不存在（`npm view fast-uri@3.1.5` → 404，3.1.x 最高 3.1.4）」。**该判断是错的**：
+3.1.5 于 2026-07-31 发布，`npm view fast-uri@3.1.5` → `3.1.5`，tarball HTTP 200。
+当时那个 404 来自 pnpm 走 `registry.npmmirror.com` 的镜像同步滞后
+（`pnpm config get registry` 可见），不是包不存在；3.1.6 / 3.1.7 / 3.1.8 此后也都
+已发布。基于误判得出的「3.1.4 之上暂无真实版本」结论随之作废。
 
-作为副产物，override 由 `'>=3.1.4 <4'` 改为精确 `'3.1.4'`：开区间上界会让 pnpm
-保留 lock 里已有的更高解析（3.1.5 同样满足 `>=3.1.4`），而 3.1.4 之上暂无真实
-版本。此处放弃「用范围避免 stale pin」的通则是有意的，待 3.1.5 真正发布再放开。
+**更关键的是 3.1.4 本身已经过期**：2026-09-02 那批四条 advisory
+（GHSA-5jgf-p345-68v8 / fph4-wmhf-6fwf / f65p-4m7j-42xc / jqff-g426-hqxp）
+把 3.x 线的 first-patched 推到 **3.1.6**。所以精确钉 3.1.4 恰好演成了本文件开头
+policy 警告的那个形态 —— 钉住的版本自己落在漏洞区间里。现恢复 lower-bound：
+override 写 `'>=3.1.6 <4'`，package.json 直依赖同步抬到 `3.1.6`，install 解析到
+**3.1.8**，9 条 fast-uri advisory 全清。
 
 ---
 
@@ -418,10 +423,14 @@ Phase 5: TS 5.7 → 7.0 (配套 React/Next 升级窗口)
 overrides:
   js-yaml: '>=4.3.0 <5'      # GHSA-52cp-r559-cp3m patched at 4.3.0
   sharp: '>=0.35.3 <0.36'    # GHSA-f88m-g3jw-g9cj patched at 0.35.3
-  fast-uri: '>=3.1.5 <4'     # GHSA-4c8g-83qw-93j6 + GHSA-v2hh-gcrm-f6hx patched at 3.1.5
+  fast-uri: '>=3.1.6 <4'     # 3.x first-patched 已推到 3.1.6（见顶部 2026-09-21 订正）
   undici: '>=7.29.0 <8'      # GHSA-7p8r-x3mc-p8w7 patched at 7.29.0
   # ... 其他 security overrides
 ```
+
+> 本节是 2026-08-05 的**快照**，只作历史对照，勿当现状读。其中 `fast-uri` 一行
+> 原写 `'>=3.1.5 <4'`，与当时仓库实际值（`'>=3.1.4 <4'`）和 registry 事实都不符，
+> 已按现状改正；完整订正见文件顶部「复核记录」段。
 
 ---
 
