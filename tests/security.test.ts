@@ -272,7 +272,7 @@ describe("checkMemoryRateLimit — 内存级备用速率限制", () => {
       }),
     }));
 
-    const { checkRateLimit } = await import("@/lib/rate-limit");
+    const { checkRateLimit } = await import("@/lib/rate-limit-shared");
     const result = await checkRateLimit("login_attempts", "1.2.3.4", 60_000, 5, "memory");
     expect(result.allowed).toBe(true);
   });
@@ -285,7 +285,7 @@ describe("checkMemoryRateLimit — 内存级备用速率限制", () => {
       }),
     }));
 
-    const { checkRateLimit } = await import("@/lib/rate-limit");
+    const { checkRateLimit } = await import("@/lib/rate-limit-shared");
     // 连续超过 maxAttempts 次
     for (let i = 0; i < 5; i++) {
       await checkRateLimit("login_attempts", "5.6.7.8", 60_000, 3, "memory");
@@ -302,7 +302,7 @@ describe("checkMemoryRateLimit — 内存级备用速率限制", () => {
       }),
     }));
 
-    const { checkRateLimit } = await import("@/lib/rate-limit");
+    const { checkRateLimit } = await import("@/lib/rate-limit-shared");
     const result = await checkRateLimit("submit_attempts", "9.9.9.9", 60_000, 3, "allow");
     expect(result.allowed).toBe(true);
   });
@@ -320,7 +320,7 @@ describe("checkRateLimit — 数据库速率限制", () => {
       }),
     }));
 
-    const { checkRateLimit } = await import("@/lib/rate-limit");
+    const { checkRateLimit } = await import("@/lib/rate-limit-shared");
     const result = await checkRateLimit("login_attempts", "1.2.3.4", 60_000, 5, "deny");
     expect(result.allowed).toBe(true);
     expect(result.count).toBe(2);
@@ -337,7 +337,7 @@ describe("checkRateLimit — 数据库速率限制", () => {
       }),
     }));
 
-    const { checkRateLimit } = await import("@/lib/rate-limit");
+    const { checkRateLimit } = await import("@/lib/rate-limit-shared");
     const result = await checkRateLimit("login_attempts", "1.2.3.4", 60_000, 5, "deny");
     expect(result.allowed).toBe(false);
     expect(result.count).toBe(5);
@@ -366,7 +366,7 @@ describe("checkClickRateLimit — 点击去重限流", () => {
       }),
     }));
 
-    const { checkClickRateLimit } = await import("@/lib/rate-limit");
+    const { checkClickRateLimit } = await import("@/lib/rate-limit-shared");
     const result = await checkClickRateLimit("1.2.3.4", "https://example.com");
     expect(result.allowed).toBe(true);
   });
@@ -392,7 +392,7 @@ describe("checkClickRateLimit — 点击去重限流", () => {
       }),
     }));
 
-    const { checkClickRateLimit } = await import("@/lib/rate-limit");
+    const { checkClickRateLimit } = await import("@/lib/rate-limit-shared");
     const result = await checkClickRateLimit("1.2.3.4", "https://example.com");
     expect(result.allowed).toBe(true);
   });
@@ -412,7 +412,7 @@ describe("recordAttempt — 记录尝试", () => {
       createServiceRoleClient: () => client,
     }));
 
-    const { recordAttempt } = await import("@/lib/rate-limit");
+    const { recordAttempt } = await import("@/lib/rate-limit-shared");
     await expect(recordAttempt("login_attempts", "1.2.3.4", false)).resolves.toBeUndefined();
   });
 
@@ -429,7 +429,7 @@ describe("recordAttempt — 记录尝试", () => {
       createServiceRoleClient: () => client,
     }));
 
-    const { recordAttempt } = await import("@/lib/rate-limit");
+    const { recordAttempt } = await import("@/lib/rate-limit-shared");
     await expect(recordAttempt("login_attempts", "1.2.3.4", true)).resolves.toBeUndefined();
   });
 });
@@ -449,7 +449,7 @@ describe("incrementClickCount — 递增点击计数", () => {
       createServiceRoleClient: () => client,
     }));
 
-    const { incrementClickCount } = await import("@/lib/rate-limit");
+    const { incrementClickCount } = await import("@/lib/rate-limit-shared");
     await expect(incrementClickCount("https://example.com")).resolves.toBeUndefined();
   });
 
@@ -467,7 +467,7 @@ describe("incrementClickCount — 递增点击计数", () => {
       createServiceRoleClient: () => client,
     }));
 
-    const { incrementClickCount } = await import("@/lib/rate-limit");
+    const { incrementClickCount } = await import("@/lib/rate-limit-shared");
     await expect(incrementClickCount("https://example.com")).resolves.toBeUndefined();
   });
 });

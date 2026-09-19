@@ -33,7 +33,7 @@ vi.mock("@/lib/search/embed-provider", () => ({
   generateResourceEmbedding: mocks.generateResourceEmbedding,
 }));
 
-vi.mock("@/lib/rate-limit", () => ({
+vi.mock("@/lib/rate-limit-shared", () => ({
   checkRateLimit: mocks.checkRateLimit,
   recordAttempt: vi.fn(),
   checkInMemoryRateLimit: vi.fn(() => ({ allowed: true, count: 1 })),

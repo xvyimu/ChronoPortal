@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import { cache } from "react";
 import Credentials from "next-auth/providers/credentials";
 import GitHub from "next-auth/providers/github";
-import { checkRateLimit, recordAttempt } from "@/lib/rate-limit";
+import { checkRateLimit, recordAttempt } from "@/lib/rate-limit-shared";
 import { getClientIp } from "@/lib/utils";
 import { logger } from "@/lib/logger";
 import {

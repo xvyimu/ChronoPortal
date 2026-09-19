@@ -23,7 +23,7 @@ describe("atomic database rate limiting", () => {
       data: [{ allowed: true, current_count: 3 }],
       error: null,
     });
-    const { checkRateLimit } = await import("@/lib/rate-limit");
+    const { checkRateLimit } = await import("@/lib/rate-limit-shared");
 
     await expect(
       checkRateLimit("submit_attempts", "203.0.113.10", 60_000, 3, "deny")
@@ -37,7 +37,7 @@ describe("atomic database rate limiting", () => {
 
   it("denies immediately when the atomic RPC is unavailable and policy is deny", async () => {
     mocks.rpc.mockResolvedValue({ data: null, error: { message: "missing RPC" } });
-    const { checkRateLimit } = await import("@/lib/rate-limit");
+    const { checkRateLimit } = await import("@/lib/rate-limit-shared");
 
     const result = await checkRateLimit(
       "login_attempts",
@@ -52,7 +52,7 @@ describe("atomic database rate limiting", () => {
 
   it("uses the memory bucket when the atomic RPC is unavailable and policy is memory", async () => {
     mocks.rpc.mockResolvedValue({ data: null, error: { message: "missing RPC" } });
-    const { checkRateLimit } = await import("@/lib/rate-limit");
+    const { checkRateLimit } = await import("@/lib/rate-limit-shared");
 
     const first = await checkRateLimit("login_attempts", "198.51.100.8", 60_000, 1, "memory");
     const second = await checkRateLimit("login_attempts", "198.51.100.8", 60_000, 1, "memory");
@@ -63,7 +63,7 @@ describe("atomic database rate limiting", () => {
 
   it("allows when the atomic RPC is unavailable and policy is allow", async () => {
     mocks.rpc.mockResolvedValue({ data: null, error: { message: "missing RPC" } });
-    const { checkRateLimit } = await import("@/lib/rate-limit");
+    const { checkRateLimit } = await import("@/lib/rate-limit-shared");
 
     const first = await checkRateLimit("metrics", "198.51.100.9", 60_000, 1, "allow");
     const second = await checkRateLimit("metrics", "198.51.100.9", 60_000, 1, "allow");

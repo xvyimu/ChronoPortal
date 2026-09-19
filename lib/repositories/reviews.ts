@@ -1,6 +1,6 @@
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import type { PublicToolReview, ReviewStats } from "@/lib/types";
-import { checkRateLimit, cleanupOldAttempts } from "@/lib/rate-limit";
+import { checkRateLimit, cleanupOldAttempts } from "@/lib/rate-limit-shared";
 import { logger } from "@/lib/logger";
 import { isMissingRelationError, MissingDatabaseMigrationError } from "./shared";
 

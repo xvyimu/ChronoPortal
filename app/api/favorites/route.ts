@@ -4,7 +4,7 @@ import { logger } from "@/lib/logger";
 import { getClientIp } from "@/lib/utils";
 import { checkOrigin } from "@/lib/csrf";
 import { linkIdSchema, linkIdsSchema } from "@/lib/schemas";
-import { checkRateLimit, recordAttempt } from "@/lib/rate-limit";
+import { checkRateLimit, recordAttempt } from "@/lib/rate-limit-shared";
 import {
   getUserFavorites,
   getUserFavoriteLinks,

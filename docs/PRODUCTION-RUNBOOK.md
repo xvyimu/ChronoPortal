@@ -364,7 +364,7 @@ rtk pnpm run verify:launch-readiness
 
 `7aa2baa7` 起的 S0 修复依赖两条 DB 约束，代码已上线但**约束需先在生产库执行**，否则线上行为与代码不匹配：
 
-- `lib/rate-limit.ts::tryRecordClick` 依赖 `click_rate_limits` 表 + `UNIQUE(ip, url, window_start)`（先插后计原子去重）。
+- `lib/rate-limit-shared.ts::tryRecordClick` 依赖 `click_rate_limits` 表 + `UNIQUE(ip, url, window_start)`（先插后计原子去重）。
 - `lib/repositories/submissions.ts::submitLink` 依赖 `nav_links.url` 唯一索引（重复提交 → 23505 → 409）。
 
 执行（Supabase SQL Editor 或有凭据者）：

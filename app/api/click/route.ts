@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { getClientIp } from "@/lib/utils";
 import { clickSchema } from "@/lib/schemas";
-import { tryRecordClick, incrementClickCount } from "@/lib/rate-limit";
+import { tryRecordClick, incrementClickCount } from "@/lib/rate-limit-shared";
 import { findApprovedLinkByUrl } from "@/lib/repositories";
 import { checkOrigin } from "@/lib/csrf";
 

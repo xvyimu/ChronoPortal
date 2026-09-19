@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { getClientIp } from "@/lib/utils";
 import { checkOrigin } from "@/lib/csrf";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit } from "@/lib/rate-limit-shared";
 import { z } from "zod";
 import {
   createResourceLibraryPublicRatingStatsClient,

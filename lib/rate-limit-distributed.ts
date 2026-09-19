@@ -13,7 +13,7 @@
  * 且已在本机记忆体系中作为缓存基础设施使用。未配置时的回退保证零基础设施可跑。
  */
 
-import { checkInMemoryRateLimit } from "@/lib/rate-limit";
+import { checkInMemoryRateLimit } from "@/lib/rate-limit-shared";
 import { logger } from "@/lib/logger";
 
 type EnvLike = Record<string, string | undefined>;

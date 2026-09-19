@@ -34,7 +34,7 @@ vi.mock("@/lib/utils", async () => {
   };
 });
 
-vi.mock("@/lib/rate-limit", () => ({
+vi.mock("@/lib/rate-limit-shared", () => ({
   checkRateLimit: mocks.checkRateLimit,
   recordAttempt: mocks.recordAttempt,
   checkClickRateLimit: mocks.checkClickRateLimit,

@@ -60,7 +60,7 @@ vi.mock("@/lib/supabase/server", () => ({
   createServiceRoleClient: vi.fn(() => mocks.mockDb),
 }));
 
-vi.mock("@/lib/rate-limit", () => ({
+vi.mock("@/lib/rate-limit-shared", () => ({
   checkRateLimit: mocks.checkRateLimit,
   cleanupOldAttempts: mocks.cleanupOldAttempts,
 }));
