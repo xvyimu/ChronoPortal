@@ -4,7 +4,7 @@
 > 适用项目：nav-site  
 > **生产入口：`https://yuanjia1314.ccwu.cc`**（自定义域 · Vercel 项目 `nav-site` · **verified**）  
 > **当前生产 HEAD**：以 `GET /build-info.json` 的 `commit` 为准（2026-07-18 收口运行时为 `ee5a047b`）  
-> 发布单次记录：`docs/release-manifest-2026-07-18.md`  
+> 发布单次记录：`docs/archive/release-manifest-2026-07-18.md`  
 > Embed 架构：`docs/embed-fly-deploy.md`（**路径 B = Cloudflare Workers AI 为生产默认**）  
 > 值守：`docs/oncall-and-alerts.md` · Preview：`docs/preview-env-setup.md`  
 > DNS（Cloudflare zone `yuanjia1314.ccwu.cc` / gmail 账）：apex **CNAME** → `41f090bbdb4a5afe.vercel-dns-017.com`（橙云）+ `_vercel` **TXT** 校验  

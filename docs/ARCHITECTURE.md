@@ -179,7 +179,7 @@ Admin UI → lib/admin/client.ts → /api/admin/* Route Handler
 
 | 项 | 影响 | 现状 | 触发条件 / 缓解 |
 | --- | --- | --- | --- |
-| Enforcing script 仍有 `unsafe-inline` | XSS 面收窄不完全 | 默认保留；env `CSP_SCRIPT_UNSAFE_INLINE` 可控 | 待 T9″（proxy/layout 接 nonce）；决策见 `docs/csp-t9-decision-2026-07-22.md` |
+| Enforcing script 仍有 `unsafe-inline` | XSS 面收窄不完全 | 默认保留；env `CSP_SCRIPT_UNSAFE_INLINE` 可控 | 待 T9″（proxy/layout 接 nonce）；决策见 `docs/archive/csp-t9-decision-2026-07-22.md` |
 | `SUPABASE_SERVICE_ROLE_KEY` 与 RL 串库 | 误写生产库 | 已文档化（HANDOFF §2） | 对 nav-prod 写库必须用 `SUPABASE_PROD_SERVICE_ROLE` |
 | NTFS reparse point（本机） | Turbopack 构建失败 | 已在 scripts 固定 `--webpack` | 仅本机；换机器即消失 |
 | favorites 仅应用层权限 | 越权读风险 | C1 已做应用层纵深 | 触发条件：需要 DB 级保证时上 JWT/RPC（HANDOFF §4 F） |

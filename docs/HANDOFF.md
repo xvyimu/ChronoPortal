@@ -30,7 +30,7 @@
 
 **本轮已合入（master，摘要）：** `3abf5eca` typecheck 测试债 · `a1e5c7f6` csp-report → Sentry · `46e71ec3` T9′ GA 外置 + CSP builders/flags · `0ec4b8e1` / `34b1fc1a` CF Rocket Loader 关闭脚本/手册。
 
-**验证结论：** Admin 写→前台秒更（本地 dev + prod 库写测 PASS）· CF 边缘 `rocket_loader` off · `audit-edge-scripts` mangled=0 · CSP T9 去 inline 默认仍不去（决策见 `docs/csp-t9-decision-2026-07-22.md`）。
+**验证结论：** Admin 写→前台秒更（本地 dev + prod 库写测 PASS）· CF 边缘 `rocket_loader` off · `audit-edge-scripts` mangled=0 · CSP T9 去 inline 默认仍不去（决策见 `docs/archive/csp-t9-decision-2026-07-22.md`）。
 
 ## 下一步（直接做，勿重问范围）
 
@@ -54,7 +54,7 @@
 | 本文件（接手 SSOT） | `docs/HANDOFF.md` |
 | 产品形态与栈 SSOT | [`docs/PROJECT.md`](./PROJECT.md) |
 | 集成研究（方案 R） | `docs/research/2026-07-21-integrated-master-research.md` |
-| CSP T9 决策 | `docs/csp-t9-decision-2026-07-22.md` |
+| CSP T9 决策 | `docs/archive/csp-t9-decision-2026-07-22.md` |
 | 生产手册 / 告警 | `docs/PRODUCTION-RUNBOOK.md` · `docs/oncall-and-alerts.md` |
 | 归档的 v11 接手提示词 | `docs/archive/cp-claude-handoff-v11-2026-07-04.md` |
 | Continuity / Memory | `~/agent-memory/continuity/projects/nav-site.md` · `nav-site-handoff-2026-07-21.md` |
@@ -110,7 +110,7 @@ C1 favorites 权限纵深 · C2 文档 SSOT · C3 死链→Admin · Upstash+FAIL
 
 | # | 事项 | 类型 | 就绪度 | 备注 |
 |---|------|------|--------|------|
-| T9 | 去 Enforcing script `unsafe-inline` | 安全 | **默认暂缓** | 见 `docs/csp-t9-decision-2026-07-22.md`；env `CSP_SCRIPT_UNSAFE_INLINE` |
+| T9 | 去 Enforcing script `unsafe-inline` | 安全 | **默认暂缓** | 见 `docs/archive/csp-t9-decision-2026-07-22.md`；env `CSP_SCRIPT_UNSAFE_INLINE` |
 | T9′ | GA 外置 + CSP builder/开关 | 前置 | **已上线** `46e71ec3` | `/api/ga` · flags · 正式测保留 |
 | T9″ | proxy/layout 接 nonce · preview 金丝雀 | 安全 | **就绪前置** | 边缘 mangled=0；可开干 |
 | A′ | 浏览器生产 Admin 秒更 | 验证 | 可选 | 本地已 PASS |

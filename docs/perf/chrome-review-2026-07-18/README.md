@@ -1,6 +1,6 @@
 # Chrome 人工抽检证据 — 2026-07-18
 
-> 关联：`docs/frontend-perf-optimization-2026-07-18.md`  
+> 关联：`docs/archive/frontend-perf-optimization-2026-07-18.md`  
 > 生产主域：`https://yuanjia1314.ccwu.cc`  
 > 绑定 commit（截图时点附近）：`353a1fda` → `46981a1a`（favicon 后验）
 

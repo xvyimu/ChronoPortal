@@ -210,7 +210,7 @@ ChronoPortal/
 
 - **Auth：** NextAuth v5 Credentials（admin scrypt hash）+ 可选 GitHub OAuth；`proxy.ts` 收窄 Admin
 - **CSRF：** 写路径 Origin/Referer 检查（`lib/csrf`）
-- **CSP：** 静态头（next.config）+ Report-Only；T9′/T9″ 有 flags/nonce 管道，**生产默认仍可保留 script unsafe-inline**（细节见 `docs/csp-t9-decision-2026-07-22.md`）
+- **CSP：** 静态头（next.config）+ Report-Only；T9′/T9″ 有 flags/nonce 管道，**生产默认仍可保留 script unsafe-inline**（细节见 `docs/archive/csp-t9-decision-2026-07-22.md`）
 - **边缘：** Cloudflare Rocket Loader **已关**（nonce 前置）
 - 测试体量：Vitest 大套 + e2e；typecheck 干净（测绘时点以分支 tip 为准）
 

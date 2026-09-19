@@ -138,7 +138,7 @@ node scripts/audit-edge-scripts.mjs
 
 | # | 事项 | 备注 |
 |---|------|------|
-| T9 | **默认仍不去** script `unsafe-inline` | 决策：[`docs/csp-t9-decision-2026-07-22.md`](./docs/csp-t9-decision-2026-07-22.md) |
+| T9 | **默认仍不去** script `unsafe-inline` | 决策：[`docs/archive/csp-t9-decision-2026-07-22.md`](./docs/archive/csp-t9-decision-2026-07-22.md) |
 | T9″ | proxy/layout 接 nonce · preview 金丝雀 `CSP_SCRIPT_UNSAFE_INLINE=0` | 边缘阻断已清 |
 | A′ | 浏览器生产 Admin 秒更手测 | 可选；本地已验证 |
 | D–F | AI 建议标签 / 死链周报 / favorites DB JWT | 需 spec |
@@ -157,7 +157,7 @@ node scripts/audit-edge-scripts.mjs
 | [`docs/PROJECT.md`](./docs/PROJECT.md) | 形态与唯一技术栈 **SSOT** |
 | [`CONTRIBUTING.md`](./CONTRIBUTING.md) · [`SECURITY.md`](./SECURITY.md) | 贡献协作与安全漏洞报告 |
 | [`docs/HANDOFF.md`](./docs/HANDOFF.md) | Agent 续作 / 陷阱 / 命令 |
-| [`docs/csp-t9-decision-2026-07-22.md`](./docs/csp-t9-decision-2026-07-22.md) | CSP T9 评估：暂不去 unsafe-inline |
+| [`docs/archive/csp-t9-decision-2026-07-22.md`](./docs/archive/csp-t9-decision-2026-07-22.md) | CSP T9 评估：暂不去 unsafe-inline |
 | [`docs/PRODUCTION-RUNBOOK.md`](./docs/PRODUCTION-RUNBOOK.md) | 生产运维 |
 | [`GITHUB_IDENTITY.md`](./GITHUB_IDENTITY.md) | GitHub 身份 |
 | `docs/adr-*.md` | 架构决策 |

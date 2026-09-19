@@ -336,12 +336,12 @@ rtk pnpm run verify:launch-readiness -- --skip-network
 
 - [Release Manifest 2026-07-18](./release-manifest-2026-07-18.md)
 - [前台交互与性能优化清单](./frontend-perf-optimization-2026-07-18.md)
-- [Preview 环境](./preview-env-setup.md)
-- [值守与告警](./oncall-and-alerts.md)
-- [Chrome 抽检证据](./perf/chrome-review-2026-07-18/README.md)
-- [管理后台前后端 interface ADR](./adr/0009-admin-frontend-backend-interface.md)
+- [Preview 环境](../preview-env-setup.md)
+- [值守与告警](../oncall-and-alerts.md)
+- [Chrome 抽检证据](../perf/chrome-review-2026-07-18/README.md)
+- [管理后台前后端 interface ADR](../adr/0009-admin-frontend-backend-interface.md)
 - [管理后台优化收尾报告](./admin-optimization-closeout-2026-07-17.md)
 - [全栈审计](./full-stack-audit-2026-07-17.md)
-- [发布检查清单](./LAUNCH-CHECKLIST.md)
-- [生产运行手册](./PRODUCTION-RUNBOOK.md)
+- [发布检查清单](../LAUNCH-CHECKLIST.md)
+- [生产运行手册](../PRODUCTION-RUNBOOK.md)
 

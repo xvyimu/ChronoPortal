@@ -190,7 +190,7 @@ curl.exe -sS --max-time 15 "$PROD/build-info.json"
 
 权威决策与卷宗：
 
-- `docs/csp-t9-decision-2026-07-22.md`
+- `docs/archive/csp-t9-decision-2026-07-22.md`
 - `docs/ops/w3-csp-prod-gate-dossier.md`
 - `docs/ops/L2-hygiene-checklist.md` §1.3 红线
 

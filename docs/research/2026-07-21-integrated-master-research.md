@@ -4,7 +4,7 @@
 > 项目路径：`D:\projects\ChronoPortal`  
 > 生产入口：`https://yuanjia1314.ccwu.cc`  
 > 生产运行时 HEAD（实时探针 2026-07-20/21）：**`ee5a047b29e030afc60e75e57b0be913e6b2fd00`** · deploy `dpl_6GCemEkco5zaRGxxzx7Y6bRccorj`  
-> 文档权威优先级：`docs/PROGRESS.md` §〇 + `docs/release-manifest-2026-07-18.md` ＞ 历史 Phase / 旧审计 / 根目录会话日志  
+> 文档权威优先级：`docs/PROGRESS.md` §〇 + `docs/archive/release-manifest-2026-07-18.md` ＞ 历史 Phase / 旧审计 / 根目录会话日志  
 > 本文性质：**调研 + 方案对比 + 验收规格**；不执行生产部署、不改密钥、不跑迁移。
 
 ---
@@ -672,15 +672,15 @@ pnpm run verify:production -- --base-url https://yuanjia1314.ccwu.cc --expect-co
 |------|------|--------------|
 | `PRODUCT.md` | 产品宪法 | G0/反引用/原则 |
 | `docs/PROGRESS.md` §〇 | 进度 SSOT | 完成度与发布状态 |
-| `docs/release-manifest-2026-07-18.md` | 单次发布事实 | HEAD/探针/embedding |
+| `docs/archive/release-manifest-2026-07-18.md` | 单次发布事实 | HEAD/探针/embedding |
 | `docs/PRODUCTION-RUNBOOK.md` | 运维 | 发布/回滚/embed 路径 |
 | `docs/LAUNCH-CHECKLIST.md` | 短清单 | 验收命令 |
-| `docs/optimization-and-release-plan-2026-07-18.md` | 发布证据链方法 | 约束与阶段门 |
-| `docs/architecture-optimization-plan-2026-07-06.md` | 结构优化 | R1/D1/S1 根基 |
-| `docs/backlog-architecture-2026-07-18.md` | T7–T10 | 触发式债 |
-| `docs/full-stack-audit-2026-07-17.md` | 问题池 | 过滤已修，保留残余 |
-| `docs/frontend-perf-optimization-2026-07-18.md` | 前台体验 | 打磨与性能预算 |
-| `docs/admin-optimization-closeout-2026-07-17.md` | Admin | 工作台形态 |
+| `docs/archive/optimization-and-release-plan-2026-07-18.md` | 发布证据链方法 | 约束与阶段门 |
+| `docs/archive/architecture-optimization-plan-2026-07-06.md` | 结构优化 | R1/D1/S1 根基 |
+| `docs/archive/backlog-architecture-2026-07-18.md` | T7–T10 | 触发式债 |
+| `docs/archive/full-stack-audit-2026-07-17.md` | 问题池 | 过滤已修，保留残余 |
+| `docs/archive/frontend-perf-optimization-2026-07-18.md` | 前台体验 | 打磨与性能预算 |
+| `docs/archive/admin-optimization-closeout-2026-07-17.md` | Admin | 工作台形态 |
 | ADR-001~009 | 决策记忆 | 方案否决理由 |
 | `PROJECT-AUDIT.md` | 历史 | **仅警示漂移，不采信完成度** |
 
@@ -1276,10 +1276,10 @@ pnpm run docs:openapi
 | 用途 | 路径 |
 |------|------|
 | 进度 SSOT | `docs/PROGRESS.md` §〇 |
-| 发布事实 | `docs/release-manifest-2026-07-18.md` |
+| 发布事实 | `docs/archive/release-manifest-2026-07-18.md` |
 | 运维 | `docs/PRODUCTION-RUNBOOK.md` |
 | 上线清单 | `docs/LAUNCH-CHECKLIST.md` |
-| 架构债 | `docs/backlog-architecture-2026-07-18.md` |
+| 架构债 | `docs/archive/backlog-architecture-2026-07-18.md` |
 | 产品宪法 | `PRODUCT.md` |
 | 本报告 | `docs/research/2026-07-21-integrated-master-research.md` |
 

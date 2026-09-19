@@ -337,7 +337,7 @@ curl.exe -sS --max-time 15 "https://yuanjia1314.ccwu.cc/build-info.json"
 | Stage A 阻断书 | `docs/ops/csp-dynamic-preview-stage-a-blocker-2026-07-23.md` |
 | Canary runbook | `docs/ops/csp-dynamic-preview-canary-2026-07-22.md` |
 | 生产 CSP 卷宗 | `docs/ops/w3-csp-prod-gate-dossier.md` |
-| T9 决策 | `docs/csp-t9-decision-2026-07-22.md` |
+| T9 决策 | `docs/archive/csp-t9-decision-2026-07-22.md` |
 | Env 模板 | `.env.local.example`（CSP 段） |
 | Flags / builders | `lib/csp.ts` |
 | Report sink | `app/api/csp-report/route.ts` |

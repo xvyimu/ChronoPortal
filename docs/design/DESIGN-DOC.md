@@ -3,7 +3,7 @@
 > 设计定位：面向开发者的综合资源导航平台 · 一站式覆盖 AI/云服务/开发工具/开源项目/设计/学习
 >
 > 文档版本 v12.1 · 2026-07-21 · **513 站点 · 9 分类** · next-auth v5 · 服务端搜索 + pgvector 语义搜索 · GitHub OAuth  
-> **实现与进度 SSOT**：`docs/PROGRESS.md` §〇 + `docs/release-manifest-2026-07-18.md`（本文为设计说明，站点数会漂移）
+> **实现与进度 SSOT**：`docs/PROGRESS.md` §〇 + `docs/archive/release-manifest-2026-07-18.md`（本文为设计说明，站点数会漂移）
 
 ---
 
@@ -256,4 +256,4 @@
 ---
 
 > 文档版本 v12.1 · 2026-07-21  
-> 进度 SSOT：`docs/PROGRESS.md` §〇 + `docs/release-manifest-2026-07-18.md`
+> 进度 SSOT：`docs/PROGRESS.md` §〇 + `docs/archive/release-manifest-2026-07-18.md`

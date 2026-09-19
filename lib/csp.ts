@@ -5,7 +5,7 @@
  * Optional dynamic/nonce path (proxy + CSP_DYNAMIC=1) reuses the same builders
  * so Enforcing / Report-Only stay in lockstep.
  *
- * Env flags (see .env.local.example + docs/csp-t9-decision-2026-07-22.md):
+ * Env flags (see .env.local.example + docs/archive/csp-t9-decision-2026-07-22.md):
  * - CSP_REPORT_ONLY=0           disable Report-Only header
  * - CSP_SCRIPT_UNSAFE_INLINE=0  drop script 'unsafe-inline' from Enforcing (default on)
  * - CSP_DYNAMIC=1               middleware owns CSP (enables per-request nonce)

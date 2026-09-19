@@ -15,7 +15,7 @@ import type { NextFetchEvent, NextMiddleware, NextRequest } from "next/server";
  * and forwards `x-nonce` on the request for layout / next/script.
  *
  * Production default keeps CSP_DYNAMIC off — do not flip without preview canary.
- * See docs/csp-t9-decision-2026-07-22.md.
+ * See docs/archive/csp-t9-decision-2026-07-22.md.
  */
 
 function isDevEnv(): boolean {

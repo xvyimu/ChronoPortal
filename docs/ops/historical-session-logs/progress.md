@@ -96,10 +96,10 @@
   - 读取项目 `AGENTS.md`、共享 Claude 配置、记忆索引和相关技能说明。
   - 执行 `rtk gain`、项目 discovery、handoff 查询、`git status --short` 和 `git diff --stat`。
   - 核对深度审计、发布审计、ADR-009、发布检查清单、生产运行手册和管理后台收尾报告。
-  - 新建 `docs/optimization-and-release-plan-2026-07-18.md`。
+  - 新建 `docs/archive/optimization-and-release-plan-2026-07-18.md`。
   - 仅规划文档；未修改业务代码，未执行数据库迁移、commit、push 或部署。
 - 创建/修改的文件：
-  - `docs/optimization-and-release-plan-2026-07-18.md`
+  - `docs/archive/optimization-and-release-plan-2026-07-18.md`
   - `task_plan.md`
   - `findings.md`
   - `progress.md`

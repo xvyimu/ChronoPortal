@@ -26,7 +26,7 @@
 |---|------|----------|
 | 1 | T9″ 代码已合入 master | `git log -1 --oneline` 含 T-CP-001 / `getCspNonce` 相关提交（≥ `80e12388`） |
 | 2 | 单元测试绿 | `pnpm exec vitest run tests/csp.test.ts` |
-| 3 | Rocket Loader / 边缘 mangled type 已清 | `node scripts/audit-edge-scripts.mjs` → `mangledScriptTypeCount=0` · `rocketLoaderHints=false`（生产 host；见 `docs/cloudflare-edge-csp-hardening-2026-07-22.md`） |
+| 3 | Rocket Loader / 边缘 mangled type 已清 | `node scripts/audit-edge-scripts.mjs` → `mangledScriptTypeCount=0` · `rocketLoaderHints=false`（生产 host；见 `docs/archive/cloudflare-edge-csp-hardening-2026-07-22.md`） |
 | 4 | Preview 可部署 | Vercel 项目 `nav-site`（或当前 ChronoPortal 绑定项目）；scope 与 `docs/preview-env-setup.md` 一致 |
 | 5 | 操作对象是 **Preview** env | Vercel → Project → Settings → Environment Variables → 目标选 **Preview**，**不要**勾 Production |
 | 6 | 目标 URL 不是生产域 | `$BASE` 为本次部署生成的 `*.vercel.app` URL（或 `localhost`），不等于 `https://yuanjia1314.ccwu.cc` |
@@ -227,8 +227,8 @@ Redeploy Preview。
 
 | 资源 | 路径 |
 |------|------|
-| T9 决策 | `docs/csp-t9-decision-2026-07-22.md` |
-| 边缘关闭清单 | `docs/cloudflare-edge-csp-hardening-2026-07-22.md` |
+| T9 决策 | `docs/archive/csp-t9-decision-2026-07-22.md` |
+| 边缘关闭清单 | `docs/archive/cloudflare-edge-csp-hardening-2026-07-22.md` |
 | L2 P0 board | `docs/ops/L2-P0-action-board-2026-07-22.md` |
 | Preview env | `docs/preview-env-setup.md` |
 | Env 模板 | `.env.local.example`（CSP 段） |

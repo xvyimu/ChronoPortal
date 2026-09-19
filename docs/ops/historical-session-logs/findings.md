@@ -56,7 +56,7 @@
 
 ### 文档决策
 
-- 新增 `docs/optimization-and-release-plan-2026-07-18.md`，作为当前优化范围、依赖、授权门和完成定义的主入口。
+- 新增 `docs/archive/optimization-and-release-plan-2026-07-18.md`，作为当前优化范围、依赖、授权门和完成定义的主入口。
 - ADR 只记录长期决策；LAUNCH-CHECKLIST 保持短清单；PRODUCTION-RUNBOOK 保持操作与故障处理；每个候选另建 release manifest、migration ledger 和 validation report。
 - 候选 SHA 存在前不创建空的 release 证据目录，避免模板被误读为已验证事实。
 - README、PROGRESS、API 文档和运行手册中的生产声明，待候选或生产证据形成后再校准。

@@ -6,9 +6,9 @@
 
 ## 〇、2026-07-18 全日收口（权威入口）
 
-**单次事实源**：[`docs/release-manifest-2026-07-18.md`](./release-manifest-2026-07-18.md)  
-**主计划**：[`docs/optimization-and-release-plan-2026-07-18.md`](./optimization-and-release-plan-2026-07-18.md) §13  
-**前台性能**：[`docs/frontend-perf-optimization-2026-07-18.md`](./frontend-perf-optimization-2026-07-18.md)  
+**单次事实源**：[`docs/archive/release-manifest-2026-07-18.md`](./archive/release-manifest-2026-07-18.md)  
+**主计划**：[`docs/archive/optimization-and-release-plan-2026-07-18.md`](./archive/optimization-and-release-plan-2026-07-18.md) §13  
+**前台性能**：[`docs/archive/frontend-perf-optimization-2026-07-18.md`](./archive/frontend-perf-optimization-2026-07-18.md)  
 **Preview / 值守 / Embed**：`docs/preview-env-setup.md` · `docs/oncall-and-alerts.md` · `docs/embed-fly-deploy.md`
 
 | 项 | 状态 |

@@ -45,7 +45,7 @@
 ### 阶段 6：优化与发布文档规划（2026-07-18）
 - [x] 恢复共享规则、项目上下文与当前工作树状态
 - [x] 核对深度审计、发布审计、ADR、发布清单和运行手册
-- [x] 新建 `docs/optimization-and-release-plan-2026-07-18.md`
+- [x] 新建 `docs/archive/optimization-and-release-plan-2026-07-18.md`
 - [x] 检查文档链接、格式与 git diff
 - [x] 确认本轮未修改业务代码、未执行迁移、未提交或部署
 - **状态：** complete

@@ -168,7 +168,7 @@ node scripts/audit-edge-scripts.mjs
 
 - Canary：`docs/ops/csp-dynamic-preview-canary-2026-07-22.md`
 - Stage A 阻断：`docs/ops/csp-dynamic-preview-stage-a-blocker-2026-07-23.md`
-- T9：`docs/csp-t9-decision-2026-07-22.md`
+- T9：`docs/archive/csp-t9-decision-2026-07-22.md`
 - Headers DRIFT：`docs/ops/headers-drift-platform-remediation-2026-07.md`
 - W3 报告：`docs/ops/w3-arch-upgrade-chronoportal-claude.md`
 - 生产门闩协议：`D:\orca\.planning\portfolio-arch-upgrade-2026h2\task_plan.md` §6

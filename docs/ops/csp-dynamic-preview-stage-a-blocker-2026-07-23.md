@@ -101,4 +101,4 @@ https://vercel.com HEAD → 200（控制面可达）
 - W2 报告：`docs/ops/w2-arch-upgrade-chronoportal-claude.md`
 - W3 报告：`docs/ops/w3-arch-upgrade-chronoportal-claude.md`
 - 生产 CSP 卷宗：`docs/ops/w3-csp-prod-gate-dossier.md`
-- T9 决策：`docs/csp-t9-decision-2026-07-22.md`
+- T9 决策：`docs/archive/csp-t9-decision-2026-07-22.md`

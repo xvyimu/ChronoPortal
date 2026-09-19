@@ -21,12 +21,12 @@
 
 | 主题 | 文档 |
 |------|------|
-| CSP T9 决策 | `docs/csp-t9-decision-2026-07-22.md` |
-| CF 边缘 | `docs/cloudflare-edge-csp-hardening-2026-07-22.md` |
+| CSP T9 决策 | `docs/archive/csp-t9-decision-2026-07-22.md` |
+| CF 边缘 | `docs/archive/cloudflare-edge-csp-hardening-2026-07-22.md` |
 | 发布短清单 | `docs/LAUNCH-CHECKLIST.md` |
 | 生产手册 | `docs/PRODUCTION-RUNBOOK.md` |
 | 安全政策 | `SECURITY.md` |
-| 全栈审计（历史） | `docs/full-stack-audit-2026-07-17.md` |
+| 全栈审计（历史） | `docs/archive/full-stack-audit-2026-07-17.md` |
 | RLS SQL | `scripts/rls-audit.sql` |
 | 非生产 RLS 审计 | `docs/ops/rls-audit-nonproduction-2026-07-22.md` |
 
