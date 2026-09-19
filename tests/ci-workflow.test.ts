@@ -104,6 +104,13 @@ describe("CI workflow launch behavior", () => {
     // audit stays quiet because the override is what pinned it. Use
     // `>=<first_patched> <<next_major>` instead. Sole allowed exception is a line
     // with no published fix (brace-expansion@1 -> 1.1.16, DEFER; see docs/ops card).
+    //
+    // 2026-09-21: this guard used to test the RAW captured range, so a quoted
+    // exact pin (`fast-uri: '3.1.4'`) read as `'3.1.4'` and never matched
+    // /^\d+\.\d+\.\d+/ — it slipped through the very gate meant to catch it.
+    // fast-uri then sat exactly below the 2026-09-02 patch line (3.1.6) while
+    // this test stayed green. Strip quotes and trailing comments before
+    // classifying so quoted and unquoted exact pins are treated alike.
     const workspace = readFileSync(
       join(process.cwd(), "pnpm-workspace.yaml"),
       "utf8"
@@ -116,9 +123,15 @@ describe("CI workflow launch behavior", () => {
     for (const line of overrides.split("\n")) {
       const match = line.match(/^\s{2}'?([^':#\s]+)'?:\s*(.+?)\s*$/);
       if (!match) continue;
-      const [, name, range] = match;
+      const [, name, rawRange] = match;
       if (name === "overrides") continue;
       if (exactPinExceptions.has(name)) continue;
+      // Drop any inline `# comment`, then any surrounding quotes, so a quoted
+      // exact pin is not mistaken for a range.
+      const range = rawRange
+        .replace(/\s+#.*$/, "")
+        .trim()
+        .replace(/^['"]|['"]$/g, "");
       // Bare exact version (no >=, ^, ~ or other range operator).
       if (/^\d+\.\d+\.\d+/.test(range)) offenders.push(`${name}: ${range}`);
     }
