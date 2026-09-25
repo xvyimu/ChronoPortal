@@ -1,0 +1,3 @@
+[mcp_servers.supabase-dev]
+url = "https://mcp.supabase.com/mcp?project_ref=nzaocqwumlmbewoddysd"
+bearer_token_env_var = "SUPABASE_DEV_MCP_PAT"

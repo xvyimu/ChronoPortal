@@ -18,10 +18,27 @@ overrides:
   # Guarded by tests/ci-workflow.test.ts "keeps security overrides on lower-bound ranges".
   #
   # GHSA-r28c-9q8g-f849 (postcss, high) — vulnerable <=8.5.17, first patched 8.5.18
-  postcss: '>=8.5.18 <9'
+  # 2026-09-21: 上界从 <9 收到 <8.6。audit 另开一条 moderate
+  # GHSA-fxqj-rqcc-2cmp（vulnerable <=8.5.22），lock 里解析成的 8.5.18 正好落在里面；
+  # 下界抬到 8.5.23 —— 与 next 16.3.5 自带的 postcss 版本对齐。
+  postcss: '>=8.5.23 <8.6'
+  # GHSA-28wg-ghj8-5hjv（<3.3.16）与 GHSA-2v37-7h3g-55p8（<3.3.18）两条 high，
+  # 经 postcss → 本包进入 prod 树。上界 <4：4.x 是 major，不属安全升级范围。
+  nanoid: '>=3.3.18 <4'
+  # GHSA-c83g-rgw3-j3cx / GHSA-73wf-gq98-2v4g 两条 high，vulnerable <=4.28.6。
+  # 经 next → styled-jsx → @babel/helper-compilation-targets 进入 prod 树。
+  browserslist: '>=4.28.7 <5'
+  # GHSA-w5vr-8v7q-w6rv moderate（>=2.0.0 <2.11.0）。next 声明 ^2.9.19、
+  # browserslist@4.29 声明 ^2.11.23，不抬则 lock 里并存两份，低位那份就是这条。
+  baseline-browser-mapping: '>=2.11.0'
   # Dependabot highs 2026-07-21 — force patched transitives
   # GHSA-52cp-r559-cp3m (js-yaml) — first patched 4.3.0
-  js-yaml: '>=4.3.0 <5'
+  # 2026-09-21: 上界从 <5 改 <4.4。audit 又开出两条 high
+  #   GHSA-5p4m-2wfm-xmqj vulnerable >=4.0.0 <4.3.1
+  #   GHSA-2883-xcg3-v3hh vulnerable >=4.0.0 <4.3.2
+  # 4.3.0 只满足前者的下界，所以上限跟着抬到 4.3.2；<5 会把 5.x 拉进来，
+  # 而 js-yaml 5 是 major（本仓对外契约是 4.x，见 tests 里的用法），不属本次范围。
+  js-yaml: '>=4.3.2 <4.4'
   # GHSA-mh99-v99m-4gvg (brace-expansion, high DoS) — vulnerable >=4.0.0 <5.0.8.
   # MUST stay major-split. A blanket `brace-expansion: 5.x` override breaks the
   # ESLint toolchain: minimatch@3 does `require('brace-expansion')()` (old CJS
@@ -35,10 +52,17 @@ overrides:
   #                             and minimatch@3 cannot take v5 (see above) — no fix exists.
   #                             DEFER; dev-only (`pnpm audit --prod` exits 0).
   'brace-expansion@2': '>=2.1.3 <3' # maintenance-v2 line
-  'brace-expansion@5': '>=5.0.8 <6' # first patched on the latest line
+  # 2026-09-21: 下界从 5.0.8 抬到 5.0.9 —— audit 又开一条 high
+  # GHSA-rgw5-rvv9-x895，vulnerable >=4.0.0 <5.0.9。本文件 policy 警告的
+  # 「精确钉/旧下界变 stale pin」就是这个形态：5.0.8 曾是「已经修好的那版」，
+  # 现在正是它把 4.x 线摁在漏洞区间里。`p` 参数 CVE 在这一线也同时被这条盖住。
+  'brace-expansion@5': '>=5.0.9 <6' # latest line; 4.x is remapped here (see @2/@1)
   # Dependabot / GHSA 2026-07-23 — lower bounds per the policy above.
   # GHSA-f88m-g3jw-g9cj (sharp) — first patched 0.35.3 (also a direct dep)
-  sharp: '>=0.35.3 <0.36'
+  # 2026-09-21: 上界从 <0.36 收到 <0.36（不变），下界抬到 0.35.4 —— audit 又开一条
+  # high GHSA-rgj7-g3m4-5g8c，vulnerable <0.35.4。0.35.3 曾是「已经修好的那版」，
+  # 现在正是它把 sharp 摁在漏洞区间里（policy 里说的 stale pin，第二次踩到）。
+  sharp: '>=0.35.4 <0.36'
   # GHSA-4c8g-83qw-93j6 + GHSA-v2hh-gcrm-f6hx（fast-uri），外加 2026-09-02 那批
   # 四条（GHSA-5jgf-p345-68v8 / fph4-wmhf-6fwf / f65p-4m7j-42xc / jqff-g426-hqxp），
   # 把 3.x 线的首个修复版一路推到 **3.1.6**。原写的 3.1.4 是 2026-07-21 那批的
