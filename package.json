@@ -93,7 +93,7 @@
     "shadcn": "4.14.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.1.0",
-    "undici": ">=7.29.0 <8",
+    "undici": ">=7.29.0 <9",
     "vitest": "^4.1.11"
   },
   "repository": {
