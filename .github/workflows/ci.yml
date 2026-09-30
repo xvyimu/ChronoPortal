@@ -90,8 +90,8 @@ jobs:
       - name: 生产构建
         run: pnpm run build
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.CI_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.CI_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.CI_SUPABASE_URL || secrets.SOURCE_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.CI_SUPABASE_ANON_KEY || secrets.SOURCE_SUPABASE_ANON_KEY }}
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v7
@@ -135,8 +135,8 @@ jobs:
           pnpm start -p 3264 &
           sleep 10
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.CI_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.CI_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.CI_SUPABASE_URL || secrets.SOURCE_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.CI_SUPABASE_ANON_KEY || secrets.SOURCE_SUPABASE_ANON_KEY }}
           RESOURCE_LIBRARY_ANON_KEY: ${{ secrets.RESOURCE_LIBRARY_ANON_KEY }}
 
       - name: 健康检查
@@ -250,8 +250,8 @@ jobs:
         continue-on-error: true
         run: pnpm run check:links
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.CI_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.CI_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.CI_SUPABASE_URL || secrets.SOURCE_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.CI_SUPABASE_ANON_KEY || secrets.SOURCE_SUPABASE_ANON_KEY }}
 
       - name: 上传链接检测报告
         if: always()
